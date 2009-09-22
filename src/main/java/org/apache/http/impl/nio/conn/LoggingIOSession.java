@@ -193,11 +193,11 @@ public class LoggingIOSession implements IOSession {
                 log.debug("I/O session " + id + " " + session + ": " + bytesRead + " bytes read");
             }
             if (bytesRead > 0 && wirelog.isEnabled()) {
-            	ByteBuffer b = dst.duplicate();
-            	int p = b.position();
-            	b.limit(p);
-            	b.position(p - bytesRead);
-            	wirelog.input(b);
+                ByteBuffer b = dst.duplicate();
+                int p = b.position();
+                b.limit(p);
+                b.position(p - bytesRead);
+                wirelog.input(b);
             }
             return bytesRead;
         }
@@ -208,11 +208,11 @@ public class LoggingIOSession implements IOSession {
                 log.debug("I/O session " + id + " " + session + ": " + byteWritten + " bytes written");
             }
             if (byteWritten > 0 && wirelog.isEnabled()) {
-            	ByteBuffer b = src.duplicate();
-            	int p = b.position();
-            	b.limit(p);
-            	b.position(p - byteWritten);
-            	wirelog.output(b);
+                ByteBuffer b = src.duplicate();
+                int p = b.position();
+                b.limit(p);
+                b.position(p - byteWritten);
+                wirelog.output(b);
             }
             return byteWritten;
         }

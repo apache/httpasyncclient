@@ -64,14 +64,14 @@ class InternalRequestExecutionHandler implements NHttpRequestExecutionHandler {
     }
     
     public ConsumingNHttpEntity responseEntity(
-    		final HttpResponse response, final HttpContext context) throws IOException {
+            final HttpResponse response, final HttpContext context) throws IOException {
         return new BufferingNHttpEntity(
                 response.getEntity(),
                 new HeapByteBufferAllocator());
     }
 
     public void handleResponse(
-    		final HttpResponse response, final HttpContext context) throws IOException {
+            final HttpResponse response, final HttpContext context) throws IOException {
         HttpExchangeImpl httpx = (HttpExchangeImpl) context.removeAttribute(HTTP_EXCHANGE);
         if (httpx != null) {
             httpx.completed(response);

@@ -72,7 +72,7 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
         if (this.log.isDebugEnabled()) {
             if (!future.isDone()) {
                 this.log.debug("I/O session could not be allocated immediately: " +
-                		"route[" + route + "][state: " + state + "]");
+                        "route[" + route + "][state: " + state + "]");
             }
         }
         return future;
@@ -112,15 +112,15 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
     }
     
     public void setTotalMax(int max) {
-    	this.pool.setTotalMax(max);
+        this.pool.setTotalMax(max);
     }
 
     public void setDefaultMaxPerHost(int max) {
-    	this.pool.setDefaultMaxPerHost(max);
+        this.pool.setDefaultMaxPerHost(max);
     }
 
     public void setMaxPerHost(final HttpRoute route, int max) {
-    	this.pool.setMaxPerHost(route, max);
+        this.pool.setMaxPerHost(route, max);
     }
     
     public synchronized void shutdown() {

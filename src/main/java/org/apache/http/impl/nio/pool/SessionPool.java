@@ -359,7 +359,7 @@ public class SessionPool<T> {
         return super.toString();
     }
 
-	class InternalSessionRequestCallback implements SessionRequestCallback {
+    class InternalSessionRequestCallback implements SessionRequestCallback {
 
         public void completed(final SessionRequest request) {
             requestCompleted(request);

@@ -120,15 +120,15 @@ public class BasicManagedIOSession implements ManagedIOSession {
     @Override
     public String toString() {
         HttpRoute route = this.entry.getRoute();
-    	StringBuilder buffer = new StringBuilder();
+        StringBuilder buffer = new StringBuilder();
         buffer.append("HTTP connection: ");
         if (route.getLocalAddress() != null) {
             buffer.append(route.getLocalAddress());
             buffer.append("->");
         }
         for (int i = 0; i < route.getHopCount(); i++) {
-        	buffer.append(route.getHopTarget(i));
-        	buffer.append("->");
+            buffer.append(route.getHopTarget(i));
+            buffer.append("->");
         }
         buffer.append(route.getTargetHost());
         if (this.released) {
