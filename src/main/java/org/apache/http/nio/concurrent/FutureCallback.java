@@ -26,14 +26,12 @@
  */
 package org.apache.http.nio.concurrent;
 
-import java.util.concurrent.Future;
-
 public interface FutureCallback<T> {
 
-    void completed(Future<T> future);
+    void completed(T result);
 
-    void failed(Future<T> future);
+    void failed(Exception ex);
 
-    void cancelled(Future<T> future);
+    void cancelled();
 
 }

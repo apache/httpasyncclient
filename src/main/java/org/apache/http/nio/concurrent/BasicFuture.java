@@ -97,10 +97,10 @@ public class BasicFuture<T> implements Future<T> {
         }
         this.completed = true;
         this.result = result;
-        notifyAll();
         if (this.callback != null) {
-            this.callback.completed(this);
+            this.callback.completed(result);
         }
+        notifyAll();
         return true;
     }
 
@@ -110,10 +110,10 @@ public class BasicFuture<T> implements Future<T> {
         }
         this.completed = true;
         this.ex = exception;
-        notifyAll();
         if (this.callback != null) {
-            this.callback.failed(this);
+            this.callback.failed(exception);
         }
+        notifyAll();
         return true;
     }
 
@@ -123,10 +123,10 @@ public class BasicFuture<T> implements Future<T> {
         }
         this.completed = true;
         this.cancelled = true;
-        notifyAll();
         if (this.callback != null) {
-            this.callback.cancelled(this);
+            this.callback.cancelled();
         }
+        notifyAll();
         return true;
     }
 

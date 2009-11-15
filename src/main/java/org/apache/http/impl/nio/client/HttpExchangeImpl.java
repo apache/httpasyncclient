@@ -86,40 +86,33 @@ class HttpExchangeImpl implements HttpExchange {
         this.responseFuture.cancel(true);
     }
 
-    private synchronized void sessionRequestCompleted() {
-        try {
-            this.managedSession = this.sessionFuture.get();
-            if (this.managedSession == null || this.sessionFuture.isCancelled()) {
-                this.responseFuture.cancel(true);
-            } else {
-                IOSession iosession = this.managedSession.getSession();
-                iosession.setAttribute(InternalRequestExecutionHandler.HTTP_EXCHANGE, this);
-                iosession.setEvent(SelectionKey.OP_WRITE);
-            }
-        } catch (InterruptedException ex) {
-            this.responseFuture.cancel(true);
-        } catch (ExecutionException ex) {
-            Throwable cause = ex.getCause(); 
-            if (cause != null && cause instanceof Exception) {
-                this.responseFuture.failed((Exception) cause);
-            } else {
-                this.responseFuture.failed(ex);
-            }
-        }
+    private synchronized void requestCompleted(final ManagedIOSession session) {
+        this.managedSession = session;
+        IOSession iosession = session.getSession();
+        iosession.setAttribute(InternalRequestExecutionHandler.HTTP_EXCHANGE, this);
+        iosession.setEvent(SelectionKey.OP_WRITE);
+    }
+    
+    private synchronized void requestFailed(final Exception ex) {
+        this.responseFuture.failed(ex);
+    }
+    
+    private synchronized void requestCancelled() {
+        this.responseFuture.cancel(true);
     }
     
     class InternalFutureCallback implements FutureCallback<ManagedIOSession> {
 
-        public void completed(final Future<ManagedIOSession> future) {
-            sessionRequestCompleted();
+        public void completed(final ManagedIOSession session) {
+            requestCompleted(session);
         }
 
-        public void failed(final Future<ManagedIOSession> future) {
-            sessionRequestCompleted();
+        public void failed(final Exception ex) {
+            requestFailed(ex);
         }
         
-        public void cancelled(final Future<ManagedIOSession> future) {
-            sessionRequestCompleted();            
+        public void cancelled() {
+            requestCancelled();            
         }
 
     }
