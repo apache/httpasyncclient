@@ -55,8 +55,8 @@ class HttpExchangeImpl implements HttpExchange {
             final IOSessionManager<HttpRoute> sessmrg) {
         super();
         this.request = request;
-        this.sessionFuture = sessmrg.leaseSession(route, state, new InternalFutureCallback());
         this.responseFuture = new BasicFuture<HttpResponse>(null);
+        this.sessionFuture = sessmrg.leaseSession(route, state, new InternalFutureCallback());
     }
 
     public boolean isCompleted() {
