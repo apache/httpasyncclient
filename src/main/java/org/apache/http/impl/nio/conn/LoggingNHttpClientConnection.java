@@ -32,7 +32,6 @@ import java.nio.channels.ReadableByteChannel;
 import org.apache.commons.logging.Log;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
-import org.apache.http.HttpMessage;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseFactory;
@@ -60,58 +59,57 @@ public class LoggingNHttpClientConnection extends DefaultNHttpClientConnection {
     }
 
     @Override
-    protected NHttpMessageWriter createRequestWriter(
-            final SessionOutputBuffer buffer, 
+    protected NHttpMessageWriter<HttpRequest> createRequestWriter(
+            final SessionOutputBuffer buffer,
             final HttpParams params) {
         return new LoggingNHttpMessageWriter(
                 super.createRequestWriter(buffer, params));
     }
 
     @Override
-    protected NHttpMessageParser createResponseParser(
-            final SessionInputBuffer buffer, 
+    protected NHttpMessageParser<HttpResponse> createResponseParser(
+            final SessionInputBuffer buffer,
             final HttpResponseFactory responseFactory,
             final HttpParams params) {
         return new LoggingNHttpMessageParser(
                 super.createResponseParser(buffer, responseFactory, params));
     }
 
-    class LoggingNHttpMessageWriter implements NHttpMessageWriter {
+    class LoggingNHttpMessageWriter implements NHttpMessageWriter<HttpRequest> {
 
-        private final NHttpMessageWriter writer;
-        
-        public LoggingNHttpMessageWriter(final NHttpMessageWriter writer) {
+        private final NHttpMessageWriter<HttpRequest> writer;
+
+        public LoggingNHttpMessageWriter(final NHttpMessageWriter<HttpRequest> writer) {
             super();
             this.writer = writer;
         }
-        
+
         public void reset() {
             this.writer.reset();
         }
 
-        public void write(final HttpMessage message) throws IOException, HttpException {
-            if (message != null && headerlog.isDebugEnabled()) {
-                HttpRequest request = (HttpRequest) message; 
+        public void write(final HttpRequest request) throws IOException, HttpException {
+            if (request != null && headerlog.isDebugEnabled()) {
                 headerlog.debug(">> " + request.getRequestLine().toString());
                 Header[] headers = request.getAllHeaders();
                 for (int i = 0; i < headers.length; i++) {
                     headerlog.debug(">> " + headers[i].toString());
                 }
             }
-            this.writer.write(message);
+            this.writer.write(request);
         }
-        
-    }
-    
-    class LoggingNHttpMessageParser implements NHttpMessageParser {
 
-        private final NHttpMessageParser parser;
-        
-        public LoggingNHttpMessageParser(final NHttpMessageParser parser) {
+    }
+
+    class LoggingNHttpMessageParser implements NHttpMessageParser<HttpResponse> {
+
+        private final NHttpMessageParser<HttpResponse> parser;
+
+        public LoggingNHttpMessageParser(final NHttpMessageParser<HttpResponse> parser) {
             super();
             this.parser = parser;
         }
-        
+
         public void reset() {
             this.parser.reset();
         }
@@ -120,10 +118,9 @@ public class LoggingNHttpClientConnection extends DefaultNHttpClientConnection {
             return this.parser.fillBuffer(channel);
         }
 
-        public HttpMessage parse() throws IOException, HttpException {
-            HttpMessage message = this.parser.parse();
+        public HttpResponse parse() throws IOException, HttpException {
+            HttpResponse response = this.parser.parse();
             if (headerlog.isDebugEnabled()) {
-                HttpResponse response = (HttpResponse) message; 
                 if (response != null && headerlog.isDebugEnabled()) {
                     headerlog.debug("<< " + response.getStatusLine().toString());
                     Header[] headers = response.getAllHeaders();
@@ -132,9 +129,9 @@ public class LoggingNHttpClientConnection extends DefaultNHttpClientConnection {
                     }
                 }
             }
-            return message;
+            return response;
         }
-        
+
     }
 
 }
