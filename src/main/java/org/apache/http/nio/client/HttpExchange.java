@@ -36,9 +36,9 @@ public interface HttpExchange {
     boolean isCompleted();
 
     void cancel();
-    
+
     HttpRequest getRequest();
-    
+
     HttpResponse awaitResponse() throws ExecutionException, InterruptedException;
-    
+
 }

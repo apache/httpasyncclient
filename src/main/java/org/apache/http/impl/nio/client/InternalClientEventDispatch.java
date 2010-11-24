@@ -40,11 +40,11 @@ class InternalClientEventDispatch extends DefaultClientIOEventDispatch {
 
     private static final String HEADERS = "org.apache.http.headers";
     private static final String WIRE = "org.apache.http.wire";
-    
+
     private Log log;
-    
+
     InternalClientEventDispatch(
-            final NHttpClientHandler handler, 
+            final NHttpClientHandler handler,
             final HttpParams params) {
         super(handler, params);
         this.log = LogFactory.getLog(getClass());
@@ -60,11 +60,11 @@ class InternalClientEventDispatch extends DefaultClientIOEventDispatch {
         }
         if (headerlog.isDebugEnabled()) {
             return new LoggingNHttpClientConnection(
-                    headerlog, 
+                    headerlog,
                     session,
                     createHttpResponseFactory(),
                     this.allocator,
-                    this.params); 
+                    this.params);
         } else {
             return super.createConnection(session);
         }
@@ -109,5 +109,5 @@ class InternalClientEventDispatch extends DefaultClientIOEventDispatch {
         }
         super.timeout(session);
     }
-    
+
 }

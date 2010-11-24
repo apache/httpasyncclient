@@ -29,9 +29,9 @@ package org.apache.http.impl.nio.pool;
 public interface PoolEntryCallback<T> {
 
     void completed(PoolEntry<T> entry);
-    
+
     void failed(Exception ex);
-    
+
     void cancelled();
-    
+
 }

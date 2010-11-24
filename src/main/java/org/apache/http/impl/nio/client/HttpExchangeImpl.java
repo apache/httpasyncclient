@@ -47,7 +47,7 @@ class HttpExchangeImpl implements HttpExchange {
     private final BasicFuture<HttpResponse> responseFuture;
 
     private ManagedIOSession managedSession;
-    
+
     public HttpExchangeImpl(
             final HttpRequest request,
             final HttpRoute route,
@@ -62,11 +62,11 @@ class HttpExchangeImpl implements HttpExchange {
     public boolean isCompleted() {
         return this.responseFuture.isDone();
     }
-    
+
     public HttpRequest getRequest() {
         return this.request;
     }
-    
+
     public HttpResponse awaitResponse() throws ExecutionException, InterruptedException {
         return this.responseFuture.get();
     }
@@ -77,7 +77,7 @@ class HttpExchangeImpl implements HttpExchange {
         }
         this.responseFuture.completed(response);
     }
-    
+
     public synchronized void cancel() {
         this.sessionFuture.cancel(true);
         if (this.managedSession != null) {
@@ -92,15 +92,15 @@ class HttpExchangeImpl implements HttpExchange {
         iosession.setAttribute(InternalRequestExecutionHandler.HTTP_EXCHANGE, this);
         iosession.setEvent(SelectionKey.OP_WRITE);
     }
-    
+
     private synchronized void requestFailed(final Exception ex) {
         this.responseFuture.failed(ex);
     }
-    
+
     private synchronized void requestCancelled() {
         this.responseFuture.cancel(true);
     }
-    
+
     class InternalFutureCallback implements FutureCallback<ManagedIOSession> {
 
         public void completed(final ManagedIOSession session) {
@@ -110,11 +110,11 @@ class HttpExchangeImpl implements HttpExchange {
         public void failed(final Exception ex) {
             requestFailed(ex);
         }
-        
+
         public void cancelled() {
-            requestCancelled();            
+            requestCancelled();
         }
 
     }
-    
+
 }

@@ -32,8 +32,8 @@ import org.apache.http.nio.reactor.IOSession;
 
 public class PoolEntry<T> {
 
-    private static AtomicLong COUNTER = new AtomicLong(); 
-    
+    private static AtomicLong COUNTER = new AtomicLong();
+
     private final long id;
     private final T route;
     private final IOSession session;
@@ -73,5 +73,5 @@ public class PoolEntry<T> {
         buffer.append("]");
         return buffer.toString();
     }
-    
+
 }

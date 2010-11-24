@@ -110,7 +110,7 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
     public PoolStats getStats(final HttpRoute route) {
         return this.pool.getStats(route);
     }
-    
+
     public void setTotalMax(int max) {
         this.pool.setTotalMax(max);
     }
@@ -122,28 +122,28 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
     public void setMaxPerHost(final HttpRoute route, int max) {
         this.pool.setMaxPerHost(route, max);
     }
-    
+
     public synchronized void shutdown() {
-        this.log.debug("I/O session manager shut down"); 
+        this.log.debug("I/O session manager shut down");
         this.pool.shutdown();
     }
 
     class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute> {
 
         private final BasicFuture<ManagedIOSession> future;
-        
+
         public InternalPoolEntryCallback(
                 final BasicFuture<ManagedIOSession> future) {
             super();
             this.future = future;
         }
-        
+
         public void completed(final PoolEntry<HttpRoute> entry) {
             if (log.isDebugEnabled()) {
                 log.debug("I/O session allocated: " + entry);
             }
             BasicManagedIOSession result = new BasicManagedIOSession(
-                    BasicIOSessionManager.this, 
+                    BasicIOSessionManager.this,
                     entry);
             if (!this.future.completed(result)) {
                 pool.release(entry, true);

@@ -56,7 +56,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
     protected PoolEntry<HttpRoute> getEntry() {
         return this.entry;
     }
-    
+
     public IOSession getSession() {
         if (this.released) {
             return null;
@@ -136,5 +136,5 @@ public class BasicManagedIOSession implements ManagedIOSession {
         }
         return buffer.toString();
     }
-    
+
 }

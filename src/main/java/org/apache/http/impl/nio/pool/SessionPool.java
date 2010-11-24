@@ -345,7 +345,7 @@ public class SessionPool<T> {
             this.lock.unlock();
         }
     }
-    
+
     @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder();

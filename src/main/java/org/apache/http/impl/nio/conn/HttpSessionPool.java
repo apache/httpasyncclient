@@ -40,7 +40,7 @@ class HttpSessionPool extends SessionPool<HttpRoute> {
     public HttpSessionPool(final ConnectingIOReactor ioreactor) {
         super(ioreactor, new InternalRouteResolver(), 20, 50);
     }
-    
+
     static class InternalRouteResolver implements RouteResolver<HttpRoute> {
 
         public SocketAddress resolveLocalAddress(final HttpRoute route) {
@@ -53,5 +53,5 @@ class HttpSessionPool extends SessionPool<HttpRoute> {
         }
 
     }
-    
+
 }

@@ -37,7 +37,7 @@ public interface AsyncHttpClient {
     void shutdown() throws InterruptedException;
 
     IOReactorStatus getStatus();
-    
+
     HttpExchange execute(HttpHost target, HttpRequest request);
-    
+
 }

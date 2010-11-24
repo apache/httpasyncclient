@@ -62,10 +62,10 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
     private final Log log;
     private final HttpParams params;
     private final ConnectingIOReactor ioReactor;
-    private final IOSessionManager<HttpRoute> sessmrg;    
-    
+    private final IOSessionManager<HttpRoute> sessmrg;
+
     private Thread reactorThread;
-    
+
     public BasicAsyncHttpClient(
             final ConnectingIOReactor ioReactor,
             final IOSessionManager<HttpRoute> sessmrg,
@@ -80,7 +80,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
         this.ioReactor = ioReactor;
         this.sessmrg = sessmrg;
     }
-    
+
     public BasicAsyncHttpClient(final HttpParams params) throws IOReactorException {
         super();
         this.log = LogFactory.getLog(getClass());
@@ -92,7 +92,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
         this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
         this.sessmrg = new BasicIOSessionManager(this.ioReactor);
     }
-    
+
     protected HttpParams createDefaultHttpParams() {
         HttpParams params = new SyncBasicHttpParams();
         params
@@ -103,7 +103,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
             .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
         return params;
     }
-    
+
     protected HttpProcessor createHttpProcessor() {
         HttpRequestInterceptor[] interceptors = new HttpRequestInterceptor[] {
                 new RequestContent(),
@@ -112,14 +112,14 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
                 new RequestUserAgent(),
                 new RequestExpectContinue()
         };
-        ImmutableHttpProcessor httpProcessor = new ImmutableHttpProcessor(interceptors); 
+        ImmutableHttpProcessor httpProcessor = new ImmutableHttpProcessor(interceptors);
         return httpProcessor;
     }
-    
+
     protected ConnectionReuseStrategy createConnectionReuseStrategy() {
         return new DefaultConnectionReuseStrategy();
     }
-    
+
     public IOSessionManager<HttpRoute> getSessionManager() {
         return this.sessmrg;
     }
@@ -137,11 +137,11 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
             this.log.error("I/O reactor terminated abnormally", ex);
         }
     }
-    
+
     public IOReactorStatus getStatus() {
         return this.ioReactor.getStatus();
     }
-    
+
     public synchronized void start() {
         this.reactorThread = new Thread() {
 
@@ -149,7 +149,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
             public void run() {
                 doExecute();
             }
-            
+
         };
         this.reactorThread.start();
     }
@@ -165,10 +165,10 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
             this.reactorThread.join();
         }
     }
-    
+
     public HttpExchange execute(final HttpHost target, final HttpRequest request) {
         HttpRoute route = new HttpRoute(target);
         return new HttpExchangeImpl(request, route, null, this.sessmrg);
     }
-    
+
 }

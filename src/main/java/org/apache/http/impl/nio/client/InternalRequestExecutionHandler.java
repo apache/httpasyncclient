@@ -39,7 +39,7 @@ import org.apache.http.protocol.HttpContext;
 class InternalRequestExecutionHandler implements NHttpRequestExecutionHandler {
 
     protected static final String HTTP_EXCHANGE = "http.async.http-exchange";
-    
+
     InternalRequestExecutionHandler() {
         super();
     }
@@ -62,7 +62,7 @@ class InternalRequestExecutionHandler implements NHttpRequestExecutionHandler {
             return null;
         }
     }
-    
+
     public ConsumingNHttpEntity responseEntity(
             final HttpResponse response, final HttpContext context) throws IOException {
         return new BufferingNHttpEntity(
