@@ -41,14 +41,6 @@
   <url>http://hc.apache.org/httpcomponents-client</url>
   <packaging>jar</packaging>
 
-  <licenses>
-    <license>
-      <name>Apache License</name>
-      <url>LICENSE.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
@@ -76,6 +68,13 @@
       <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${httpclient.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <properties>
@@ -85,21 +84,14 @@
     <maven.compile.target>1.5</maven.compile.target>
     <maven.compile.optimize>true</maven.compile.optimize>
     <maven.compile.deprecation>true</maven.compile.deprecation>
-    <httpcore.version>4.1-beta1</httpcore.version>
-    <httpclient.version>4.0</httpclient.version>
+    <httpcore.version>4.1</httpcore.version>
+    <httpclient.version>4.1-beta1</httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <junit.version>4.8.1</junit.version>
   </properties>
 
   <build>
     <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>false</filtering>
-        <includes>
-            <include>META-INF/*</include>
-        </includes>
-      </resource>
       <resource>
         <directory>src/main/resources</directory>
         <filtering>true</filtering>

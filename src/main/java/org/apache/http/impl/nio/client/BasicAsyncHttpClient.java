@@ -41,7 +41,6 @@ import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.AsyncHttpClient;
 import org.apache.http.nio.client.HttpExchange;
 import org.apache.http.nio.conn.IOSessionManager;
-import org.apache.http.nio.protocol.AsyncNHttpClientHandler;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
@@ -121,17 +120,16 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
         return new DefaultConnectionReuseStrategy();
     }
     
-    public HttpParams getParams() {
-        return this.params;
+    public IOSessionManager<HttpRoute> getSessionManager() {
+        return this.sessmrg;
     }
 
     private void doExecute() {
-        AsyncNHttpClientHandler handler = new AsyncNHttpClientHandler(
+        NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
                 createHttpProcessor(),
                 new InternalRequestExecutionHandler(),
                 createConnectionReuseStrategy(),
                 this.params);
-        handler.setEventListener(new InternalEventLogger(this.log));
         IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler, this.params);
         try {
             this.ioReactor.execute(ioEventDispatch);

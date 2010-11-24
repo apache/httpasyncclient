@@ -61,7 +61,7 @@ public class AsyncClientRequest {
         
         asynchttpclient.start();
         
-        HttpHost target = new HttpHost("www.google.ch", 80);
+        HttpHost target = new HttpHost("www.apache.org", 80);
         BasicHttpRequest request = new BasicHttpRequest("GET", "/"); 
 
         HttpExchange[] httpx = new HttpExchange[10]; 
