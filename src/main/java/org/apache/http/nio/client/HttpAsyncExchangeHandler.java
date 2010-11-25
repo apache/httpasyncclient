@@ -26,19 +26,31 @@
  */
 package org.apache.http.nio.client;
 
-import java.util.concurrent.ExecutionException;
+import java.io.IOException;
 
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.nio.ContentDecoder;
+import org.apache.http.nio.ContentEncoder;
+import org.apache.http.nio.IOControl;
 
-public interface HttpExchange {
+public interface HttpAsyncExchangeHandler<T> {
 
-    boolean isCompleted();
-
-    void cancel();
+    HttpHost getTarget();
 
     HttpRequest getRequest();
 
-    HttpResponse awaitResponse() throws ExecutionException, InterruptedException;
+    void produceContent(ContentEncoder encoder, IOControl ioctrl) throws IOException;
+
+    void responseReceived(HttpResponse response);
+
+    void consumeContent(ContentDecoder decoder, IOControl ioctrl) throws IOException;
+
+    void failed(Exception ex);
+
+    void cancelled();
+
+    T completed();
 
 }

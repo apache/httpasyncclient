@@ -27,6 +27,7 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,12 +35,14 @@ import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.AsyncHttpClient;
-import org.apache.http.nio.client.HttpExchange;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -127,7 +130,6 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
                 createHttpProcessor(),
-                new InternalRequestExecutionHandler(),
                 createConnectionReuseStrategy(),
                 this.params);
         IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler, this.params);
@@ -166,9 +168,18 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
         }
     }
 
-    public HttpExchange execute(final HttpHost target, final HttpRequest request) {
-        HttpRoute route = new HttpRoute(target);
-        return new HttpExchangeImpl(request, route, null, this.sessmrg);
+    public <T> Future<T> execute(
+            final HttpAsyncExchangeHandler<T> handler, final FutureCallback<T> callback) {
+        HttpRoute route = new HttpRoute(handler.getTarget());
+        HttpExchangeImpl<T> httpexchange = new HttpExchangeImpl<T>(
+                route, null, this.sessmrg, handler, callback);
+        return httpexchange.getResultFuture();
+    }
+
+    public Future<HttpResponse> execute(
+            final HttpHost target, final HttpRequest request, final FutureCallback<HttpResponse> callback) {
+        BasicHttpAsyncExchangeHandler handler = new BasicHttpAsyncExchangeHandler(target, request);
+        return execute(handler, callback);
     }
 
 }

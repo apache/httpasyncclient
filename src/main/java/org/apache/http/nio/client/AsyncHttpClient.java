@@ -26,8 +26,12 @@
  */
 package org.apache.http.nio.client;
 
+import java.util.concurrent.Future;
+
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.reactor.IOReactorStatus;
 
 public interface AsyncHttpClient {
@@ -38,6 +42,10 @@ public interface AsyncHttpClient {
 
     IOReactorStatus getStatus();
 
-    HttpExchange execute(HttpHost target, HttpRequest request);
+    <T> Future<T> execute(
+            HttpAsyncExchangeHandler<T> handler, FutureCallback<T> callback);
+
+    Future<HttpResponse> execute(
+            HttpHost target, HttpRequest request, FutureCallback<HttpResponse> callback);
 
 }

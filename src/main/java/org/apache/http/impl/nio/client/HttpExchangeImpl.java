@@ -27,92 +27,123 @@
 package org.apache.http.impl.nio.client;
 
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.client.HttpExchange;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
 
-class HttpExchangeImpl implements HttpExchange {
+class HttpExchangeImpl<T> {
 
-    private final HttpRequest request;
+    public static final String HTTP_EXCHANGE = "http.nio.http-exchange";
+
     private final Future<ManagedIOSession> sessionFuture;
-    private final BasicFuture<HttpResponse> responseFuture;
+    private final BasicFuture<T> resultFuture;
+    private final HttpAsyncExchangeHandler<T> handler;
 
     private ManagedIOSession managedSession;
 
     public HttpExchangeImpl(
-            final HttpRequest request,
             final HttpRoute route,
             final Object state,
-            final IOSessionManager<HttpRoute> sessmrg) {
+            final IOSessionManager<HttpRoute> sessmrg,
+            final HttpAsyncExchangeHandler<T> handler,
+            final FutureCallback<T> callback) {
         super();
-        this.request = request;
-        this.responseFuture = new BasicFuture<HttpResponse>(null);
         this.sessionFuture = sessmrg.leaseSession(route, state, new InternalFutureCallback());
+        this.resultFuture = new BasicFuture<T>(callback);
+        this.handler = handler;
     }
 
-    public boolean isCompleted() {
-        return this.responseFuture.isDone();
+    public HttpAsyncExchangeHandler<T> getHandler() {
+        return this.handler;
     }
 
-    public HttpRequest getRequest() {
-        return this.request;
+    public Future<T> getResultFuture() {
+        return this.resultFuture;
     }
 
-    public HttpResponse awaitResponse() throws ExecutionException, InterruptedException {
-        return this.responseFuture.get();
-    }
-
-    public synchronized void completed(final HttpResponse response) {
-        if (this.managedSession != null) {
-            this.managedSession.releaseSession();
+    public synchronized void completed() {
+        try {
+            if (this.managedSession != null) {
+                this.managedSession.releaseSession();
+            }
+            this.managedSession = null;
+            T result = this.handler.completed();
+            this.resultFuture.completed(result);
+        } catch (RuntimeException runex) {
+            this.resultFuture.failed(runex);
+            throw runex;
         }
-        this.responseFuture.completed(response);
     }
 
-    public synchronized void cancel() {
-        this.sessionFuture.cancel(true);
-        if (this.managedSession != null) {
-            this.managedSession.abortSession();
+    public synchronized void shutdown() {
+        try {
+            this.sessionFuture.cancel(true);
+            if (this.managedSession != null) {
+                this.managedSession.abortSession();
+            }
+            this.managedSession = null;
+            this.handler.cancelled();
+        } catch (RuntimeException runex) {
+            this.resultFuture.failed(runex);
+            throw runex;
         }
-        this.responseFuture.cancel(true);
     }
 
-    private synchronized void requestCompleted(final ManagedIOSession session) {
+    public synchronized void failed(final Exception ex) {
+        try {
+            this.sessionFuture.cancel(true);
+            if (this.managedSession != null) {
+                this.managedSession.abortSession();
+            }
+            this.managedSession = null;
+            this.handler.failed(ex);
+        } catch (RuntimeException runex) {
+            this.resultFuture.failed(ex);
+            throw runex;
+        }
+    }
+
+    private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
         this.managedSession = session;
         IOSession iosession = session.getSession();
-        iosession.setAttribute(InternalRequestExecutionHandler.HTTP_EXCHANGE, this);
+        iosession.setAttribute(HTTP_EXCHANGE, this);
         iosession.setEvent(SelectionKey.OP_WRITE);
     }
 
-    private synchronized void requestFailed(final Exception ex) {
-        this.responseFuture.failed(ex);
+    private synchronized void sessionRequestFailed(final Exception ex) {
+        try {
+            this.handler.failed(ex);
+        } finally {
+            this.resultFuture.failed(ex);
+        }
     }
 
-    private synchronized void requestCancelled() {
-        this.responseFuture.cancel(true);
+    private synchronized void sessionRequestCancelled() {
+        try {
+            this.handler.cancelled();
+        } finally {
+            this.resultFuture.cancel(true);
+        }
     }
 
     class InternalFutureCallback implements FutureCallback<ManagedIOSession> {
 
         public void completed(final ManagedIOSession session) {
-            requestCompleted(session);
+            sessionRequestCompleted(session);
         }
 
         public void failed(final Exception ex) {
-            requestFailed(ex);
+            sessionRequestFailed(ex);
         }
 
         public void cancelled() {
-            requestCancelled();
+            sessionRequestCancelled();
         }
 
     }

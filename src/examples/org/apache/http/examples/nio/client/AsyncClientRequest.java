@@ -26,6 +26,10 @@
  */
 package org.apache.http.examples.nio.client;
 
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.Future;
+
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.nio.client.BasicAsyncHttpClient;
@@ -33,7 +37,6 @@ import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.client.AsyncHttpClient;
-import org.apache.http.nio.client.HttpExchange;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
@@ -55,31 +58,29 @@ public class AsyncClientRequest {
         sessmrg.setDefaultMaxPerHost(3);
 
         AsyncHttpClient asynchttpclient = new BasicAsyncHttpClient(
-                ioReactor, 
-                sessmrg, 
+                ioReactor,
+                sessmrg,
                 params);
-        
+
         asynchttpclient.start();
-        
-        HttpHost target = new HttpHost("www.apache.org", 80);
-        BasicHttpRequest request = new BasicHttpRequest("GET", "/"); 
-
-        HttpExchange[] httpx = new HttpExchange[10]; 
-        for (int i = 0; i < httpx.length; i++) {
-            httpx[i] = asynchttpclient.execute(target, request);
-        }
-        
-        for (int i = 0; i < httpx.length; i++) {
-            HttpResponse response = httpx[i].awaitResponse();
-            if (response != null) {
-                System.out.println("Response: " + response.getStatusLine());
+        try {
+            HttpHost target = new HttpHost("www.apache.org", 80);
+            Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
+            for (int i = 0; i < 10; i++) {
+                BasicHttpRequest request = new BasicHttpRequest("GET", "/");
+                queue.add(asynchttpclient.execute(target, request, null));
             }
-        }
+            while (!queue.isEmpty()) {
+                Future<HttpResponse> future = queue.remove();
+                HttpResponse response = future.get();
+                System.out.println("Response: " + response.getStatusLine());
 
-        System.out.println("Shutting down");
-        
-        asynchttpclient.shutdown();
-        
+            }
+
+            System.out.println("Shutting down");
+        } finally {
+            asynchttpclient.shutdown();
+        }
         System.out.println("Done");
     }
 

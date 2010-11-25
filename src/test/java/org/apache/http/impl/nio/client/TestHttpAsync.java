@@ -3,6 +3,7 @@ package org.apache.http.impl.nio.client;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.Future;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -13,7 +14,6 @@ import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.ServerTestBase;
 import org.apache.http.nio.client.AsyncHttpClient;
-import org.apache.http.nio.client.HttpExchange;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.params.BasicHttpParams;
@@ -50,8 +50,8 @@ public class TestHttpAsync extends ServerTestBase {
     public void testSingleGet() throws Exception {
         this.httpclient.start();
         HttpGet httpget = new HttpGet("/random/2048");
-        HttpExchange httpexg = this.httpclient.execute(this.target, httpget);
-        HttpResponse response = httpexg.awaitResponse();
+        Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
+        HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     }
@@ -67,8 +67,8 @@ public class TestHttpAsync extends ServerTestBase {
         HttpPost httppost = new HttpPost("/echo/stuff");
         httppost.setEntity(new NByteArrayEntity(b1));
 
-        HttpExchange httpexg = this.httpclient.execute(this.target, httppost);
-        HttpResponse response = httpexg.awaitResponse();
+        Future<HttpResponse> future = this.httpclient.execute(this.target, httppost, null);
+        HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
         HttpEntity entity = response.getEntity();
@@ -89,17 +89,17 @@ public class TestHttpAsync extends ServerTestBase {
         this.sessionManager.setTotalMax(100);
         this.httpclient.start();
 
-        Queue<HttpExchange> queue = new LinkedList<HttpExchange>();
+        Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
             HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
-            queue.add(this.httpclient.execute(this.target, httppost));
+            queue.add(this.httpclient.execute(this.target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
-            HttpExchange httpexg = queue.remove();
-            HttpResponse response = httpexg.awaitResponse();
+            Future<HttpResponse> future = queue.remove();
+            HttpResponse response = future.get();
             Assert.assertNotNull(response);
             Assert.assertEquals(200, response.getStatusLine().getStatusCode());
             HttpEntity entity = response.getEntity();
@@ -121,17 +121,17 @@ public class TestHttpAsync extends ServerTestBase {
         this.sessionManager.setTotalMax(100);
         this.httpclient.start();
 
-        Queue<HttpExchange> queue = new LinkedList<HttpExchange>();
+        Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
             HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
-            queue.add(this.httpclient.execute(this.target, httppost));
+            queue.add(this.httpclient.execute(this.target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
-            HttpExchange httpexg = queue.remove();
-            HttpResponse response = httpexg.awaitResponse();
+            Future<HttpResponse> future = queue.remove();
+            HttpResponse response = future.get();
             Assert.assertNotNull(response);
             Assert.assertEquals(200, response.getStatusLine().getStatusCode());
             HttpEntity entity = response.getEntity();

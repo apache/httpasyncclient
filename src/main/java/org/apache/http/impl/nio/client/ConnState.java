@@ -26,12 +26,8 @@
  */
 package org.apache.http.impl.nio.client;
 
-import java.io.IOException;
-
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.nio.entity.ConsumingNHttpEntity;
-import org.apache.http.nio.entity.ProducingNHttpEntity;
 
 class ConnState {
 
@@ -39,8 +35,7 @@ class ConnState {
     private MessageState responseState;
     private HttpRequest request;
     private HttpResponse response;
-    private ConsumingNHttpEntity consumingEntity;
-    private ProducingNHttpEntity producingEntity;
+    private HttpExchangeImpl<?> httpexchange;
     private boolean valid;
     private int timeout;
 
@@ -83,20 +78,12 @@ class ConnState {
         this.response = response;
     }
 
-    public void setConsumingEntity(final ConsumingNHttpEntity consumingEntity) {
-        this.consumingEntity = consumingEntity;
+    public void setHttpExchange(final HttpExchangeImpl<?> httpexchange) {
+        this.httpexchange = httpexchange;
     }
 
-    public void setProducingEntity(final ProducingNHttpEntity producingEntity) {
-        this.producingEntity = producingEntity;
-    }
-
-    public ProducingNHttpEntity getProducingEntity() {
-        return producingEntity;
-    }
-
-    public ConsumingNHttpEntity getConsumingEntity() {
-        return consumingEntity;
+    public HttpExchangeImpl<?> getHttpExchange() {
+        return this.httpexchange;
     }
 
     public int getTimeout() {
@@ -107,27 +94,20 @@ class ConnState {
         this.timeout = timeout;
     }
 
-    public void resetInput() throws IOException {
+    public void resetInput() {
         this.response = null;
-        if (this.consumingEntity != null) {
-            this.consumingEntity.finish();
-            this.consumingEntity = null;
-        }
         this.responseState = MessageState.READY;
     }
 
-    public void resetOutput() throws IOException {
+    public void resetOutput() {
         this.request = null;
-        if (this.producingEntity != null) {
-            this.producingEntity.finish();
-            this.producingEntity = null;
-        }
         this.requestState = MessageState.READY;
     }
 
-    public void reset() throws IOException {
+    public void reset() {
         resetInput();
         resetOutput();
+        this.httpexchange = null;
     }
 
     public boolean isValid() {
