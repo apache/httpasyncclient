@@ -35,7 +35,7 @@ class ConnState {
     private MessageState responseState;
     private HttpRequest request;
     private HttpResponse response;
-    private HttpExchangeImpl<?> httpexchange;
+    private HttpAsyncExchange<?> httpexchange;
     private boolean valid;
     private int timeout;
 
@@ -78,11 +78,11 @@ class ConnState {
         this.response = response;
     }
 
-    public void setHttpExchange(final HttpExchangeImpl<?> httpexchange) {
+    public void setHttpExchange(final HttpAsyncExchange<?> httpexchange) {
         this.httpexchange = httpexchange;
     }
 
-    public HttpExchangeImpl<?> getHttpExchange() {
+    public HttpAsyncExchange<?> getHttpExchange() {
         return this.httpexchange;
     }
 

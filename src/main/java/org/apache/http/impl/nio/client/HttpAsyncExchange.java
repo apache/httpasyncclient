@@ -37,7 +37,7 @@ import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
 
-class HttpExchangeImpl<T> {
+class HttpAsyncExchange<T> {
 
     public static final String HTTP_EXCHANGE = "http.nio.http-exchange";
 
@@ -47,7 +47,7 @@ class HttpExchangeImpl<T> {
 
     private ManagedIOSession managedSession;
 
-    public HttpExchangeImpl(
+    public HttpAsyncExchange(
             final HttpRoute route,
             final Object state,
             final IOSessionManager<HttpRoute> sessmrg,

@@ -171,7 +171,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
     public <T> Future<T> execute(
             final HttpAsyncExchangeHandler<T> handler, final FutureCallback<T> callback) {
         HttpRoute route = new HttpRoute(handler.getTarget());
-        HttpExchangeImpl<T> httpexchange = new HttpExchangeImpl<T>(
+        HttpAsyncExchange<T> httpexchange = new HttpAsyncExchange<T>(
                 route, null, this.sessmrg, handler, callback);
         return httpexchange.getResultFuture();
     }
