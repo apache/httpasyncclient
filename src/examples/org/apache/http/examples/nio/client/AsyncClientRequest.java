@@ -57,29 +57,28 @@ public class AsyncClientRequest {
         sessmrg.setTotalMax(5);
         sessmrg.setDefaultMaxPerHost(3);
 
-        HttpAsyncClient asynchttpclient = new BasicHttpAsyncClient(
+        HttpAsyncClient httpclient = new BasicHttpAsyncClient(
                 ioReactor,
                 sessmrg,
                 params);
 
-        asynchttpclient.start();
+        httpclient.start();
         try {
             HttpHost target = new HttpHost("www.apache.org", 80);
             Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
             for (int i = 0; i < 10; i++) {
                 BasicHttpRequest request = new BasicHttpRequest("GET", "/");
-                queue.add(asynchttpclient.execute(target, request, null));
+                queue.add(httpclient.execute(target, request, null));
             }
             while (!queue.isEmpty()) {
                 Future<HttpResponse> future = queue.remove();
                 HttpResponse response = future.get();
                 System.out.println("Response: " + response.getStatusLine());
-
             }
 
             System.out.println("Shutting down");
         } finally {
-            asynchttpclient.shutdown();
+            httpclient.shutdown();
         }
         System.out.println("Done");
     }

@@ -153,9 +153,7 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
             } catch (IOException ex) {
             }
         }
-        this.response = null;
     }
-
 
     public void cancelled() {
         shutdown();

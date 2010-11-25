@@ -89,6 +89,7 @@ class HttpAsyncExchange<T> {
             }
             this.managedSession = null;
             this.handler.cancelled();
+            this.resultFuture.cancel(true);
         } catch (RuntimeException runex) {
             this.resultFuture.failed(runex);
             throw runex;
@@ -103,6 +104,7 @@ class HttpAsyncExchange<T> {
             }
             this.managedSession = null;
             this.handler.failed(ex);
+            this.resultFuture.failed(ex);
         } catch (RuntimeException runex) {
             this.resultFuture.failed(ex);
             throw runex;
