@@ -32,11 +32,11 @@ import java.util.concurrent.Future;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.impl.nio.client.BasicAsyncHttpClient;
+import org.apache.http.impl.nio.client.BasicHttpAsyncClient;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.message.BasicHttpRequest;
-import org.apache.http.nio.client.AsyncHttpClient;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
@@ -57,7 +57,7 @@ public class AsyncClientRequest {
         sessmrg.setTotalMax(5);
         sessmrg.setDefaultMaxPerHost(3);
 
-        AsyncHttpClient asynchttpclient = new BasicAsyncHttpClient(
+        HttpAsyncClient asynchttpclient = new BasicHttpAsyncClient(
                 ioReactor,
                 sessmrg,
                 params);

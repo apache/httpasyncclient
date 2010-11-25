@@ -40,7 +40,7 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
-import org.apache.http.nio.client.AsyncHttpClient;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
@@ -60,7 +60,7 @@ import org.apache.http.protocol.RequestExpectContinue;
 import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
 
-public class BasicAsyncHttpClient implements AsyncHttpClient {
+public class BasicHttpAsyncClient implements HttpAsyncClient {
 
     private final Log log;
     private final HttpParams params;
@@ -69,7 +69,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
 
     private Thread reactorThread;
 
-    public BasicAsyncHttpClient(
+    public BasicHttpAsyncClient(
             final ConnectingIOReactor ioReactor,
             final IOSessionManager<HttpRoute> sessmrg,
             final HttpParams params) throws IOReactorException {
@@ -84,7 +84,7 @@ public class BasicAsyncHttpClient implements AsyncHttpClient {
         this.sessmrg = sessmrg;
     }
 
-    public BasicAsyncHttpClient(final HttpParams params) throws IOReactorException {
+    public BasicHttpAsyncClient(final HttpParams params) throws IOReactorException {
         super();
         this.log = LogFactory.getLog(getClass());
         if (params != null) {

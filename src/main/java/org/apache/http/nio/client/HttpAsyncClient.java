@@ -34,7 +34,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.reactor.IOReactorStatus;
 
-public interface AsyncHttpClient {
+public interface HttpAsyncClient {
 
     void start();
 

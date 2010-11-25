@@ -13,7 +13,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.ServerTestBase;
-import org.apache.http.nio.client.AsyncHttpClient;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.params.BasicHttpParams;
@@ -27,7 +27,7 @@ public class TestHttpAsync extends ServerTestBase {
 
     private HttpHost target;
     private BasicIOSessionManager sessionManager;
-    private AsyncHttpClient httpclient;
+    private HttpAsyncClient httpclient;
 
     @Before
     public void setUp() throws Exception {
@@ -37,7 +37,7 @@ public class TestHttpAsync extends ServerTestBase {
         this.target = new HttpHost("localhost", port);
         ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, new BasicHttpParams());
         this.sessionManager = new BasicIOSessionManager(ioReactor);
-        this.httpclient = new BasicAsyncHttpClient(ioReactor, this.sessionManager, null);
+        this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager, null);
     }
 
     @After
