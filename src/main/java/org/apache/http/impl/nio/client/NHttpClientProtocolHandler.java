@@ -319,7 +319,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
     }
 
     private HttpAsyncExchangeHandler<?> getHandler(final HttpContext context) {
-        return (HttpAsyncExchangeHandler<?>) context.getAttribute(HttpAsyncExchange.HTTP_EXCHANGE);
+        return (HttpAsyncExchangeHandler<?>) context.getAttribute(DefaultAsyncRequestDirector.HTTP_EXCHANGE_HANDLER);
     }
 
     private void continueRequest(

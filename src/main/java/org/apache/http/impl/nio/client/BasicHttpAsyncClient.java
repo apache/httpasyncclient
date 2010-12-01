@@ -169,7 +169,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
 
     public <T> Future<T> execute(
             final HttpAsyncExchangeHandler<T> handler, final FutureCallback<T> callback) {
-        HttpAsyncExchange<T> httpexchange = new HttpAsyncExchange<T>(
+        DefaultAsyncRequestDirector<T> httpexchange = new DefaultAsyncRequestDirector<T>(
                 handler,
                 callback,
                 this.sessmrg,

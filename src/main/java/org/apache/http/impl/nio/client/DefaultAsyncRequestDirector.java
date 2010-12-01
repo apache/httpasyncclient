@@ -50,9 +50,9 @@ import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
-class HttpAsyncExchange<T> implements HttpAsyncExchangeHandler<T> {
+class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
-    public static final String HTTP_EXCHANGE = "http.nio.http-exchange";
+    public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
 
     private final IOSessionManager<HttpRoute> sessmrg;
     private final HttpProcessor httppocessor;
@@ -64,7 +64,7 @@ class HttpAsyncExchange<T> implements HttpAsyncExchangeHandler<T> {
     private Future<ManagedIOSession> sessionFuture;
     private ManagedIOSession managedSession;
 
-    public HttpAsyncExchange(
+    public DefaultAsyncRequestDirector(
             final HttpAsyncExchangeHandler<T> handler,
             final FutureCallback<T> callback,
             final IOSessionManager<HttpRoute> sessmrg,
@@ -173,7 +173,7 @@ class HttpAsyncExchange<T> implements HttpAsyncExchangeHandler<T> {
     private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
         this.managedSession = session;
         IOSession iosession = session.getSession();
-        iosession.setAttribute(HTTP_EXCHANGE, this);
+        iosession.setAttribute(HTTP_EXCHANGE_HANDLER, this);
         iosession.setEvent(SelectionKey.OP_WRITE);
     }
 
