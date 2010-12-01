@@ -48,12 +48,14 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
     private final HttpHost target;
     private final HttpRequest request;
 
-    private HttpResponse response;
-    private ProducingNHttpEntity contentProducingEntity;
-    private ConsumingNHttpEntity contentConsumingEntity;
+    private volatile HttpResponse response;
+    private volatile ProducingNHttpEntity contentProducingEntity;
+    private volatile ConsumingNHttpEntity contentConsumingEntity;
+    private volatile HttpResponse result;
+    private volatile Exception ex;
+    private volatile boolean completed;
 
-    public BasicHttpAsyncExchangeHandler(
-            final HttpHost target, final HttpRequest request) {
+    public BasicHttpAsyncExchangeHandler(final HttpHost target, final HttpRequest request) {
         super();
         if (target == null) {
             throw new IllegalArgumentException("Target host may not be null");
@@ -65,7 +67,7 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
         this.request = request;
     }
 
-    public HttpRequest getRequest() {
+    public HttpRequest generateRequest() {
         return this.request;
     }
 
@@ -121,56 +123,87 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
         return this.contentProducingEntity;
     }
 
-    public void produceContent(
+    public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         ProducingNHttpEntity producer = getProducingHttpEntity();
         producer.produceContent(encoder, ioctrl);
     }
 
-    public void responseReceived(final HttpResponse response) {
+    public synchronized void responseReceived(final HttpResponse response) {
         if (this.response != null) {
             throw new IllegalStateException("HTTP response already set");
         }
         this.response = response;
     }
 
-    public void consumeContent(
+    public synchronized void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         ConsumingNHttpEntity consumer = getConsumingHttpEntity();
         consumer.consumeContent(decoder, ioctrl);
     }
 
-    private void shutdown() {
+    private void reset() {
         if (this.contentProducingEntity != null) {
             try {
                 this.contentProducingEntity.finish();
+                this.contentProducingEntity = null;
             } catch (IOException ex) {
             }
         }
         if (this.contentConsumingEntity != null) {
             try {
                 this.contentConsumingEntity.finish();
+                this.contentConsumingEntity = null;
             } catch (IOException ex) {
             }
         }
     }
 
-    public void cancelled() {
-        shutdown();
-    }
-
-    public void failed(final Exception ex) {
-        shutdown();
-    }
-
-    public HttpResponse completed() {
-        if (this.response == null) {
-            throw new IllegalStateException("HTTP response is null");
+    public synchronized void cancel() {
+        if (this.completed) {
+            return;
         }
-        HttpResponse response = this.response;
-        response.setEntity(this.contentConsumingEntity);
-        shutdown();
-        return response;
+        this.completed = true;
+        this.response = null;
+        reset();
+    }
+
+    public synchronized void failed(final Exception ex) {
+        if (this.completed) {
+            return;
+        }
+        this.completed = true;
+        this.ex = ex;
+        this.response = null;
+        reset();
+    }
+
+    public synchronized void completed() {
+        if (this.completed) {
+            return;
+        }
+        this.completed = true;
+        if (this.response != null) {
+            this.result = this.response;
+            this.result.setEntity(this.contentConsumingEntity);
+        }
+        reset();
+    }
+
+    public boolean isCompleted() {
+        return this.completed;
+    }
+
+    public Exception getException() {
+        return this.ex;
+    }
+
+    public void setEx(Exception ex) {
+        this.ex = ex;
+    }
+
+    public HttpResponse getResult() {
+        return this.response;
     }
 
 }

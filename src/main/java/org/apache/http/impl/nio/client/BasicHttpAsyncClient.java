@@ -52,6 +52,7 @@ import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.SyncBasicHttpParams;
+import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.RequestConnControl;
@@ -129,9 +130,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
 
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
-                createHttpProcessor(),
-                createConnectionReuseStrategy(),
-                this.params);
+                createConnectionReuseStrategy());
         IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler, this.params);
         try {
             this.ioReactor.execute(ioEventDispatch);
@@ -170,9 +169,13 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
 
     public <T> Future<T> execute(
             final HttpAsyncExchangeHandler<T> handler, final FutureCallback<T> callback) {
-        HttpRoute route = new HttpRoute(handler.getTarget());
         HttpAsyncExchange<T> httpexchange = new HttpAsyncExchange<T>(
-                route, null, this.sessmrg, handler, callback);
+                handler,
+                callback,
+                this.sessmrg,
+                createHttpProcessor(),
+                new BasicHttpContext(),
+                this.params);
         return httpexchange.getResultFuture();
     }
 

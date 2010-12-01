@@ -45,11 +45,8 @@ import org.apache.http.nio.NHttpClientHandler;
 import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.DefaultedHttpParams;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpProcessor;
 
 /**
  * Fully asynchronous HTTP client side protocol handler that implements the
@@ -66,26 +63,11 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
 
     private static final String CONN_STATE = "http.nio.conn-state";
 
-    private final HttpProcessor httpProcessor;
     private final ConnectionReuseStrategy connStrategy;
-    private final HttpParams params;
 
     public NHttpClientProtocolHandler(
-            final HttpProcessor httpProcessor,
-            final ConnectionReuseStrategy connStrategy,
-            final HttpParams params) {
-        if (httpProcessor == null) {
-            throw new IllegalArgumentException("HTTP processor may not be null.");
-        }
-        if (connStrategy == null) {
-            throw new IllegalArgumentException("Connection reuse strategy may not be null");
-        }
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        }
-        this.httpProcessor = httpProcessor;
+            final ConnectionReuseStrategy connStrategy) {
         this.connStrategy = connStrategy;
-        this.params = params;
         this.log = LogFactory.getLog(getClass());
     }
 
@@ -127,9 +109,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             this.log.debug("Disconnected " + formatState(conn, connState));
         }
         if (connState != null) {
-            HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-            if (httpexchange != null) {
-                httpexchange.shutdown();
+            HttpAsyncExchangeHandler<?> handler = connState.getHandler();
+            if (handler != null && !handler.isCompleted()) {
+                handler.cancel();
             }
         }
     }
@@ -139,9 +121,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         ConnState connState = getConnState(context);
         this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
         if (connState != null) {
-            HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-            if (httpexchange != null) {
-                httpexchange.failed(ex);
+            HttpAsyncExchangeHandler<?> handler = connState.getHandler();
+            if (handler != null && !handler.isCompleted()) {
+                handler.failed(ex);
             }
         }
         closeConnection(conn);
@@ -152,9 +134,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         ConnState connState = getConnState(context);
         this.log.error("I/O error: " + ex.getMessage(), ex);
         if (connState != null) {
-            HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-            if (httpexchange != null) {
-                httpexchange.failed(ex);
+            HttpAsyncExchangeHandler<?> handler = connState.getHandler();
+            if (handler != null && !handler.isCompleted()) {
+                handler.failed(ex);
             }
         }
         shutdownConnection(conn);
@@ -163,29 +145,23 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
     public void requestReady(final NHttpClientConnection conn) {
         HttpContext context = conn.getContext();
         ConnState connState = getConnState(context);
-        HttpAsyncExchange<?> httpexchange = getHttpExchange(context);
+        HttpAsyncExchangeHandler<?> handler = getHandler(context);
         if (this.log.isDebugEnabled()) {
             this.log.debug("Request ready " + formatState(conn, connState));
         }
         if (connState.getRequestState() != MessageState.READY) {
             return;
         }
-        if (httpexchange == null || httpexchange.getResultFuture().isDone()) {
+        if (handler == null || handler.isCompleted()) {
             if (this.log.isDebugEnabled()) {
                 this.log.debug("No request submitted " + formatState(conn, connState));
             }
             return;
         }
-        connState.setHttpExchange(httpexchange);
-        HttpAsyncExchangeHandler<?> handler = connState.getHttpExchange().getHandler();
+        connState.setHandler(handler);
         try {
-            HttpRequest request = handler.getRequest();
-            request.setParams(new DefaultedHttpParams(request.getParams(), this.params));
-
+            HttpRequest request = handler.generateRequest();
             connState.setRequest(request);
-
-            context.setAttribute(ExecutionContext.HTTP_REQUEST, request);
-            this.httpProcessor.process(request, context);
 
             HttpEntityEnclosingRequest entityReq = null;
             if (request instanceof HttpEntityEnclosingRequest) {
@@ -198,7 +174,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 if (entityReq.expectContinue()) {
                     int timeout = conn.getSocketTimeout();
                     connState.setTimeout(timeout);
-                    timeout = this.params.getIntParameter(
+                    timeout = request.getParams().getIntParameter(
                             CoreProtocolPNames.WAIT_FOR_CONTINUE, 3000);
                     conn.setSocketTimeout(timeout);
                     connState.setRequestState(MessageState.ACK);
@@ -211,11 +187,11 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         } catch (IOException ex) {
             this.log.error("I/O error: " + ex.getMessage(), ex);
             shutdownConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         } catch (HttpException ex) {
             this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
             closeConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         }
     }
 
@@ -225,8 +201,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Input ready " + formatState(conn, connState));
         }
-        HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-        HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
+        HttpAsyncExchangeHandler<?> handler = connState.getHandler();
         try {
             handler.consumeContent(decoder, conn);
             if (decoder.isCompleted()) {
@@ -234,8 +209,8 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             }
         } catch (IOException ex) {
             this.log.error("I/O error: " + ex.getMessage(), ex);
+            handler.failed(ex);
             shutdownConnection(conn);
-            httpexchange.failed(ex);
         }
     }
 
@@ -245,8 +220,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Output ready " + formatState(conn, connState));
         }
-        HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-        HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
+        HttpAsyncExchangeHandler<?> handler = connState.getHandler();
         try {
             if (connState.getRequestState() == MessageState.ACK) {
                 conn.suspendOutput();
@@ -259,7 +233,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         } catch (IOException ex) {
             this.log.error("I/O error: " + ex.getMessage(), ex);
             shutdownConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         }
     }
 
@@ -269,12 +243,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response received " + formatState(conn, connState));
         }
-        HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
-        HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
+        HttpAsyncExchangeHandler<?> handler = connState.getHandler();
         try {
             HttpResponse response = conn.getHttpResponse();
-            response.setParams(new DefaultedHttpParams(response.getParams(), this.params));
-
             HttpRequest request = connState.getRequest();
 
             int statusCode = response.getStatusLine().getStatusCode();
@@ -298,25 +269,18 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                     conn.suspendOutput();
                 }
             }
-            context.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
+            handler.responseReceived(response);
             if (!canResponseHaveBody(request, response)) {
-                conn.resetInput();
-                response.setEntity(null);
-                this.httpProcessor.process(response, context);
-                handler.responseReceived(response);
                 processResponse(conn, connState);
-            } else {
-                this.httpProcessor.process(response, context);
-                handler.responseReceived(response);
             }
         } catch (IOException ex) {
             this.log.error("I/O error: " + ex.getMessage(), ex);
             shutdownConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         } catch (HttpException ex) {
             this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
             closeConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         }
     }
 
@@ -326,7 +290,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Timeout " + formatState(conn, connState));
         }
-        HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
+        HttpAsyncExchangeHandler<?> handler = connState.getHandler();
         try {
             if (connState.getRequestState() == MessageState.ACK) {
                 continueRequest(conn, connState);
@@ -346,7 +310,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         } catch (IOException ex) {
             this.log.error("I/O error: " + ex.getMessage(), ex);
             shutdownConnection(conn);
-            httpexchange.failed(ex);
+            handler.failed(ex);
         }
     }
 
@@ -354,8 +318,8 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         return (ConnState) context.getAttribute(CONN_STATE);
     }
 
-    private HttpAsyncExchange<?> getHttpExchange(final HttpContext context) {
-        return (HttpAsyncExchange<?>) context.getAttribute(HttpAsyncExchange.HTTP_EXCHANGE);
+    private HttpAsyncExchangeHandler<?> getHandler(final HttpContext context) {
+        return (HttpAsyncExchangeHandler<?>) context.getAttribute(HttpAsyncExchange.HTTP_EXCHANGE);
     }
 
     private void continueRequest(
@@ -378,7 +342,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
     private void processResponse(
             final NHttpClientConnection conn,
             final ConnState connState) throws IOException {
-        HttpAsyncExchange<?> httpexchange = connState.getHttpExchange();
+        HttpAsyncExchangeHandler<?> handler = connState.getHandler();
         if (!connState.isValid()) {
             conn.close();
         }
@@ -390,7 +354,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response processed " + formatState(conn, connState));
         }
-        httpexchange.completed();
+        handler.completed();
         if (conn.isOpen()) {
             // Ready for another request
             connState.reset();

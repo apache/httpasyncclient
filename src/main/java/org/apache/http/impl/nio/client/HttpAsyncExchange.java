@@ -26,45 +26,96 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.ContentDecoder;
+import org.apache.http.nio.ContentEncoder;
+import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.params.DefaultedHttpParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpProcessor;
 
-class HttpAsyncExchange<T> {
+class HttpAsyncExchange<T> implements HttpAsyncExchangeHandler<T> {
 
     public static final String HTTP_EXCHANGE = "http.nio.http-exchange";
 
-    private final Future<ManagedIOSession> sessionFuture;
+    private final IOSessionManager<HttpRoute> sessmrg;
+    private final HttpProcessor httppocessor;
+    private final HttpContext localContext;
+    private final HttpParams params;
     private final BasicFuture<T> resultFuture;
     private final HttpAsyncExchangeHandler<T> handler;
 
+    private Future<ManagedIOSession> sessionFuture;
     private ManagedIOSession managedSession;
 
     public HttpAsyncExchange(
-            final HttpRoute route,
-            final Object state,
-            final IOSessionManager<HttpRoute> sessmrg,
             final HttpAsyncExchangeHandler<T> handler,
-            final FutureCallback<T> callback) {
+            final FutureCallback<T> callback,
+            final IOSessionManager<HttpRoute> sessmrg,
+            final HttpProcessor httppocessor,
+            final HttpContext localContext,
+            final HttpParams params) {
         super();
-        this.sessionFuture = sessmrg.leaseSession(route, state, new InternalFutureCallback());
-        this.resultFuture = new BasicFuture<T>(callback);
         this.handler = handler;
-    }
+        this.resultFuture = new BasicFuture<T>(callback);
+        this.sessmrg = sessmrg;
+        this.httppocessor = httppocessor;
+        this.localContext = localContext;
+        this.params = params;
 
-    public HttpAsyncExchangeHandler<T> getHandler() {
-        return this.handler;
+        HttpRoute route = new HttpRoute(handler.getTarget());
+        this.sessionFuture = this.sessmrg.leaseSession(route, null, new InternalFutureCallback());
     }
 
     public Future<T> getResultFuture() {
         return this.resultFuture;
+    }
+
+    public HttpHost getTarget() {
+        return this.handler.getTarget();
+    }
+
+    public HttpRequest generateRequest() throws IOException, HttpException {
+        HttpRequest request = this.handler.generateRequest();
+        HttpHost target = this.handler.getTarget();
+        request.setParams(new DefaultedHttpParams(request.getParams(), this.params));
+        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, request);
+        this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
+        this.httppocessor.process(request, this.localContext);
+        return request;
+    }
+
+    public void produceContent(
+            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+        this.handler.produceContent(encoder, ioctrl);
+    }
+
+    public void responseReceived(final HttpResponse response) throws IOException, HttpException {
+        response.setParams(new DefaultedHttpParams(response.getParams(), this.params));
+        this.localContext.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
+        this.httppocessor.process(response, this.localContext);
+        this.handler.responseReceived(response);
+    }
+
+    public void consumeContent(
+            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+        this.handler.consumeContent(decoder, ioctrl);
     }
 
     public synchronized void completed() {
@@ -73,23 +124,8 @@ class HttpAsyncExchange<T> {
                 this.managedSession.releaseSession();
             }
             this.managedSession = null;
-            T result = this.handler.completed();
-            this.resultFuture.completed(result);
-        } catch (RuntimeException runex) {
-            this.resultFuture.failed(runex);
-            throw runex;
-        }
-    }
-
-    public synchronized void shutdown() {
-        try {
-            this.sessionFuture.cancel(true);
-            if (this.managedSession != null) {
-                this.managedSession.abortSession();
-            }
-            this.managedSession = null;
-            this.handler.cancelled();
-            this.resultFuture.cancel(true);
+            this.handler.completed();
+            this.resultFuture.completed(this.handler.getResult());
         } catch (RuntimeException runex) {
             this.resultFuture.failed(runex);
             throw runex;
@@ -111,6 +147,29 @@ class HttpAsyncExchange<T> {
         }
     }
 
+    public synchronized void cancel() {
+        try {
+            this.sessionFuture.cancel(true);
+            if (this.managedSession != null) {
+                this.managedSession.abortSession();
+            }
+            this.managedSession = null;
+            this.handler.cancel();
+            this.resultFuture.cancel(true);
+        } catch (RuntimeException runex) {
+            this.resultFuture.failed(runex);
+            throw runex;
+        }
+    }
+
+    public boolean isCompleted() {
+        return this.handler.isCompleted();
+    }
+
+    public T getResult() {
+        return this.handler.getResult();
+    }
+
     private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
         this.managedSession = session;
         IOSession iosession = session.getSession();
@@ -128,7 +187,7 @@ class HttpAsyncExchange<T> {
 
     private synchronized void sessionRequestCancelled() {
         try {
-            this.handler.cancelled();
+            this.handler.cancel();
         } finally {
             this.resultFuture.cancel(true);
         }

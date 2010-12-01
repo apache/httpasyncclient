@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.client;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 
 class ConnState {
 
@@ -35,7 +36,7 @@ class ConnState {
     private MessageState responseState;
     private HttpRequest request;
     private HttpResponse response;
-    private HttpAsyncExchange<?> httpexchange;
+    private HttpAsyncExchangeHandler<?> handler;
     private boolean valid;
     private int timeout;
 
@@ -78,12 +79,12 @@ class ConnState {
         this.response = response;
     }
 
-    public void setHttpExchange(final HttpAsyncExchange<?> httpexchange) {
-        this.httpexchange = httpexchange;
+    public void setHandler(final HttpAsyncExchangeHandler<?> handler) {
+        this.handler = handler;
     }
 
-    public HttpAsyncExchange<?> getHttpExchange() {
-        return this.httpexchange;
+    public HttpAsyncExchangeHandler<?> getHandler() {
+        return this.handler;
     }
 
     public int getTimeout() {
@@ -107,7 +108,7 @@ class ConnState {
     public void reset() {
         resetInput();
         resetOutput();
-        this.httpexchange = null;
+        this.handler = null;
     }
 
     public boolean isValid() {
