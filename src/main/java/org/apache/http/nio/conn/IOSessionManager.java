@@ -27,13 +27,16 @@
 package org.apache.http.nio.conn;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.nio.concurrent.FutureCallback;
 
 public interface IOSessionManager<T> {
 
     Future<ManagedIOSession> leaseSession(
-            T route, Object state, FutureCallback<ManagedIOSession> callback);
+            T route, Object state,
+            long connectTimeout, TimeUnit timeUnit,
+            FutureCallback<ManagedIOSession> callback);
 
     void releaseSession(ManagedIOSession session);
 

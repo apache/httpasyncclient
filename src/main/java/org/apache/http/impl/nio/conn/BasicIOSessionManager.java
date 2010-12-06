@@ -27,6 +27,7 @@
 package org.apache.http.impl.nio.conn;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,6 +59,8 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
     public synchronized Future<ManagedIOSession> leaseSession(
             final HttpRoute route,
             final Object state,
+            final long connectTimeout,
+            final TimeUnit timeUnit,
             final FutureCallback<ManagedIOSession> callback) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("I/O session request: route[" + route + "][state: " + state + "]");
@@ -68,7 +71,7 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
         }
         BasicFuture<ManagedIOSession> future = new BasicFuture<ManagedIOSession>(
                 callback);
-        this.pool.lease(route, state, new InternalPoolEntryCallback(future));
+        this.pool.lease(route, state, connectTimeout, timeUnit, new InternalPoolEntryCallback(future));
         if (this.log.isDebugEnabled()) {
             if (!future.isDone()) {
                 this.log.debug("I/O session could not be allocated immediately: " +

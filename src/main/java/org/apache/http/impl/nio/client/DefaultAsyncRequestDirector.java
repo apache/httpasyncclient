@@ -29,6 +29,7 @@ package org.apache.http.impl.nio.client;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -80,7 +81,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.params = params;
 
         HttpRoute route = new HttpRoute(handler.getTarget());
-        this.sessionFuture = this.sessmrg.leaseSession(route, null, new InternalFutureCallback());
+        this.sessionFuture = this.sessmrg.leaseSession(
+                route, null, 0, TimeUnit.MILLISECONDS, new InternalFutureCallback());
     }
 
     public Future<T> getResultFuture() {

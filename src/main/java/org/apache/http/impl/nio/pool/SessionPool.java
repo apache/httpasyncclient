@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -114,13 +115,21 @@ public class SessionPool<T> {
         return pool;
     }
 
-    public void lease(final T route, final Object state, final PoolEntryCallback<T> callback) {
+    public void lease(
+            final T route, final Object state,
+            final long connectTimeout, final TimeUnit timeUnit,
+            final PoolEntryCallback<T> callback) {
         if (this.isShutDown) {
             throw new IllegalStateException("Session pool has been shut down");
         }
         this.lock.lock();
         try {
-            LeaseRequest<T> request = new LeaseRequest<T>(route, state, callback);
+            TimeUnit unit = timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS;
+            int timeout = (int) unit.toMillis(connectTimeout);
+            if (timeout < 0) {
+                timeout = 0;
+            }
+            LeaseRequest<T> request = new LeaseRequest<T>(route, state, timeout, callback);
             this.leasingRequests.add(request);
 
             processPendingRequests();
@@ -166,6 +175,7 @@ public class SessionPool<T> {
 
             T route = request.getRoute();
             Object state = request.getState();
+            int timeout = request.getConnectTimeout();
             PoolEntryCallback<T> callback = request.getCallback();
 
             if (getAllocatedTotal() >= this.maxTotal) {
@@ -200,6 +210,7 @@ public class SessionPool<T> {
                             this.routeResolver.resolveLocalAddress(route),
                             route,
                             this.sessionRequestCallback);
+                    sessionRequest.setConnectTimeout(timeout);
                     pool.addPending(sessionRequest, callback);
                 }
             }

@@ -30,15 +30,18 @@ class LeaseRequest<T> {
 
     private final T route;
     private final Object state;
+    private final int connectTimeout;
     private final PoolEntryCallback<T> callback;
 
     public LeaseRequest(
             final T route,
             final Object state,
+            final int connectTimeout,
             final PoolEntryCallback<T> callback) {
         super();
         this.route = route;
         this.state = state;
+        this.connectTimeout = connectTimeout;
         this.callback = callback;
     }
 
@@ -52,6 +55,10 @@ class LeaseRequest<T> {
 
     public PoolEntryCallback<T> getCallback() {
         return this.callback;
+    }
+
+    public int getConnectTimeout() {
+        return this.connectTimeout;
     }
 
     @Override
