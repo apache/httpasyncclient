@@ -27,15 +27,25 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.ProtocolException;
+import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.impl.client.ClientParamsStack;
+import org.apache.http.impl.client.EntityEnclosingRequestWrapper;
+import org.apache.http.impl.client.RequestWrapper;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -45,7 +55,7 @@ import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.params.DefaultedHttpParams;
+import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
@@ -55,13 +65,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
 
+    private final BasicFuture<T> resultFuture;
+    private final HttpAsyncExchangeHandler<T> handler;
     private final IOSessionManager<HttpRoute> sessmrg;
     private final HttpProcessor httppocessor;
     private final HttpContext localContext;
-    private final HttpParams params;
-    private final BasicFuture<T> resultFuture;
-    private final HttpAsyncExchangeHandler<T> handler;
+    private final HttpParams clientParams;
 
+    private HttpRequest originalRequest;
+    private RequestWrapper currentRequest;
+    private HttpRoute route;
     private Future<ManagedIOSession> sessionFuture;
     private ManagedIOSession managedSession;
 
@@ -71,18 +84,38 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             final IOSessionManager<HttpRoute> sessmrg,
             final HttpProcessor httppocessor,
             final HttpContext localContext,
-            final HttpParams params) {
+            final HttpParams clientParams) {
         super();
         this.handler = handler;
         this.resultFuture = new BasicFuture<T>(callback);
         this.sessmrg = sessmrg;
         this.httppocessor = httppocessor;
         this.localContext = localContext;
-        this.params = params;
+        this.clientParams = clientParams;
+    }
 
-        HttpRoute route = new HttpRoute(handler.getTarget());
-        this.sessionFuture = this.sessmrg.leaseSession(
-                route, null, 0, TimeUnit.MILLISECONDS, new InternalFutureCallback());
+    public void start() {
+        try {
+            HttpHost target = this.handler.getTarget();
+            this.originalRequest = this.handler.generateRequest();
+            HttpParams params = new ClientParamsStack(
+                    null, this.clientParams, this.originalRequest.getParams(), null);
+            this.currentRequest = wrapRequest(this.originalRequest);
+            this.currentRequest.setParams(params);
+            this.route = determineRoute(target, this.currentRequest, this.localContext);
+
+            long connectTimeout = HttpConnectionParams.getConnectionTimeout(params);
+            Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
+
+            this.sessionFuture = this.sessmrg.leaseSession(
+                    this.route, userToken,
+                    connectTimeout, TimeUnit.MILLISECONDS,
+                    new InternalFutureCallback());
+        } catch (HttpException ex) {
+            failed(ex);
+        } catch (IOException ex) {
+            failed(ex);
+        }
     }
 
     public Future<T> getResultFuture() {
@@ -94,13 +127,25 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public HttpRequest generateRequest() throws IOException, HttpException {
-        HttpRequest request = this.handler.generateRequest();
-        HttpHost target = this.handler.getTarget();
-        request.setParams(new DefaultedHttpParams(request.getParams(), this.params));
-        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, request);
+
+        HttpHost target = (HttpHost) this.currentRequest.getParams().getParameter(
+                ClientPNames.VIRTUAL_HOST);
+        if (target == null) {
+            target = this.route.getTargetHost();
+        }
+
+        HttpHost proxy = this.route.getProxyHost();
+
+        // Reset headers on the request wrapper
+        this.currentRequest.resetHeaders();
+        // Re-write request URI if needed
+        rewriteRequestURI(this.currentRequest, this.route);
+
+        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, this.currentRequest);
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
-        this.httppocessor.process(request, this.localContext);
-        return request;
+        this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
+        this.httppocessor.process(this.currentRequest, this.localContext);
+        return this.currentRequest;
     }
 
     public void produceContent(
@@ -109,7 +154,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public void responseReceived(final HttpResponse response) throws IOException, HttpException {
-        response.setParams(new DefaultedHttpParams(response.getParams(), this.params));
+        response.setParams(this.currentRequest.getParams());
         this.localContext.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
         this.httppocessor.process(response, this.localContext);
         this.handler.responseReceived(response);
@@ -209,6 +254,51 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             sessionRequestCancelled();
         }
 
+    }
+
+    protected HttpRoute determineRoute(
+            HttpHost target,
+            final HttpRequest request,
+            final HttpContext context) throws HttpException {
+        if (target == null) {
+            target = (HttpHost) request.getParams().getParameter(ClientPNames.DEFAULT_HOST);
+        }
+        if (target == null) {
+            throw new IllegalStateException("Target host must not be null, or set in parameters.");
+        }
+        return new HttpRoute(target);
+    }
+
+    private RequestWrapper wrapRequest(final HttpRequest request) throws ProtocolException {
+        if (request instanceof HttpEntityEnclosingRequest) {
+            return new EntityEnclosingRequestWrapper((HttpEntityEnclosingRequest) request);
+        } else {
+            return new RequestWrapper(request);
+        }
+    }
+
+    protected void rewriteRequestURI(
+            final RequestWrapper request, final HttpRoute route) throws ProtocolException {
+        try {
+            URI uri = request.getURI();
+            if (route.getProxyHost() != null && !route.isTunnelled()) {
+                // Make sure the request URI is absolute
+                if (!uri.isAbsolute()) {
+                    HttpHost target = route.getTargetHost();
+                    uri = URIUtils.rewriteURI(uri, target);
+                    request.setURI(uri);
+                }
+            } else {
+                // Make sure the request URI is relative
+                if (uri.isAbsolute()) {
+                    uri = URIUtils.rewriteURI(uri, null);
+                    request.setURI(uri);
+                }
+            }
+        } catch (URISyntaxException ex) {
+            throw new ProtocolException("Invalid URI: " +
+                    request.getRequestLine().getUri(), ex);
+        }
     }
 
 }

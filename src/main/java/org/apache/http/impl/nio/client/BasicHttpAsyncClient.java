@@ -53,6 +53,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.RequestConnControl;
@@ -168,21 +169,39 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     }
 
     public <T> Future<T> execute(
-            final HttpAsyncExchangeHandler<T> handler, final FutureCallback<T> callback) {
-        DefaultAsyncRequestDirector<T> httpexchange = new DefaultAsyncRequestDirector<T>(
-                handler,
-                callback,
-                this.sessmrg,
-                createHttpProcessor(),
-                new BasicHttpContext(),
-                this.params);
+            final HttpAsyncExchangeHandler<T> handler,
+            final HttpContext context,
+            final FutureCallback<T> callback) {
+        DefaultAsyncRequestDirector<T> httpexchange;
+        synchronized (this) {
+            httpexchange = new DefaultAsyncRequestDirector<T>(
+                    handler,
+                    callback,
+                    this.sessmrg,
+                    createHttpProcessor(),
+                    context,
+                    this.params);
+        }
+        httpexchange.start();
         return httpexchange.getResultFuture();
     }
 
-    public Future<HttpResponse> execute(
-            final HttpHost target, final HttpRequest request, final FutureCallback<HttpResponse> callback) {
-        BasicHttpAsyncExchangeHandler handler = new BasicHttpAsyncExchangeHandler(target, request);
-        return execute(handler, callback);
+    public <T> Future<T> execute(
+            final HttpAsyncExchangeHandler<T> handler,
+            final FutureCallback<T> callback) {
+        return execute(handler, new BasicHttpContext(), callback);
     }
 
+    public Future<HttpResponse> execute(
+            final HttpHost target, final HttpRequest request, final HttpContext context,
+            final FutureCallback<HttpResponse> callback) {
+        BasicHttpAsyncExchangeHandler handler = new BasicHttpAsyncExchangeHandler(target, request);
+        return execute(handler, context, callback);
+    }
+
+    public Future<HttpResponse> execute(
+            final HttpHost target, final HttpRequest request,
+            final FutureCallback<HttpResponse> callback) {
+        return execute(target, request, new BasicHttpContext(), callback);
+    }
 }

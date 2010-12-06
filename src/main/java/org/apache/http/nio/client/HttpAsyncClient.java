@@ -33,6 +33,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.reactor.IOReactorStatus;
+import org.apache.http.protocol.HttpContext;
 
 public interface HttpAsyncClient {
 
@@ -43,9 +44,19 @@ public interface HttpAsyncClient {
     IOReactorStatus getStatus();
 
     <T> Future<T> execute(
-            HttpAsyncExchangeHandler<T> handler, FutureCallback<T> callback);
+            HttpAsyncExchangeHandler<T> handler, HttpContext context,
+            FutureCallback<T> callback);
+
+    <T> Future<T> execute(
+            HttpAsyncExchangeHandler<T> handler,
+            FutureCallback<T> callback);
 
     Future<HttpResponse> execute(
-            HttpHost target, HttpRequest request, FutureCallback<HttpResponse> callback);
+            HttpHost target, HttpRequest request, HttpContext context,
+            FutureCallback<HttpResponse> callback);
+
+    Future<HttpResponse> execute(
+            HttpHost target, HttpRequest request,
+            FutureCallback<HttpResponse> callback);
 
 }
