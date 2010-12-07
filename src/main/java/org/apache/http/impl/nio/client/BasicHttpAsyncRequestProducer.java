@@ -67,11 +67,9 @@ public class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
 
     protected ProducingNHttpEntity createProducingHttpEntity(
             final HttpRequest request) throws IOException {
-        HttpEntityEnclosingRequest entityReq;
         HttpEntity entity = null;
         if (request instanceof HttpEntityEnclosingRequest) {
-            entityReq = (HttpEntityEnclosingRequest) request;
-            entity = entityReq.getEntity();
+            entity = ((HttpEntityEnclosingRequest) request).getEntity();
         }
         if (entity != null) {
             if (entity instanceof ProducingNHttpEntity) {
@@ -102,7 +100,7 @@ public class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
 
     public synchronized boolean isRepeatable() {
         if (this.request instanceof HttpEntityEnclosingRequest) {
-            HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+            HttpEntity entity = ((HttpEntityEnclosingRequest) this.request).getEntity();
             if (entity != null) {
                 return entity.isRepeatable();
             } else {
