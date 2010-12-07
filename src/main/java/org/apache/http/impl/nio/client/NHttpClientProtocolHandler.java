@@ -185,11 +185,15 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 connState.setRequestState(MessageState.COMPLETED);
             }
         } catch (IOException ex) {
-            this.log.error("I/O error: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error: " + ex.getMessage(), ex);
+            }
             shutdownConnection(conn);
             handler.failed(ex);
         } catch (HttpException ex) {
-            this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("HTTP protocol exception: " + ex.getMessage(), ex);
+            }
             closeConnection(conn);
             handler.failed(ex);
         }
@@ -208,9 +212,11 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 processResponse(conn, connState);
             }
         } catch (IOException ex) {
-            this.log.error("I/O error: " + ex.getMessage(), ex);
-            handler.failed(ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error: " + ex.getMessage(), ex);
+            }
             shutdownConnection(conn);
+            handler.failed(ex);
         }
     }
 
@@ -231,7 +237,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 connState.setRequestState(MessageState.COMPLETED);
             }
         } catch (IOException ex) {
-            this.log.error("I/O error: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error: " + ex.getMessage(), ex);
+            }
             shutdownConnection(conn);
             handler.failed(ex);
         }
@@ -274,11 +282,15 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 processResponse(conn, connState);
             }
         } catch (IOException ex) {
-            this.log.error("I/O error: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error: " + ex.getMessage(), ex);
+            }
             shutdownConnection(conn);
             handler.failed(ex);
         } catch (HttpException ex) {
-            this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("HTTP protocol exception: " + ex.getMessage(), ex);
+            }
             closeConnection(conn);
             handler.failed(ex);
         }
@@ -308,7 +320,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 }
             }
         } catch (IOException ex) {
-            this.log.error("I/O error: " + ex.getMessage(), ex);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error: " + ex.getMessage(), ex);
+            }
             shutdownConnection(conn);
             handler.failed(ex);
         }
