@@ -149,33 +149,26 @@ public class TestHttpAsync extends ServerTestBase {
     public void testMultipleRequestFailures() throws Exception {
         this.httpclient.start();
 
-        Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
+        HttpGet httpget = new HttpGet("/random/2048");
+        BasicHttpAsyncRequestProducer requestProducer = new BasicHttpAsyncRequestProducer(this.target, httpget) ;
+        BasicHttpAsyncResponseConsumer responseConsumer = new BasicHttpAsyncResponseConsumer() {
 
-        for (int i = 0; i < 3; i++) {
-            HttpGet httpget = new HttpGet("/random/2048");
-            BasicHttpAsyncExchangeHandler kaboom = new BasicHttpAsyncExchangeHandler(this.target, httpget) {
-
-                @Override
-                public void consumeContent(final ContentDecoder decoder, final IOControl ioctrl)
-                        throws IOException {
-                    throw new IOException("Kaboom");
-                }
-
-            };
-            queue.add(this.httpclient.execute(kaboom, null));
-        }
-
-        while (!queue.isEmpty()) {
-            Future<HttpResponse> future = queue.remove();
-            try {
-                future.get();
-                Assert.fail("ExecutionException expected");
-            } catch (ExecutionException ex) {
-                Throwable t = ex.getCause();
-                Assert.assertNotNull(t);
-                Assert.assertTrue(t instanceof IOException);
-                Assert.assertEquals("Kaboom", t.getMessage());
+            @Override
+            public void consumeContent(final ContentDecoder decoder, final IOControl ioctrl)
+                    throws IOException {
+                throw new IOException("Kaboom");
             }
+
+        };
+        Future<HttpResponse> future = this.httpclient.execute(requestProducer, responseConsumer, null);
+        try {
+            future.get();
+            Assert.fail("ExecutionException expected");
+        } catch (ExecutionException ex) {
+            Throwable t = ex.getCause();
+            Assert.assertNotNull(t);
+            Assert.assertTrue(t instanceof IOException);
+            Assert.assertEquals("Kaboom", t.getMessage());
         }
     }
 

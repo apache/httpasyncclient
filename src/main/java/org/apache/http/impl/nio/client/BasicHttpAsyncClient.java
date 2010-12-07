@@ -41,7 +41,8 @@ import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.client.HttpAsyncRequestProducer;
+import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
@@ -169,13 +170,15 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     }
 
     public <T> Future<T> execute(
-            final HttpAsyncExchangeHandler<T> handler,
+            final HttpAsyncRequestProducer requestProducer,
+            final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
         DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
             httpexchange = new DefaultAsyncRequestDirector<T>(
-                    handler,
+                    requestProducer,
+                    responseConsumer,
                     callback,
                     this.sessmrg,
                     createHttpProcessor(),
@@ -187,16 +190,19 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     }
 
     public <T> Future<T> execute(
-            final HttpAsyncExchangeHandler<T> handler,
+            final HttpAsyncRequestProducer requestProducer,
+            final HttpAsyncResponseConsumer<T> responseConsumer,
             final FutureCallback<T> callback) {
-        return execute(handler, new BasicHttpContext(), callback);
+        return execute(requestProducer, responseConsumer, new BasicHttpContext(), callback);
     }
 
     public Future<HttpResponse> execute(
             final HttpHost target, final HttpRequest request, final HttpContext context,
             final FutureCallback<HttpResponse> callback) {
-        BasicHttpAsyncExchangeHandler handler = new BasicHttpAsyncExchangeHandler(target, request);
-        return execute(handler, context, callback);
+        return execute(
+                new BasicHttpAsyncRequestProducer(target, request),
+                new BasicHttpAsyncResponseConsumer(),
+                context, callback);
     }
 
     public Future<HttpResponse> execute(

@@ -44,11 +44,14 @@ public interface HttpAsyncClient {
     IOReactorStatus getStatus();
 
     <T> Future<T> execute(
-            HttpAsyncExchangeHandler<T> handler, HttpContext context,
+            HttpAsyncRequestProducer requestProducer,
+            HttpAsyncResponseConsumer<T> responseConsumer,
+            HttpContext context,
             FutureCallback<T> callback);
 
     <T> Future<T> execute(
-            HttpAsyncExchangeHandler<T> handler,
+            HttpAsyncRequestProducer requestProducer,
+            HttpAsyncResponseConsumer<T> responseConsumer,
             FutureCallback<T> callback);
 
     Future<HttpResponse> execute(

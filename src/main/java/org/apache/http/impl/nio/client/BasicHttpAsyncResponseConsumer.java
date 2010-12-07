@@ -28,76 +28,30 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.nio.ContentDecoder;
-import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.entity.BufferingNHttpEntity;
 import org.apache.http.nio.entity.ConsumingNHttpEntity;
-import org.apache.http.nio.entity.NHttpEntityWrapper;
-import org.apache.http.nio.entity.ProducingNHttpEntity;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 
-public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<HttpResponse> {
-
-    private final HttpHost target;
-    private final HttpRequest request;
+public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer<HttpResponse> {
 
     private volatile HttpResponse response;
-    private volatile ProducingNHttpEntity contentProducingEntity;
     private volatile ConsumingNHttpEntity contentConsumingEntity;
     private volatile HttpResponse result;
     private volatile Exception ex;
     private volatile boolean completed;
 
-    public BasicHttpAsyncExchangeHandler(final HttpHost target, final HttpRequest request) {
+    public BasicHttpAsyncResponseConsumer() {
         super();
-        if (target == null) {
-            throw new IllegalArgumentException("Target host may not be null");
-        }
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
-        this.target = target;
-        this.request = request;
-    }
-
-    public HttpRequest generateRequest() {
-        return this.request;
-    }
-
-    public HttpHost getTarget() {
-        return this.target;
     }
 
     protected ConsumingNHttpEntity createConsumingHttpEntity(
             final HttpResponse response) throws IOException {
         if (response.getEntity() != null) {
             return new BufferingNHttpEntity(response.getEntity(), new HeapByteBufferAllocator());
-        } else {
-            return null;
-        }
-    }
-
-    protected ProducingNHttpEntity createProducingHttpEntity(
-            final HttpRequest request) throws IOException {
-        HttpEntityEnclosingRequest entityReq;
-        HttpEntity entity = null;
-        if (request instanceof HttpEntityEnclosingRequest) {
-            entityReq = (HttpEntityEnclosingRequest) request;
-            entity = entityReq.getEntity();
-        }
-        if (entity != null) {
-            if (entity instanceof ProducingNHttpEntity) {
-                return (ProducingNHttpEntity) entity;
-            } else {
-                return new NHttpEntityWrapper(entity);
-            }
         } else {
             return null;
         }
@@ -111,22 +65,6 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
             }
         }
         return this.contentConsumingEntity;
-    }
-
-    private ProducingNHttpEntity getProducingHttpEntity() throws IOException {
-        if (this.contentProducingEntity == null) {
-            this.contentProducingEntity = createProducingHttpEntity(this.request);
-            if (this.contentProducingEntity == null) {
-                throw new IllegalStateException("Content producer is null");
-            }
-        }
-        return this.contentProducingEntity;
-    }
-
-    public synchronized void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        ProducingNHttpEntity producer = getProducingHttpEntity();
-        producer.produceContent(encoder, ioctrl);
     }
 
     public synchronized void responseReceived(final HttpResponse response) {
@@ -143,13 +81,6 @@ public class BasicHttpAsyncExchangeHandler implements HttpAsyncExchangeHandler<H
     }
 
     private void reset() {
-        if (this.contentProducingEntity != null) {
-            try {
-                this.contentProducingEntity.finish();
-                this.contentProducingEntity = null;
-            } catch (IOException ex) {
-            }
-        }
         if (this.contentConsumingEntity != null) {
             try {
                 this.contentConsumingEntity.finish();

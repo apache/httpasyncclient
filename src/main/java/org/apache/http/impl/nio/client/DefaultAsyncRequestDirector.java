@@ -50,6 +50,8 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.client.HttpAsyncRequestProducer;
+import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
@@ -65,8 +67,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
 
+    private final HttpAsyncRequestProducer requestProducer;
+    private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final BasicFuture<T> resultFuture;
-    private final HttpAsyncExchangeHandler<T> handler;
     private final IOSessionManager<HttpRoute> sessmrg;
     private final HttpProcessor httppocessor;
     private final HttpContext localContext;
@@ -79,14 +82,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private ManagedIOSession managedSession;
 
     public DefaultAsyncRequestDirector(
-            final HttpAsyncExchangeHandler<T> handler,
+            final HttpAsyncRequestProducer requestProducer,
+            final HttpAsyncResponseConsumer<T> responseConsumer,
             final FutureCallback<T> callback,
             final IOSessionManager<HttpRoute> sessmrg,
             final HttpProcessor httppocessor,
             final HttpContext localContext,
             final HttpParams clientParams) {
         super();
-        this.handler = handler;
+        this.requestProducer = requestProducer;
+        this.responseConsumer = responseConsumer;
         this.resultFuture = new BasicFuture<T>(callback);
         this.sessmrg = sessmrg;
         this.httppocessor = httppocessor;
@@ -96,8 +101,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public void start() {
         try {
-            HttpHost target = this.handler.getTarget();
-            this.originalRequest = this.handler.generateRequest();
+            HttpHost target = this.requestProducer.getTarget();
+            this.originalRequest = this.requestProducer.generateRequest();
             HttpParams params = new ClientParamsStack(
                     null, this.clientParams, this.originalRequest.getParams(), null);
             this.currentRequest = wrapRequest(this.originalRequest);
@@ -123,7 +128,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public HttpHost getTarget() {
-        return this.handler.getTarget();
+        return this.requestProducer.getTarget();
     }
 
     public HttpRequest generateRequest() throws IOException, HttpException {
@@ -150,19 +155,30 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        this.handler.produceContent(encoder, ioctrl);
+        this.requestProducer.produceContent(encoder, ioctrl);
+        if (encoder.isCompleted()) {
+            this.requestProducer.resetRequest();
+        }
+    }
+
+    public boolean isRepeatable() {
+        return this.requestProducer.isRepeatable();
+    }
+
+    public void resetRequest() {
+        this.requestProducer.resetRequest();
     }
 
     public void responseReceived(final HttpResponse response) throws IOException, HttpException {
         response.setParams(this.currentRequest.getParams());
         this.localContext.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
         this.httppocessor.process(response, this.localContext);
-        this.handler.responseReceived(response);
+        this.responseConsumer.responseReceived(response);
     }
 
     public void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        this.handler.consumeContent(decoder, ioctrl);
+        this.responseConsumer.consumeContent(decoder, ioctrl);
     }
 
     public synchronized void completed() {
@@ -171,8 +187,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 this.managedSession.releaseSession();
             }
             this.managedSession = null;
-            this.handler.completed();
-            this.resultFuture.completed(this.handler.getResult());
+            this.requestProducer.resetRequest();
+            this.responseConsumer.completed();
+            this.resultFuture.completed(this.responseConsumer.getResult());
         } catch (RuntimeException runex) {
             this.resultFuture.failed(runex);
             throw runex;
@@ -186,7 +203,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 this.managedSession.abortSession();
             }
             this.managedSession = null;
-            this.handler.failed(ex);
+            this.requestProducer.resetRequest();
+            this.responseConsumer.failed(ex);
             this.resultFuture.failed(ex);
         } catch (RuntimeException runex) {
             this.resultFuture.failed(ex);
@@ -201,7 +219,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 this.managedSession.abortSession();
             }
             this.managedSession = null;
-            this.handler.cancel();
+            this.requestProducer.resetRequest();
+            this.responseConsumer.cancel();
             this.resultFuture.cancel(true);
         } catch (RuntimeException runex) {
             this.resultFuture.failed(runex);
@@ -210,11 +229,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public boolean isCompleted() {
-        return this.handler.isCompleted();
+        return this.responseConsumer.isCompleted();
     }
 
     public T getResult() {
-        return this.handler.getResult();
+        return this.responseConsumer.getResult();
     }
 
     private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
@@ -226,7 +245,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     private synchronized void sessionRequestFailed(final Exception ex) {
         try {
-            this.handler.failed(ex);
+            this.requestProducer.resetRequest();
+            this.responseConsumer.failed(ex);
         } finally {
             this.resultFuture.failed(ex);
         }
@@ -234,7 +254,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     private synchronized void sessionRequestCancelled() {
         try {
-            this.handler.cancel();
+            this.requestProducer.resetRequest();
+            this.responseConsumer.cancel();
         } finally {
             this.resultFuture.cancel(true);
         }

@@ -26,7 +26,24 @@
  */
 package org.apache.http.nio.client;
 
-public interface HttpAsyncExchangeHandler<T>
-    extends HttpAsyncRequestProducer, HttpAsyncResponseConsumer<T> {
+import java.io.IOException;
+
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.nio.ContentEncoder;
+import org.apache.http.nio.IOControl;
+
+public interface HttpAsyncRequestProducer {
+
+    HttpHost getTarget();
+
+    HttpRequest generateRequest() throws IOException, HttpException;
+
+    void produceContent(ContentEncoder encoder, IOControl ioctrl) throws IOException;
+
+    boolean isRepeatable();
+
+    void resetRequest();
 
 }
