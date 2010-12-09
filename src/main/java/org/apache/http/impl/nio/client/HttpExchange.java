@@ -30,7 +30,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 
-class ConnState {
+class HttpExchange {
 
     private MessageState requestState;
     private MessageState responseState;
@@ -40,7 +40,7 @@ class ConnState {
     private boolean valid;
     private int timeout;
 
-    public ConnState() {
+    public HttpExchange() {
         super();
         this.valid = true;
         this.requestState = MessageState.READY;
