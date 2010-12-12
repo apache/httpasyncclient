@@ -28,9 +28,7 @@ package org.apache.http.nio.conn;
 
 import org.apache.http.nio.reactor.IOSession;
 
-public interface ManagedIOSession  {
-
-    IOSession getSession();
+public interface ManagedIOSession extends IOSession {
 
     Object getState();
 

@@ -56,7 +56,6 @@ import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
-import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
@@ -70,7 +69,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final BasicFuture<T> resultFuture;
-    private final IOSessionManager<HttpRoute> sessmrg;
+    private final IOSessionManager sessmrg;
     private final HttpProcessor httppocessor;
     private final HttpContext localContext;
     private final HttpParams clientParams;
@@ -85,7 +84,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final FutureCallback<T> callback,
-            final IOSessionManager<HttpRoute> sessmrg,
+            final IOSessionManager sessmrg,
             final HttpProcessor httppocessor,
             final HttpContext localContext,
             final HttpParams clientParams) {
@@ -238,9 +237,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
         this.managedSession = session;
-        IOSession iosession = session.getSession();
-        iosession.setAttribute(HTTP_EXCHANGE_HANDLER, this);
-        iosession.setEvent(SelectionKey.OP_WRITE);
+        this.managedSession.setAttribute(HTTP_EXCHANGE_HANDLER, this);
+        this.managedSession.setEvent(SelectionKey.OP_WRITE);
     }
 
     private synchronized void sessionRequestFailed(final Exception ex) {

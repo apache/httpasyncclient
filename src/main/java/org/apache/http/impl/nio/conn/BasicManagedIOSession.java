@@ -26,21 +26,25 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import java.net.SocketAddress;
+import java.nio.channels.ByteChannel;
+
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.reactor.SessionBufferStatus;
 
 public class BasicManagedIOSession implements ManagedIOSession {
 
-    private final IOSessionManager<HttpRoute> manager;
+    private final IOSessionManager manager;
     private volatile PoolEntry<HttpRoute> entry;
     private volatile boolean released;
     private volatile boolean reusable;
 
     public BasicManagedIOSession(
-            final IOSessionManager<HttpRoute> manager,
+            final IOSessionManager manager,
             final PoolEntry<HttpRoute> entry) {
         super();
         this.manager = manager;
@@ -49,7 +53,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
         this.reusable = true;
     }
 
-    protected IOSessionManager<HttpRoute> getManager() {
+    protected IOSessionManager getManager() {
         return this.manager;
     }
 
@@ -57,14 +61,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
         return this.entry;
     }
 
-    public IOSession getSession() {
-        if (this.released) {
-            return null;
-        }
-        return this.entry.getIOSession();
-    }
-
-    public void releaseSession() {
+    public synchronized void releaseSession() {
         if (this.released) {
             return;
         }
@@ -73,7 +70,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
         this.entry = null;
     }
 
-    public void abortSession() {
+    public synchronized void abortSession() {
         if (this.released) {
             return;
         }
@@ -85,14 +82,14 @@ public class BasicManagedIOSession implements ManagedIOSession {
         this.entry = null;
     }
 
-    public Object getState() {
+    public synchronized Object getState() {
         if (this.released) {
             return null;
         }
         return this.entry.getState();
     }
 
-    public void setState(final Object state) {
+    public synchronized void setState(final Object state) {
         if (this.released) {
             return;
         }
@@ -103,18 +100,105 @@ public class BasicManagedIOSession implements ManagedIOSession {
         return this.reusable;
     }
 
-    public void markNonReusable() {
+    public synchronized void markNonReusable() {
         if (this.released) {
             return;
         }
         this.reusable = false;
     }
 
-    public void markReusable() {
+    public synchronized void markReusable() {
         if (this.released) {
             return;
         }
         this.reusable = true;
+    }
+
+    public void shutdown() {
+        abortSession();
+    }
+
+    public void close() {
+        releaseSession();
+    }
+
+    public int getStatus() {
+        return this.released ? IOSession.ACTIVE : IOSession.CLOSED;
+    }
+
+    public boolean isClosed() {
+        return this.released;
+    }
+
+    private void assertValid() {
+        if (this.released) {
+            throw new IllegalStateException("I/O session has been released");
+        }
+    }
+
+    private IOSession getIOSession() {
+        assertValid();
+        return this.entry.getIOSession();
+    }
+
+    public synchronized ByteChannel channel() {
+        return getIOSession().channel();
+    }
+
+    public synchronized boolean hasBufferedInput() {
+        return getIOSession().hasBufferedInput();
+    }
+
+    public synchronized boolean hasBufferedOutput() {
+        return getIOSession().hasBufferedOutput();
+    }
+
+    public synchronized int getEventMask() {
+        return getIOSession().getEventMask();
+    }
+
+    public synchronized void setEvent(int op) {
+        getIOSession().setEvent(op);
+    }
+
+    public synchronized void clearEvent(int op) {
+        getIOSession().clearEvent(op);
+    }
+
+    public synchronized void setEventMask(int ops) {
+        getIOSession().setEventMask(ops);
+    }
+
+    public synchronized SocketAddress getLocalAddress() {
+        return getIOSession().getLocalAddress();
+    }
+
+    public synchronized SocketAddress getRemoteAddress() {
+        return getIOSession().getRemoteAddress();
+    }
+
+    public synchronized Object getAttribute(final String name) {
+        return getIOSession().getAttribute(name);
+    }
+
+    public synchronized Object removeAttribute(final String name) {
+        return getIOSession().removeAttribute(name);
+    }
+
+    public synchronized void setAttribute(final String name, final Object value) {
+        getIOSession().setAttribute(name, value);
+    }
+
+    public void setBufferStatus(final SessionBufferStatus bufstatus) {
+        throw new UnsupportedOperationException();
+    }
+
+    public synchronized int getSocketTimeout() {
+        return getIOSession().getSocketTimeout();
+    }
+
+    public void setSocketTimeout(final int timeout) {
+        getIOSession().setSocketTimeout(timeout);
     }
 
     @Override

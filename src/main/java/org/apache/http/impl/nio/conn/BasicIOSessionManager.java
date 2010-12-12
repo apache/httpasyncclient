@@ -42,7 +42,7 @@ import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 
-public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
+public class BasicIOSessionManager implements IOSessionManager {
 
     private final Log log;
     private final HttpSessionPool pool;
@@ -88,7 +88,7 @@ public class BasicIOSessionManager implements IOSessionManager<HttpRoute> {
                  "I/O session not obtained from this manager");
         }
         BasicManagedIOSession adaptor = (BasicManagedIOSession) conn;
-        IOSessionManager<HttpRoute> manager = adaptor.getManager();
+        IOSessionManager manager = adaptor.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException
                 ("I/O session not obtained from this manager");

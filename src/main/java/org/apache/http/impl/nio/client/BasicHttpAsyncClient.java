@@ -36,7 +36,6 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.BasicIOSessionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
@@ -68,13 +67,13 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     private final Log log;
     private final HttpParams params;
     private final ConnectingIOReactor ioReactor;
-    private final IOSessionManager<HttpRoute> sessmrg;
+    private final IOSessionManager sessmrg;
 
     private Thread reactorThread;
 
     public BasicHttpAsyncClient(
             final ConnectingIOReactor ioReactor,
-            final IOSessionManager<HttpRoute> sessmrg,
+            final IOSessionManager sessmrg,
             final HttpParams params) throws IOReactorException {
         super();
         this.log = LogFactory.getLog(getClass());
@@ -124,10 +123,6 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
 
     protected ConnectionReuseStrategy createConnectionReuseStrategy() {
         return new DefaultConnectionReuseStrategy();
-    }
-
-    public IOSessionManager<HttpRoute> getSessionManager() {
-        return this.sessmrg;
     }
 
     private void doExecute() {
