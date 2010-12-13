@@ -69,17 +69,17 @@ class ClientConnAdaptor implements ManagedClientConnection {
         return this.entry;
     }
 
-    public synchronized void releaseSession() {
+    public synchronized void releaseConnection() {
         if (this.released) {
             return;
         }
         this.released = true;
-        this.manager.releaseSession(this);
+        this.manager.releaseConnection(this);
         this.entry = null;
         this.conn = null;
     }
 
-    public synchronized void abortSession() {
+    public synchronized void abortConnection() {
         if (this.released) {
             return;
         }
@@ -87,7 +87,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = false;
         IOSession iosession = this.entry.getIOSession();
         iosession.shutdown();
-        this.manager.releaseSession(this);
+        this.manager.releaseConnection(this);
         this.entry = null;
         this.conn = null;
     }
@@ -125,11 +125,11 @@ class ClientConnAdaptor implements ManagedClientConnection {
     }
 
     public void shutdown() {
-        abortSession();
+        abortConnection();
     }
 
     public void close() {
-        releaseSession();
+        releaseConnection();
     }
 
     public boolean isOpen() {

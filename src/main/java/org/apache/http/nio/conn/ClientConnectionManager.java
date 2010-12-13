@@ -34,12 +34,12 @@ import org.apache.http.nio.concurrent.FutureCallback;
 
 public interface ClientConnectionManager {
 
-    Future<ManagedClientConnection> leaseSession(
+    Future<ManagedClientConnection> leaseConnection(
             HttpRoute route, Object state,
             long connectTimeout, TimeUnit timeUnit,
             FutureCallback<ManagedClientConnection> callback);
 
-    void releaseSession(ManagedClientConnection session);
+    void releaseConnection(ManagedClientConnection session);
 
     void shutdown();
 

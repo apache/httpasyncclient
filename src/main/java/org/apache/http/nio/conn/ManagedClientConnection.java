@@ -40,8 +40,8 @@ public interface ManagedClientConnection extends NHttpClientConnection {
 
     boolean isReusable();
 
-    void releaseSession();
+    void releaseConnection();
 
-    void abortSession();
+    void abortConnection();
 
 }

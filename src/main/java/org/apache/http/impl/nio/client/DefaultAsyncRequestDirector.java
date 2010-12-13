@@ -110,7 +110,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             long connectTimeout = HttpConnectionParams.getConnectionTimeout(params);
             Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
 
-            this.connFuture = this.connmgr.leaseSession(
+            this.connFuture = this.connmgr.leaseConnection(
                     this.route, userToken,
                     connectTimeout, TimeUnit.MILLISECONDS,
                     new InternalFutureCallback());
@@ -182,7 +182,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     public synchronized void completed() {
         try {
             if (this.managedConn != null) {
-                this.managedConn.releaseSession();
+                this.managedConn.releaseConnection();
             }
             this.managedConn = null;
             this.requestProducer.resetRequest();
@@ -198,7 +198,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         try {
             this.connFuture.cancel(true);
             if (this.managedConn != null) {
-                this.managedConn.abortSession();
+                this.managedConn.abortConnection();
             }
             this.managedConn = null;
             this.requestProducer.resetRequest();
@@ -214,7 +214,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         try {
             this.connFuture.cancel(true);
             if (this.managedConn != null) {
-                this.managedConn.abortSession();
+                this.managedConn.abortConnection();
             }
             this.managedConn = null;
             this.requestProducer.resetRequest();

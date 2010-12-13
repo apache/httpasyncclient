@@ -72,7 +72,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         this.params = params;
     }
 
-    public synchronized Future<ManagedClientConnection> leaseSession(
+    public synchronized Future<ManagedClientConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
             final long connectTimeout,
@@ -97,7 +97,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         return future;
     }
 
-    public synchronized void releaseSession(final ManagedClientConnection conn) {
+    public synchronized void releaseConnection(final ManagedClientConnection conn) {
         if (!(conn instanceof ClientConnAdaptor)) {
             throw new IllegalArgumentException
                 ("I/O session class mismatch, " +
