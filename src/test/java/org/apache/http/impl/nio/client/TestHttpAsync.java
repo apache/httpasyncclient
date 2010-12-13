@@ -12,7 +12,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.nio.conn.BasicIOSessionManager;
+import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.ServerTestBase;
 import org.apache.http.nio.ContentDecoder;
@@ -33,7 +33,7 @@ import org.junit.Test;
 public class TestHttpAsync extends ServerTestBase {
 
     private HttpHost target;
-    private BasicIOSessionManager sessionManager;
+    private PoolingClientConnectionManager sessionManager;
     private HttpAsyncClient httpclient;
 
     @Before
@@ -52,7 +52,7 @@ public class TestHttpAsync extends ServerTestBase {
             .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
 
         ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, params);
-        this.sessionManager = new BasicIOSessionManager(ioReactor, params);
+        this.sessionManager = new PoolingClientConnectionManager(ioReactor, params);
         this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager, params);
     }
 

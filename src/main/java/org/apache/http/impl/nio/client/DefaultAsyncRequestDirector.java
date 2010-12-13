@@ -53,8 +53,8 @@ import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
-import org.apache.http.nio.conn.IOSessionManager;
-import org.apache.http.nio.conn.ManagedIOSession;
+import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
@@ -68,7 +68,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final BasicFuture<T> resultFuture;
-    private final IOSessionManager sessmrg;
+    private final ClientConnectionManager connmgr;
     private final HttpProcessor httppocessor;
     private final HttpContext localContext;
     private final HttpParams clientParams;
@@ -76,14 +76,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private HttpRequest originalRequest;
     private RequestWrapper currentRequest;
     private HttpRoute route;
-    private Future<ManagedIOSession> sessionFuture;
-    private ManagedIOSession managedSession;
+    private Future<ManagedClientConnection> connFuture;
+    private ManagedClientConnection managedConn;
 
     public DefaultAsyncRequestDirector(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final FutureCallback<T> callback,
-            final IOSessionManager sessmrg,
+            final ClientConnectionManager connmgr,
             final HttpProcessor httppocessor,
             final HttpContext localContext,
             final HttpParams clientParams) {
@@ -91,7 +91,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.resultFuture = new BasicFuture<T>(callback);
-        this.sessmrg = sessmrg;
+        this.connmgr = connmgr;
         this.httppocessor = httppocessor;
         this.localContext = localContext;
         this.clientParams = clientParams;
@@ -110,7 +110,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             long connectTimeout = HttpConnectionParams.getConnectionTimeout(params);
             Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
 
-            this.sessionFuture = this.sessmrg.leaseSession(
+            this.connFuture = this.connmgr.leaseSession(
                     this.route, userToken,
                     connectTimeout, TimeUnit.MILLISECONDS,
                     new InternalFutureCallback());
@@ -181,10 +181,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public synchronized void completed() {
         try {
-            if (this.managedSession != null) {
-                this.managedSession.releaseSession();
+            if (this.managedConn != null) {
+                this.managedConn.releaseSession();
             }
-            this.managedSession = null;
+            this.managedConn = null;
             this.requestProducer.resetRequest();
             this.responseConsumer.completed();
             this.resultFuture.completed(this.responseConsumer.getResult());
@@ -196,11 +196,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public synchronized void failed(final Exception ex) {
         try {
-            this.sessionFuture.cancel(true);
-            if (this.managedSession != null) {
-                this.managedSession.abortSession();
+            this.connFuture.cancel(true);
+            if (this.managedConn != null) {
+                this.managedConn.abortSession();
             }
-            this.managedSession = null;
+            this.managedConn = null;
             this.requestProducer.resetRequest();
             this.responseConsumer.failed(ex);
             this.resultFuture.failed(ex);
@@ -212,11 +212,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public synchronized void cancel() {
         try {
-            this.sessionFuture.cancel(true);
-            if (this.managedSession != null) {
-                this.managedSession.abortSession();
+            this.connFuture.cancel(true);
+            if (this.managedConn != null) {
+                this.managedConn.abortSession();
             }
-            this.managedSession = null;
+            this.managedConn = null;
             this.requestProducer.resetRequest();
             this.responseConsumer.cancel();
             this.resultFuture.cancel(true);
@@ -234,10 +234,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         return this.responseConsumer.getResult();
     }
 
-    private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
-        this.managedSession = session;
-        this.managedSession.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
-        this.managedSession.requestOutput();
+    private synchronized void sessionRequestCompleted(final ManagedClientConnection session) {
+        this.managedConn = session;
+        this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
+        this.managedConn.requestOutput();
     }
 
     private synchronized void sessionRequestFailed(final Exception ex) {
@@ -258,9 +258,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    class InternalFutureCallback implements FutureCallback<ManagedIOSession> {
+    class InternalFutureCallback implements FutureCallback<ManagedClientConnection> {
 
-        public void completed(final ManagedIOSession session) {
+        public void completed(final ManagedClientConnection session) {
             sessionRequestCompleted(session);
         }
 

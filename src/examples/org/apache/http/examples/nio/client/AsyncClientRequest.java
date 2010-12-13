@@ -33,7 +33,7 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.nio.client.BasicHttpAsyncClient;
-import org.apache.http.impl.nio.conn.BasicIOSessionManager;
+import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.client.HttpAsyncClient;
@@ -53,7 +53,7 @@ public class AsyncClientRequest {
             .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
             .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
         DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(1, params);
-        BasicIOSessionManager sessmrg = new BasicIOSessionManager(ioReactor, params);
+        PoolingClientConnectionManager sessmrg = new PoolingClientConnectionManager(ioReactor, params);
         sessmrg.setTotalMax(5);
         sessmrg.setDefaultMaxPerHost(3);
 

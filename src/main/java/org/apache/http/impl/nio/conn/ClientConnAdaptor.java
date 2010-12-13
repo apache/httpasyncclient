@@ -36,21 +36,21 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.NHttpConnection;
-import org.apache.http.nio.conn.IOSessionManager;
-import org.apache.http.nio.conn.ManagedIOSession;
+import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.HttpContext;
 
-class BasicManagedIOSession implements ManagedIOSession {
+class ClientConnAdaptor implements ManagedClientConnection {
 
-    private final IOSessionManager manager;
+    private final ClientConnectionManager manager;
     private volatile PoolEntry<HttpRoute> entry;
     private volatile NHttpClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
 
-    public BasicManagedIOSession(
-            final IOSessionManager manager,
+    public ClientConnAdaptor(
+            final ClientConnectionManager manager,
             final PoolEntry<HttpRoute> entry,
             final NHttpClientConnection conn) {
         super();
@@ -61,7 +61,7 @@ class BasicManagedIOSession implements ManagedIOSession {
         this.reusable = true;
     }
 
-    protected IOSessionManager getManager() {
+    protected ClientConnectionManager getManager() {
         return this.manager;
     }
 

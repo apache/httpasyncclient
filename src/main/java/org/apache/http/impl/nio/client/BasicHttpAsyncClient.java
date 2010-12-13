@@ -37,13 +37,13 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
-import org.apache.http.impl.nio.conn.BasicIOSessionManager;
+import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.concurrent.FutureCallback;
-import org.apache.http.nio.conn.IOSessionManager;
+import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
@@ -67,13 +67,13 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     private final Log log;
     private final HttpParams params;
     private final ConnectingIOReactor ioReactor;
-    private final IOSessionManager sessmrg;
+    private final ClientConnectionManager connmgr;
 
     private Thread reactorThread;
 
     public BasicHttpAsyncClient(
             final ConnectingIOReactor ioReactor,
-            final IOSessionManager sessmrg,
+            final ClientConnectionManager connmgr,
             final HttpParams params) throws IOReactorException {
         super();
         this.log = LogFactory.getLog(getClass());
@@ -83,7 +83,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
             this.params = createDefaultHttpParams();
         }
         this.ioReactor = ioReactor;
-        this.sessmrg = sessmrg;
+        this.connmgr = connmgr;
     }
 
     public BasicHttpAsyncClient(final HttpParams params) throws IOReactorException {
@@ -95,7 +95,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
             this.params = createDefaultHttpParams();
         }
         this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
-        this.sessmrg = new BasicIOSessionManager(this.ioReactor, params);
+        this.connmgr = new PoolingClientConnectionManager(this.ioReactor, params);
     }
 
     protected HttpParams createDefaultHttpParams() {
@@ -153,7 +153,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     }
 
     public synchronized void shutdown() throws InterruptedException {
-        this.sessmrg.shutdown();
+        this.connmgr.shutdown();
         try {
             this.ioReactor.shutdown(5000);
         } catch (IOException ex) {
@@ -175,7 +175,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
                     requestProducer,
                     responseConsumer,
                     callback,
-                    this.sessmrg,
+                    this.connmgr,
                     createHttpProcessor(),
                     context,
                     this.params);

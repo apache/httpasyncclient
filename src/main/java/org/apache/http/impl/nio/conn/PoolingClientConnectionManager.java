@@ -40,8 +40,8 @@ import org.apache.http.impl.nio.pool.PoolEntryCallback;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
-import org.apache.http.nio.conn.ManagedIOSession;
-import org.apache.http.nio.conn.IOSessionManager;
+import org.apache.http.nio.conn.ManagedClientConnection;
+import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
@@ -50,7 +50,7 @@ import org.apache.http.nio.util.HeapByteBufferAllocator;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
 
-public class BasicIOSessionManager implements IOSessionManager {
+public class PoolingClientConnectionManager implements ClientConnectionManager {
 
     private static final String HEADERS    = "org.apache.http.headers";
     private static final String WIRE       = "org.apache.http.wire";
@@ -60,7 +60,7 @@ public class BasicIOSessionManager implements IOSessionManager {
     private final HttpSessionPool pool;
     private final HttpParams params;
 
-    public BasicIOSessionManager(final ConnectingIOReactor ioreactor, final HttpParams params) {
+    public PoolingClientConnectionManager(final ConnectingIOReactor ioreactor, final HttpParams params) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
@@ -72,12 +72,12 @@ public class BasicIOSessionManager implements IOSessionManager {
         this.params = params;
     }
 
-    public synchronized Future<ManagedIOSession> leaseSession(
+    public synchronized Future<ManagedClientConnection> leaseSession(
             final HttpRoute route,
             final Object state,
             final long connectTimeout,
             final TimeUnit timeUnit,
-            final FutureCallback<ManagedIOSession> callback) {
+            final FutureCallback<ManagedClientConnection> callback) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("I/O session request: route[" + route + "][state: " + state + "]");
             PoolStats totals = this.pool.getTotalStats();
@@ -85,7 +85,7 @@ public class BasicIOSessionManager implements IOSessionManager {
             this.log.debug("Total: " + totals);
             this.log.debug("Route [" + route + "]: " + stats);
         }
-        BasicFuture<ManagedIOSession> future = new BasicFuture<ManagedIOSession>(
+        BasicFuture<ManagedClientConnection> future = new BasicFuture<ManagedClientConnection>(
                 callback);
         this.pool.lease(route, state, connectTimeout, timeUnit, new InternalPoolEntryCallback(future));
         if (this.log.isDebugEnabled()) {
@@ -97,14 +97,14 @@ public class BasicIOSessionManager implements IOSessionManager {
         return future;
     }
 
-    public synchronized void releaseSession(final ManagedIOSession conn) {
-        if (!(conn instanceof BasicManagedIOSession)) {
+    public synchronized void releaseSession(final ManagedClientConnection conn) {
+        if (!(conn instanceof ClientConnAdaptor)) {
             throw new IllegalArgumentException
                 ("I/O session class mismatch, " +
                  "I/O session not obtained from this manager");
         }
-        BasicManagedIOSession adaptor = (BasicManagedIOSession) conn;
-        IOSessionManager manager = adaptor.getManager();
+        ClientConnAdaptor adaptor = (ClientConnAdaptor) conn;
+        ClientConnectionManager manager = adaptor.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException
                 ("I/O session not obtained from this manager");
@@ -157,10 +157,10 @@ public class BasicIOSessionManager implements IOSessionManager {
 
     class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute> {
 
-        private final BasicFuture<ManagedIOSession> future;
+        private final BasicFuture<ManagedClientConnection> future;
 
         public InternalPoolEntryCallback(
-                final BasicFuture<ManagedIOSession> future) {
+                final BasicFuture<ManagedClientConnection> future) {
             super();
             this.future = future;
         }
@@ -195,8 +195,8 @@ public class BasicIOSessionManager implements IOSessionManager {
                 }
                 session.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
             }
-            BasicManagedIOSession result = new BasicManagedIOSession(
-                    BasicIOSessionManager.this,
+            ClientConnAdaptor result = new ClientConnAdaptor(
+                    PoolingClientConnectionManager.this,
                     entry,
                     conn);
             if (!this.future.completed(result)) {

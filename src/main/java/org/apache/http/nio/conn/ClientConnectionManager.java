@@ -26,22 +26,21 @@
  */
 package org.apache.http.nio.conn;
 
-import org.apache.http.nio.NHttpClientConnection;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-public interface ManagedIOSession extends NHttpClientConnection {
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.concurrent.FutureCallback;
 
-    Object getState();
+public interface ClientConnectionManager {
 
-    void setState(Object state);
+    Future<ManagedClientConnection> leaseSession(
+            HttpRoute route, Object state,
+            long connectTimeout, TimeUnit timeUnit,
+            FutureCallback<ManagedClientConnection> callback);
 
-    void markReusable();
+    void releaseSession(ManagedClientConnection session);
 
-    void markNonReusable();
-
-    boolean isReusable();
-
-    void releaseSession();
-
-    void abortSession();
+    void shutdown();
 
 }
