@@ -37,19 +37,21 @@ import java.util.Set;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 
-class SessionPoolForRoute<T> {
+class SessionPoolForRoute<T, E extends PoolEntry<T>> {
 
     private final T route;
-    private final Set<PoolEntry<T>> leasedSessions;
-    private final LinkedList<PoolEntry<T>> availableSessions;
-    private final Map<SessionRequest, PoolEntryCallback<T>> pendingSessions;
+    private final PoolEntryFactory<T, E> factory;
+    private final Set<E> leasedSessions;
+    private final LinkedList<E> availableSessions;
+    private final Map<SessionRequest, PoolEntryCallback<T, E>> pendingSessions;
 
-    public SessionPoolForRoute(final T route) {
+    public SessionPoolForRoute(final T route, final PoolEntryFactory<T, E> factory) {
         super();
         this.route = route;
-        this.leasedSessions = new HashSet<PoolEntry<T>>();
-        this.availableSessions = new LinkedList<PoolEntry<T>>();
-        this.pendingSessions = new HashMap<SessionRequest, PoolEntryCallback<T>>();
+        this.factory = factory;
+        this.leasedSessions = new HashSet<E>();
+        this.availableSessions = new LinkedList<E>();
+        this.pendingSessions = new HashMap<SessionRequest, PoolEntryCallback<T, E>>();
     }
 
     public int getLeasedCount() {
@@ -68,12 +70,11 @@ class SessionPoolForRoute<T> {
         return this.availableSessions.size() + this.leasedSessions.size() + this.pendingSessions.size();
     }
 
-    public PoolEntry<T> getFreeEntry(final Object state) {
+    public E getFreeEntry(final Object state) {
         if (!this.availableSessions.isEmpty()) {
-            ListIterator<PoolEntry<T>> it = this.availableSessions.listIterator(
-                    this.availableSessions.size());
+            ListIterator<E> it = this.availableSessions.listIterator(this.availableSessions.size());
             while (it.hasPrevious()) {
-                PoolEntry<T> entry = it.previous();
+                E entry = it.previous();
                 IOSession iosession = entry.getIOSession();
                 if (iosession.isClosed()) {
                     it.remove();
@@ -89,11 +90,11 @@ class SessionPoolForRoute<T> {
         return null;
     }
 
-    public PoolEntry<T> deleteLastUsed() {
+    public E deleteLastUsed() {
         return this.availableSessions.poll();
     }
 
-    public boolean remove(final PoolEntry<T> entry) {
+    public boolean remove(final E entry) {
         if (entry == null) {
             throw new IllegalArgumentException("Pool entry may not be null");
         }
@@ -102,7 +103,7 @@ class SessionPoolForRoute<T> {
         return foundLeased || foundFree;
     }
 
-    public void freeEntry(final PoolEntry<T> entry, boolean reusable) {
+    public void freeEntry(final E entry, boolean reusable) {
         if (entry == null) {
             throw new IllegalArgumentException("Pool entry may not be null");
         }
@@ -118,39 +119,39 @@ class SessionPoolForRoute<T> {
 
     public void addPending(
             final SessionRequest sessionRequest,
-            final PoolEntryCallback<T> callback) {
+            final PoolEntryCallback<T, E> callback) {
         this.pendingSessions.put(sessionRequest, callback);
     }
 
-    private PoolEntryCallback<T> removeRequest(final SessionRequest request) {
-        PoolEntryCallback<T> callback = this.pendingSessions.remove(request);
+    private PoolEntryCallback<T, E> removeRequest(final SessionRequest request) {
+        PoolEntryCallback<T, E> callback = this.pendingSessions.remove(request);
         if (callback == null) {
             throw new IllegalStateException("Invalid session request");
         }
         return callback;
     }
 
-    public PoolEntry<T> completed(final SessionRequest request) {
-        PoolEntryCallback<T> callback = removeRequest(request);
+    public E completed(final SessionRequest request) {
+        PoolEntryCallback<T, E> callback = removeRequest(request);
         IOSession iosession = request.getSession();
-        PoolEntry<T> entry = new PoolEntry<T>(this.route, iosession);
+        E entry = this.factory.createEntry(this.route, iosession);
         this.leasedSessions.add(entry);
         callback.completed(entry);
         return entry;
     }
 
     public void cancelled(final SessionRequest request) {
-        PoolEntryCallback<T> callback = removeRequest(request);
+        PoolEntryCallback<T, E> callback = removeRequest(request);
         callback.cancelled();
     }
 
     public void failed(final SessionRequest request) {
-        PoolEntryCallback<T> callback = removeRequest(request);
+        PoolEntryCallback<T, E> callback = removeRequest(request);
         callback.failed(request.getException());
     }
 
     public void timeout(final SessionRequest request) {
-        PoolEntryCallback<T> callback = removeRequest(request);
+        PoolEntryCallback<T, E> callback = removeRequest(request);
         callback.failed(new SocketTimeoutException());
     }
 
@@ -159,11 +160,11 @@ class SessionPoolForRoute<T> {
             sessionRequest.cancel();
         }
         this.pendingSessions.clear();
-        for (PoolEntry<T> entry: this.availableSessions) {
+        for (E entry: this.availableSessions) {
             entry.getIOSession().close();
         }
         this.availableSessions.clear();
-        for (PoolEntry<T> entry: this.leasedSessions) {
+        for (E entry: this.leasedSessions) {
             entry.getIOSession().close();
         }
         this.leasedSessions.clear();

@@ -26,9 +26,9 @@
  */
 package org.apache.http.impl.nio.pool;
 
-public interface PoolEntryCallback<T> {
+public interface PoolEntryCallback<T, E extends PoolEntry<T>> {
 
-    void completed(PoolEntry<T> entry);
+    void completed(E entry);
 
     void failed(Exception ex);
 

@@ -32,8 +32,8 @@ import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.conn.ConnectionReleaseTrigger;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
@@ -41,17 +41,17 @@ import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.HttpContext;
 
-class ClientConnAdaptor implements ManagedClientConnection {
+class ClientConnAdaptor implements ManagedClientConnection, ConnectionReleaseTrigger {
 
     private final ClientConnectionManager manager;
-    private volatile PoolEntry<HttpRoute> entry;
+    private volatile HttpPoolEntry entry;
     private volatile NHttpClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
 
     public ClientConnAdaptor(
             final ClientConnectionManager manager,
-            final PoolEntry<HttpRoute> entry,
+            final HttpPoolEntry entry,
             final NHttpClientConnection conn) {
         super();
         this.manager = manager;
@@ -65,7 +65,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         return this.manager;
     }
 
-    protected PoolEntry<HttpRoute> getEntry() {
+    protected HttpPoolEntry getEntry() {
         return this.entry;
     }
 

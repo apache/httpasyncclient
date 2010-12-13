@@ -24,54 +24,24 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.pool;
+package org.apache.http.impl.nio.conn;
 
-import java.util.concurrent.atomic.AtomicLong;
-
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.conn.routing.RouteTracker;
+import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.nio.reactor.IOSession;
 
-public abstract class PoolEntry<T> {
+public class HttpPoolEntry extends PoolEntry<HttpRoute> {
 
-    private static AtomicLong COUNTER = new AtomicLong();
+    private final RouteTracker tracker;
 
-    private final long id;
-    private final T route;
-    private final IOSession session;
-    private Object state;
-
-    public PoolEntry(final T route, final IOSession session) {
-        super();
-        this.route = route;
-        this.session = session;
-        this.id = COUNTER.incrementAndGet();
+    public HttpPoolEntry(final HttpRoute route, final IOSession session) {
+        super(route, session);
+        this.tracker = new RouteTracker(route);
     }
 
-    public T getRoute() {
-        return this.route;
-    }
-
-    public IOSession getIOSession() {
-        return this.session;
-    }
-    public Object getState() {
-        return this.state;
-    }
-
-    public void setState(final Object state) {
-        this.state = state;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("[id:");
-        buffer.append(this.id);
-        buffer.append("][route:");
-        buffer.append(this.route);
-        buffer.append("][state:");
-        buffer.append(this.state);
-        buffer.append("]");
-        return buffer.toString();
+    protected RouteTracker getTracker() {
+        return tracker;
     }
 
 }

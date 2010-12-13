@@ -36,7 +36,9 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
@@ -125,6 +127,10 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         return new DefaultConnectionReuseStrategy();
     }
 
+    protected HttpRoutePlanner createHttpRoutePlanner() {
+        return new DefaultHttpAsyncRoutePlanner();
+    }
+
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
                 createConnectionReuseStrategy());
@@ -174,10 +180,11 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
             httpexchange = new DefaultAsyncRequestDirector<T>(
                     requestProducer,
                     responseConsumer,
+                    context,
                     callback,
                     this.connmgr,
                     createHttpProcessor(),
-                    context,
+                    createHttpRoutePlanner(),
                     this.params);
         }
         httpexchange.start();

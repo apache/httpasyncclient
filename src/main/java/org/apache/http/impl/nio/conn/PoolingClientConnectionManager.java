@@ -35,7 +35,6 @@ import org.apache.http.HttpResponseFactory;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
-import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.impl.nio.pool.PoolEntryCallback;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.concurrent.BasicFuture;
@@ -109,7 +108,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             throw new IllegalArgumentException
                 ("I/O session not obtained from this manager");
         }
-        PoolEntry<HttpRoute> entry = adaptor.getEntry();
+        HttpPoolEntry entry = adaptor.getEntry();
         IOSession iosession = entry.getIOSession();
         if (this.log.isDebugEnabled()) {
             HttpRoute route = entry.getRoute();
@@ -155,7 +154,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         return new DefaultHttpResponseFactory();
     }
 
-    class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute> {
+    class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute, HttpPoolEntry> {
 
         private final BasicFuture<ManagedClientConnection> future;
 
@@ -165,7 +164,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             this.future = future;
         }
 
-        public void completed(final PoolEntry<HttpRoute> entry) {
+        public void completed(final HttpPoolEntry entry) {
             if (log.isDebugEnabled()) {
                 log.debug("I/O session allocated: " + entry);
             }

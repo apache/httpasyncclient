@@ -26,18 +26,18 @@
  */
 package org.apache.http.impl.nio.pool;
 
-class LeaseRequest<T> {
+class LeaseRequest<T, E extends PoolEntry<T>> {
 
     private final T route;
     private final Object state;
     private final int connectTimeout;
-    private final PoolEntryCallback<T> callback;
+    private final PoolEntryCallback<T, E> callback;
 
     public LeaseRequest(
             final T route,
             final Object state,
             final int connectTimeout,
-            final PoolEntryCallback<T> callback) {
+            final PoolEntryCallback<T, E> callback) {
         super();
         this.route = route;
         this.state = state;
@@ -53,7 +53,7 @@ class LeaseRequest<T> {
         return this.state;
     }
 
-    public PoolEntryCallback<T> getCallback() {
+    public PoolEntryCallback<T, E> getCallback() {
         return this.callback;
     }
 

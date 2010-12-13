@@ -31,14 +31,16 @@ import java.net.SocketAddress;
 
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.impl.nio.pool.PoolEntryFactory;
 import org.apache.http.impl.nio.pool.RouteResolver;
 import org.apache.http.impl.nio.pool.SessionPool;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
+import org.apache.http.nio.reactor.IOSession;
 
-class HttpSessionPool extends SessionPool<HttpRoute> {
+class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
     public HttpSessionPool(final ConnectingIOReactor ioreactor) {
-        super(ioreactor, new InternalRouteResolver(), 20, 50);
+        super(ioreactor, new InternalEntryFactory(), new InternalRouteResolver(), 20, 50);
     }
 
     static class InternalRouteResolver implements RouteResolver<HttpRoute> {
@@ -53,5 +55,13 @@ class HttpSessionPool extends SessionPool<HttpRoute> {
         }
 
     }
+
+    static class InternalEntryFactory implements PoolEntryFactory<HttpRoute, HttpPoolEntry> {
+
+        public HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
+            return new HttpPoolEntry(route, session);
+        }
+
+    };
 
 }

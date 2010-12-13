@@ -42,6 +42,7 @@ import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.ClientParamsStack;
 import org.apache.http.impl.client.EntityEnclosingRequestWrapper;
 import org.apache.http.impl.client.RequestWrapper;
@@ -63,14 +64,17 @@ import org.apache.http.protocol.HttpProcessor;
 
 class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
-    public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
+    public static final String HTTP_EXCHANGE_HANDLER    = "http.nio.async-exchange-handler";
+    public static final String HTTP_ROUTE_STATE         = "http.nio.route-state";
+    public static final String HTTP_ROUTE_TRACKER       = "http.nio.route-tracker";
 
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
+    private final HttpContext localContext;
     private final BasicFuture<T> resultFuture;
     private final ClientConnectionManager connmgr;
     private final HttpProcessor httppocessor;
-    private final HttpContext localContext;
+    private final HttpRoutePlanner routePlanner;
     private final HttpParams clientParams;
 
     private HttpRequest originalRequest;
@@ -82,18 +86,20 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     public DefaultAsyncRequestDirector(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
+            final HttpContext localContext,
             final FutureCallback<T> callback,
             final ClientConnectionManager connmgr,
             final HttpProcessor httppocessor,
-            final HttpContext localContext,
+            final HttpRoutePlanner routePlanner,
             final HttpParams clientParams) {
         super();
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
+        this.localContext = localContext;
         this.resultFuture = new BasicFuture<T>(callback);
         this.connmgr = connmgr;
         this.httppocessor = httppocessor;
-        this.localContext = localContext;
+        this.routePlanner = routePlanner;
         this.clientParams = clientParams;
     }
 
@@ -282,9 +288,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             target = (HttpHost) request.getParams().getParameter(ClientPNames.DEFAULT_HOST);
         }
         if (target == null) {
-            throw new IllegalStateException("Target host must not be null, or set in parameters.");
+            throw new IllegalStateException("Target host could not be resolved");
         }
-        return new HttpRoute(target);
+        return this.routePlanner.determineRoute(target, request, context);
     }
 
     private RequestWrapper wrapRequest(final HttpRequest request) throws ProtocolException {

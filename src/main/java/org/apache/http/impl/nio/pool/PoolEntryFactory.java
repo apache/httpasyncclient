@@ -26,52 +26,10 @@
  */
 package org.apache.http.impl.nio.pool;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.http.nio.reactor.IOSession;
 
-public abstract class PoolEntry<T> {
+public interface PoolEntryFactory<T, E extends PoolEntry<T>> {
 
-    private static AtomicLong COUNTER = new AtomicLong();
-
-    private final long id;
-    private final T route;
-    private final IOSession session;
-    private Object state;
-
-    public PoolEntry(final T route, final IOSession session) {
-        super();
-        this.route = route;
-        this.session = session;
-        this.id = COUNTER.incrementAndGet();
-    }
-
-    public T getRoute() {
-        return this.route;
-    }
-
-    public IOSession getIOSession() {
-        return this.session;
-    }
-    public Object getState() {
-        return this.state;
-    }
-
-    public void setState(final Object state) {
-        this.state = state;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("[id:");
-        buffer.append(this.id);
-        buffer.append("][route:");
-        buffer.append(this.route);
-        buffer.append("][state:");
-        buffer.append(this.state);
-        buffer.append("]");
-        return buffer.toString();
-    }
+    E createEntry(T route, IOSession session);
 
 }

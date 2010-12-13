@@ -42,16 +42,17 @@ import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 import org.apache.http.nio.reactor.SessionRequestCallback;
 
-public class SessionPool<T> {
+public abstract class SessionPool<T, E extends PoolEntry<T>> {
 
     private final ConnectingIOReactor ioreactor;
+    private final PoolEntryFactory<T, E> factory;
     private final SessionRequestCallback sessionRequestCallback;
     private final RouteResolver<T> routeResolver;
-    private final Map<T, SessionPoolForRoute<T>> routeToPool;
-    private final LinkedList<LeaseRequest<T>> leasingRequests;
+    private final Map<T, SessionPoolForRoute<T, E>> routeToPool;
+    private final LinkedList<LeaseRequest<T, E>> leasingRequests;
     private final Set<SessionRequest> pendingSessions;
     private final Set<PoolEntry<T>> leasedSessions;
-    private final LinkedList<PoolEntry<T>> availableSessions;
+    private final LinkedList<E> availableSessions;
     private final Map<T, Integer> maxPerRoute;
     private final Lock lock;
 
@@ -61,6 +62,7 @@ public class SessionPool<T> {
 
     public SessionPool(
             final ConnectingIOReactor ioreactor,
+            final PoolEntryFactory<T, E> factory,
             final RouteResolver<T> routeResolver,
             int defaultMaxPerRoute,
             int maxTotal) {
@@ -68,17 +70,21 @@ public class SessionPool<T> {
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
         }
+        if (factory == null) {
+            throw new IllegalArgumentException("Pool entry factory may not be null");
+        }
         if (routeResolver == null) {
             throw new IllegalArgumentException("Route resolver may not be null");
         }
         this.ioreactor = ioreactor;
+        this.factory = factory;
         this.sessionRequestCallback = new InternalSessionRequestCallback();
         this.routeResolver = routeResolver;
-        this.routeToPool = new HashMap<T, SessionPoolForRoute<T>>();
-        this.leasingRequests = new LinkedList<LeaseRequest<T>>();
+        this.routeToPool = new HashMap<T, SessionPoolForRoute<T, E>>();
+        this.leasingRequests = new LinkedList<LeaseRequest<T, E>>();
         this.pendingSessions = new HashSet<SessionRequest>();
         this.leasedSessions = new HashSet<PoolEntry<T>>();
-        this.availableSessions = new LinkedList<PoolEntry<T>>();
+        this.availableSessions = new LinkedList<E>();
         this.maxPerRoute = new HashMap<T, Integer>();
         this.lock = new ReentrantLock();
         this.defaultMaxPerRoute = defaultMaxPerRoute;
@@ -92,7 +98,7 @@ public class SessionPool<T> {
         this.isShutDown = true;
         this.lock.lock();
         try {
-            for (SessionPoolForRoute<T> pool: this.routeToPool.values()) {
+            for (SessionPoolForRoute<T, E> pool: this.routeToPool.values()) {
                 pool.shutdown();
             }
             this.routeToPool.clear();
@@ -106,10 +112,10 @@ public class SessionPool<T> {
         }
     }
 
-    private SessionPoolForRoute<T> getPool(final T route) {
-        SessionPoolForRoute<T> pool = this.routeToPool.get(route);
+    private SessionPoolForRoute<T, E> getPool(final T route) {
+        SessionPoolForRoute<T, E> pool = this.routeToPool.get(route);
         if (pool == null) {
-            pool = new SessionPoolForRoute<T>(route);
+            pool = new SessionPoolForRoute<T, E>(route, this.factory);
             this.routeToPool.put(route, pool);
         }
         return pool;
@@ -118,7 +124,7 @@ public class SessionPool<T> {
     public void lease(
             final T route, final Object state,
             final long connectTimeout, final TimeUnit timeUnit,
-            final PoolEntryCallback<T> callback) {
+            final PoolEntryCallback<T, E> callback) {
         if (this.isShutDown) {
             throw new IllegalStateException("Session pool has been shut down");
         }
@@ -129,7 +135,7 @@ public class SessionPool<T> {
             if (timeout < 0) {
                 timeout = 0;
             }
-            LeaseRequest<T> request = new LeaseRequest<T>(route, state, timeout, callback);
+            LeaseRequest<T, E> request = new LeaseRequest<T, E>(route, state, timeout, callback);
             this.leasingRequests.add(request);
 
             processPendingRequests();
@@ -138,14 +144,14 @@ public class SessionPool<T> {
         }
     }
 
-    public void release(final PoolEntry<T> entry, boolean reusable) {
+    public void release(final E entry, boolean reusable) {
         if (this.isShutDown) {
             return;
         }
         this.lock.lock();
         try {
             if (this.leasedSessions.remove(entry)) {
-                SessionPoolForRoute<T> pool = getPool(entry.getRoute());
+                SessionPoolForRoute<T, E> pool = getPool(entry.getRoute());
                 pool.freeEntry(entry, reusable);
                 if (reusable) {
                     this.availableSessions.add(entry);
@@ -169,26 +175,26 @@ public class SessionPool<T> {
     }
 
     private void processPendingRequests() {
-        ListIterator<LeaseRequest<T>> it = this.leasingRequests.listIterator();
+        ListIterator<LeaseRequest<T, E>> it = this.leasingRequests.listIterator();
         while (it.hasNext()) {
-            LeaseRequest<T> request = it.next();
+            LeaseRequest<T, E> request = it.next();
 
             T route = request.getRoute();
             Object state = request.getState();
             int timeout = request.getConnectTimeout();
-            PoolEntryCallback<T> callback = request.getCallback();
+            PoolEntryCallback<T, E> callback = request.getCallback();
 
             if (getAllocatedTotal() >= this.maxTotal) {
                 if (!this.availableSessions.isEmpty()) {
-                    PoolEntry<T> entry = this.availableSessions.remove();
+                    E entry = this.availableSessions.remove();
                     entryShutdown(entry);
-                    SessionPoolForRoute<T> pool = getPool(entry.getRoute());
+                    SessionPoolForRoute<T, E> pool = getPool(entry.getRoute());
                     pool.freeEntry(entry, false);
                 }
             }
 
-            SessionPoolForRoute<T> pool = getPool(request.getRoute());
-            PoolEntry<T> entry = pool.getFreeEntry(state);
+            SessionPoolForRoute<T, E> pool = getPool(request.getRoute());
+            E entry = pool.getFreeEntry(state);
             if (entry != null) {
                 it.remove();
                 this.availableSessions.remove(entry);
@@ -226,7 +232,7 @@ public class SessionPool<T> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T> pool = getPool(route);
+            SessionPoolForRoute<T, E> pool = getPool(route);
             PoolEntry<T> entry = pool.completed(request);
             this.leasedSessions.add(entry);
         } finally {
@@ -243,7 +249,7 @@ public class SessionPool<T> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T> pool = getPool(route);
+            SessionPoolForRoute<T, E> pool = getPool(route);
             pool.cancelled(request);
         } finally {
             this.lock.unlock();
@@ -259,7 +265,7 @@ public class SessionPool<T> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T> pool = getPool(route);
+            SessionPoolForRoute<T, E> pool = getPool(route);
             pool.failed(request);
         } finally {
             this.lock.unlock();
@@ -275,7 +281,7 @@ public class SessionPool<T> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T> pool = getPool(route);
+            SessionPoolForRoute<T, E> pool = getPool(route);
             pool.timeout(request);
         } finally {
             this.lock.unlock();
@@ -346,7 +352,7 @@ public class SessionPool<T> {
     public PoolStats getStats(final T route) {
         this.lock.lock();
         try {
-            SessionPoolForRoute<T> pool = getPool(route);
+            SessionPoolForRoute<T, E> pool = getPool(route);
             return new PoolStats(
                     pool.getLeasedCount(),
                     pool.getPendingCount(),
