@@ -26,29 +26,37 @@
  */
 package org.apache.http.impl.nio.conn;
 
-import java.net.SocketAddress;
-import java.nio.channels.ByteChannel;
+import java.io.IOException;
 
+import org.apache.http.HttpConnectionMetrics;
+import org.apache.http.HttpException;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.pool.PoolEntry;
+import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.ManagedIOSession;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.reactor.SessionBufferStatus;
+import org.apache.http.protocol.HttpContext;
 
-public class BasicManagedIOSession implements ManagedIOSession {
+class BasicManagedIOSession implements ManagedIOSession {
 
     private final IOSessionManager manager;
     private volatile PoolEntry<HttpRoute> entry;
+    private volatile NHttpClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
 
     public BasicManagedIOSession(
             final IOSessionManager manager,
-            final PoolEntry<HttpRoute> entry) {
+            final PoolEntry<HttpRoute> entry,
+            final NHttpClientConnection conn) {
         super();
         this.manager = manager;
         this.entry = entry;
+        this.conn = conn;
         this.released = false;
         this.reusable = true;
     }
@@ -68,6 +76,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
         this.released = true;
         this.manager.releaseSession(this);
         this.entry = null;
+        this.conn = null;
     }
 
     public synchronized void abortSession() {
@@ -80,6 +89,7 @@ public class BasicManagedIOSession implements ManagedIOSession {
         iosession.shutdown();
         this.manager.releaseSession(this);
         this.entry = null;
+        this.conn = null;
     }
 
     public synchronized Object getState() {
@@ -122,12 +132,12 @@ public class BasicManagedIOSession implements ManagedIOSession {
         releaseSession();
     }
 
-    public int getStatus() {
-        return this.released ? IOSession.ACTIVE : IOSession.CLOSED;
+    public boolean isOpen() {
+        return !this.released;
     }
 
-    public boolean isClosed() {
-        return this.released;
+    public boolean isStale() {
+        return !this.released;
     }
 
     private void assertValid() {
@@ -136,69 +146,79 @@ public class BasicManagedIOSession implements ManagedIOSession {
         }
     }
 
-    private IOSession getIOSession() {
+    public synchronized HttpConnectionMetrics getMetrics() {
         assertValid();
-        return this.entry.getIOSession();
-    }
-
-    public synchronized ByteChannel channel() {
-        return getIOSession().channel();
-    }
-
-    public synchronized boolean hasBufferedInput() {
-        return getIOSession().hasBufferedInput();
-    }
-
-    public synchronized boolean hasBufferedOutput() {
-        return getIOSession().hasBufferedOutput();
-    }
-
-    public synchronized int getEventMask() {
-        return getIOSession().getEventMask();
-    }
-
-    public synchronized void setEvent(int op) {
-        getIOSession().setEvent(op);
-    }
-
-    public synchronized void clearEvent(int op) {
-        getIOSession().clearEvent(op);
-    }
-
-    public synchronized void setEventMask(int ops) {
-        getIOSession().setEventMask(ops);
-    }
-
-    public synchronized SocketAddress getLocalAddress() {
-        return getIOSession().getLocalAddress();
-    }
-
-    public synchronized SocketAddress getRemoteAddress() {
-        return getIOSession().getRemoteAddress();
-    }
-
-    public synchronized Object getAttribute(final String name) {
-        return getIOSession().getAttribute(name);
-    }
-
-    public synchronized Object removeAttribute(final String name) {
-        return getIOSession().removeAttribute(name);
-    }
-
-    public synchronized void setAttribute(final String name, final Object value) {
-        getIOSession().setAttribute(name, value);
-    }
-
-    public void setBufferStatus(final SessionBufferStatus bufstatus) {
-        throw new UnsupportedOperationException();
+        return this.conn.getMetrics();
     }
 
     public synchronized int getSocketTimeout() {
-        return getIOSession().getSocketTimeout();
+        assertValid();
+        return this.conn.getSocketTimeout();
     }
 
-    public void setSocketTimeout(final int timeout) {
-        getIOSession().setSocketTimeout(timeout);
+    public synchronized void setSocketTimeout(int timeout) {
+        assertValid();
+        this.conn.setSocketTimeout(timeout);
+    }
+
+    public int getStatus() {
+        return this.released ? NHttpConnection.CLOSED : NHttpConnection.ACTIVE;
+    }
+
+    public synchronized HttpContext getContext() {
+        assertValid();
+        return this.conn.getContext();
+    }
+
+    public synchronized HttpRequest getHttpRequest() {
+        assertValid();
+        return this.conn.getHttpRequest();
+    }
+
+    public synchronized HttpResponse getHttpResponse() {
+        assertValid();
+        return this.conn.getHttpResponse();
+    }
+
+    public synchronized void requestInput() {
+        assertValid();
+        this.conn.requestInput();
+    }
+
+    public synchronized void requestOutput() {
+        assertValid();
+        this.conn.requestOutput();
+    }
+
+    public synchronized void suspendInput() {
+        assertValid();
+        this.conn.suspendInput();
+    }
+
+    public synchronized void suspendOutput() {
+        assertValid();
+        this.conn.suspendOutput();
+    }
+
+    public synchronized boolean isRequestSubmitted() {
+        assertValid();
+        return this.conn.isRequestSubmitted();
+    }
+
+    public synchronized void resetInput() {
+        assertValid();
+        this.conn.resetInput();
+    }
+
+    public synchronized void resetOutput() {
+        assertValid();
+        this.conn.resetOutput();
+    }
+
+    public synchronized void submitRequest(
+            final HttpRequest request) throws IOException, HttpException {
+        assertValid();
+        this.conn.submitRequest(request);
     }
 
     @Override

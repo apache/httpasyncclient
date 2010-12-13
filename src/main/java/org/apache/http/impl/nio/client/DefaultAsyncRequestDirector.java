@@ -29,7 +29,6 @@ package org.apache.http.impl.nio.client;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -237,8 +236,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     private synchronized void sessionRequestCompleted(final ManagedIOSession session) {
         this.managedSession = session;
-        this.managedSession.setAttribute(HTTP_EXCHANGE_HANDLER, this);
-        this.managedSession.setEvent(SelectionKey.OP_WRITE);
+        this.managedSession.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
+        this.managedSession.requestOutput();
     }
 
     private synchronized void sessionRequestFailed(final Exception ex) {

@@ -95,7 +95,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
             this.params = createDefaultHttpParams();
         }
         this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
-        this.sessmrg = new BasicIOSessionManager(this.ioReactor);
+        this.sessmrg = new BasicIOSessionManager(this.ioReactor, params);
     }
 
     protected HttpParams createDefaultHttpParams() {
@@ -128,7 +128,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
                 createConnectionReuseStrategy());
-        IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler, this.params);
+        IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
         try {
             this.ioReactor.execute(ioEventDispatch);
         } catch (IOException ex) {

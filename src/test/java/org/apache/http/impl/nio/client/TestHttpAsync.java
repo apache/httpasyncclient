@@ -20,7 +20,10 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,9 +42,18 @@ public class TestHttpAsync extends ServerTestBase {
         this.localServer.registerDefaultHandlers();
         int port = this.localServer.getServiceAddress().getPort();
         this.target = new HttpHost("localhost", port);
-        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, new BasicHttpParams());
-        this.sessionManager = new BasicIOSessionManager(ioReactor);
-        this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager, null);
+
+        HttpParams params = new SyncBasicHttpParams();
+        params
+            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 5000)
+            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 10000)
+            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
+            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
+            .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
+
+        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, params);
+        this.sessionManager = new BasicIOSessionManager(ioReactor, params);
+        this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager, params);
     }
 
     @After

@@ -31,9 +31,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpResponseFactory;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.impl.nio.pool.PoolEntryCallback;
+import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ManagedIOSession;
@@ -41,19 +45,31 @@ import org.apache.http.nio.conn.IOSessionManager;
 import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.util.ByteBufferAllocator;
+import org.apache.http.nio.util.HeapByteBufferAllocator;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.ExecutionContext;
 
 public class BasicIOSessionManager implements IOSessionManager {
 
-    private final Log log;
-    private final HttpSessionPool pool;
+    private static final String HEADERS    = "org.apache.http.headers";
+    private static final String WIRE       = "org.apache.http.wire";
 
-    public BasicIOSessionManager(final ConnectingIOReactor ioreactor) {
+    private final Log log = LogFactory.getLog(getClass());
+
+    private final HttpSessionPool pool;
+    private final HttpParams params;
+
+    public BasicIOSessionManager(final ConnectingIOReactor ioreactor, final HttpParams params) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
         }
-        this.log = LogFactory.getLog(getClass());
+        if (params == null) {
+            throw new IllegalArgumentException("HTTP parameters may not be null");
+        }
         this.pool = new HttpSessionPool(ioreactor);
+        this.params = params;
     }
 
     public synchronized Future<ManagedIOSession> leaseSession(
@@ -131,6 +147,14 @@ public class BasicIOSessionManager implements IOSessionManager {
         this.pool.shutdown();
     }
 
+    protected ByteBufferAllocator createByteBufferAllocator() {
+        return new HeapByteBufferAllocator();
+    }
+
+    protected HttpResponseFactory createHttpResponseFactory() {
+        return new DefaultHttpResponseFactory();
+    }
+
     class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute> {
 
         private final BasicFuture<ManagedIOSession> future;
@@ -145,9 +169,36 @@ public class BasicIOSessionManager implements IOSessionManager {
             if (log.isDebugEnabled()) {
                 log.debug("I/O session allocated: " + entry);
             }
+            IOSession session = entry.getIOSession();
+            NHttpClientConnection conn = (NHttpClientConnection) session.getAttribute(
+                    ExecutionContext.HTTP_CONNECTION);
+            if (conn == null) {
+                Log log = LogFactory.getLog(session.getClass());
+                Log wirelog = LogFactory.getLog(WIRE);
+                Log headerlog = LogFactory.getLog(HEADERS);
+                if (log.isDebugEnabled() || wirelog.isDebugEnabled()) {
+                    session = new LoggingIOSession(session, log, wirelog);
+                }
+                if (headerlog.isDebugEnabled()) {
+                    conn = new LoggingNHttpClientConnection(
+                            headerlog,
+                            session,
+                            createHttpResponseFactory(),
+                            createByteBufferAllocator(),
+                            params);
+                } else {
+                    conn = new DefaultNHttpClientConnection(
+                            session,
+                            createHttpResponseFactory(),
+                            createByteBufferAllocator(),
+                            params);
+                }
+                session.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
+            }
             BasicManagedIOSession result = new BasicManagedIOSession(
                     BasicIOSessionManager.this,
-                    entry);
+                    entry,
+                    conn);
             if (!this.future.completed(result)) {
                 pool.release(entry, true);
             }

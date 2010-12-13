@@ -45,7 +45,6 @@ import org.apache.http.nio.NHttpClientHandler;
 import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
 /**
@@ -98,7 +97,6 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             this.log.debug("Connected " + formatState(conn, httpexchange));
         }
         context.setAttribute(HTTP_EXCHNAGE, httpexchange);
-        context.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
         requestReady(conn);
     }
 

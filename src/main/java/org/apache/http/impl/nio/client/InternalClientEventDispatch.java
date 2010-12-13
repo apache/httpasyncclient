@@ -26,88 +26,62 @@
  */
 package org.apache.http.impl.nio.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.impl.nio.DefaultClientIOEventDispatch;
-import org.apache.http.impl.nio.conn.LoggingIOSession;
-import org.apache.http.impl.nio.conn.LoggingNHttpClientConnection;
 import org.apache.http.nio.NHttpClientHandler;
 import org.apache.http.nio.NHttpClientIOTarget;
+import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.ExecutionContext;
 
-class InternalClientEventDispatch extends DefaultClientIOEventDispatch {
+class InternalClientEventDispatch implements IOEventDispatch {
 
-    private static final String HEADERS = "org.apache.http.headers";
-    private static final String WIRE = "org.apache.http.wire";
+    private final NHttpClientHandler handler;
 
-    private Log log;
-
-    InternalClientEventDispatch(
-            final NHttpClientHandler handler,
-            final HttpParams params) {
-        super(handler, params);
-        this.log = LogFactory.getLog(getClass());
+    InternalClientEventDispatch(final NHttpClientHandler handler) {
+        super();
+        this.handler = handler;
     }
 
-    @Override
-    protected NHttpClientIOTarget createConnection(IOSession session) {
-        Log log = LogFactory.getLog(session.getClass());
-        Log wirelog = LogFactory.getLog(WIRE);
-        Log headerlog = LogFactory.getLog(HEADERS);
-        if (log.isDebugEnabled() || wirelog.isDebugEnabled()) {
-            session = new LoggingIOSession(session, log, wirelog);
-        }
-        if (headerlog.isDebugEnabled()) {
-            return new LoggingNHttpClientConnection(
-                    headerlog,
-                    session,
-                    createHttpResponseFactory(),
-                    this.allocator,
-                    this.params);
-        } else {
-            return super.createConnection(session);
+    private NHttpClientIOTarget getConnection(final IOSession session) {
+        return (NHttpClientIOTarget) session.getAttribute(ExecutionContext.HTTP_CONNECTION);
+    }
+
+    private void assertValid(final NHttpClientIOTarget conn) {
+        if (conn == null) {
+            throw new IllegalStateException("HTTP connection is null");
         }
     }
 
-    @Override
     public void connected(final IOSession session) {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Session connected: " + session);
-        }
-        super.connected(session);
+        NHttpClientIOTarget conn = getConnection(session);
+        assertValid(conn);
+        Object attachment = session.getAttribute(IOSession.ATTACHMENT_KEY);
+        this.handler.connected(conn, attachment);
     }
 
-    @Override
     public void disconnected(final IOSession session) {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Session disconnected: " + session);
+        NHttpClientIOTarget conn = getConnection(session);
+        if (conn != null) {
+            this.handler.closed(conn);
         }
-        super.disconnected(session);
     }
 
-    @Override
     public void inputReady(final IOSession session) {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Session input ready: " + session);
-        }
-        super.inputReady(session);
+        NHttpClientIOTarget conn = getConnection(session);
+        assertValid(conn);
+        conn.consumeInput(this.handler);
     }
 
-    @Override
     public void outputReady(final IOSession session) {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Session output ready: " + session);
-        }
-        super.outputReady(session);
+        NHttpClientIOTarget conn = getConnection(session);
+        assertValid(conn);
+        conn.produceOutput(this.handler);
     }
 
-    @Override
     public void timeout(IOSession session) {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Session timed out: " + session);
+        NHttpClientIOTarget conn = getConnection(session);
+        if (conn != null) {
+            this.handler.timeout(conn);
         }
-        super.timeout(session);
     }
 
 }

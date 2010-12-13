@@ -53,7 +53,7 @@ public class AsyncClientRequest {
             .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
             .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
         DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(1, params);
-        BasicIOSessionManager sessmrg = new BasicIOSessionManager(ioReactor);
+        BasicIOSessionManager sessmrg = new BasicIOSessionManager(ioReactor, params);
         sessmrg.setTotalMax(5);
         sessmrg.setDefaultMaxPerHost(3);
 
