@@ -31,8 +31,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.concurrent.FutureCallback;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
 
 public interface ClientConnectionManager {
+
+    SchemeRegistry getSchemeRegistry();
 
     Future<ManagedClientConnection> leaseConnection(
             HttpRoute route, Object state,

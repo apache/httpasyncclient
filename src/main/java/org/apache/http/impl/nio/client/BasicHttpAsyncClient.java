@@ -39,8 +39,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
-import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
@@ -88,16 +86,8 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         this.connmgr = connmgr;
     }
 
-    public BasicHttpAsyncClient(final HttpParams params) throws IOReactorException {
-        super();
-        this.log = LogFactory.getLog(getClass());
-        if (params != null) {
-            this.params = params;
-        } else {
-            this.params = createDefaultHttpParams();
-        }
-        this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
-        this.connmgr = new PoolingClientConnectionManager(this.ioReactor, params);
+    protected ClientConnectionManager getConnectionManager() {
+        return this.connmgr;
     }
 
     protected HttpParams createDefaultHttpParams() {
@@ -128,7 +118,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     }
 
     protected HttpRoutePlanner createHttpRoutePlanner() {
-        return new DefaultHttpAsyncRoutePlanner();
+        return new DefaultHttpAsyncRoutePlanner(this.connmgr.getSchemeRegistry());
     }
 
     private void doExecute() {
@@ -178,6 +168,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
             httpexchange = new DefaultAsyncRequestDirector<T>(
+                    this.log,
                     requestProducer,
                     responseConsumer,
                     context,

@@ -30,29 +30,33 @@ import java.io.IOException;
 
 import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.conn.ConnectionReleaseTrigger;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.conn.routing.RouteTracker;
+import org.apache.http.impl.conn.ConnectionShutdownException;
 import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
+import org.apache.http.nio.conn.OperatedClientConnection;
+import org.apache.http.nio.conn.scheme.LayeringStrategy;
+import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.HttpContext;
 
-class ClientConnAdaptor implements ManagedClientConnection, ConnectionReleaseTrigger {
+class ClientConnAdaptor implements ManagedClientConnection {
 
     private final ClientConnectionManager manager;
     private volatile HttpPoolEntry entry;
-    private volatile NHttpClientConnection conn;
+    private volatile OperatedClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
 
     public ClientConnAdaptor(
             final ClientConnectionManager manager,
             final HttpPoolEntry entry,
-            final NHttpClientConnection conn) {
+            final OperatedClientConnection conn) {
         super();
         this.manager = manager;
         this.entry = entry;
@@ -142,8 +146,13 @@ class ClientConnAdaptor implements ManagedClientConnection, ConnectionReleaseTri
 
     private void assertValid() {
         if (this.released) {
-            throw new IllegalStateException("I/O session has been released");
+            throw new ConnectionShutdownException();
         }
+    }
+
+    public HttpRoute getRoute() {
+        assertValid();
+        return this.entry.getEffectiveRoute();
     }
 
     public synchronized HttpConnectionMetrics getMetrics() {
@@ -221,9 +230,79 @@ class ClientConnAdaptor implements ManagedClientConnection, ConnectionReleaseTri
         this.conn.submitRequest(request);
     }
 
+    public synchronized void updateOpen(final HttpRoute route) {
+        assertValid();
+        RouteTracker tracker = this.entry.getTracker();
+        if (tracker.isConnected()) {
+            throw new IllegalStateException("Connection already open");
+        }
+        HttpHost target = route.getTargetHost();
+        HttpHost proxy = route.getProxyHost();
+        if (proxy == null) {
+            Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
+            LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+            if (layeringStrategy != null) {
+                IOSession iosession = this.entry.getIOSession();
+                iosession = layeringStrategy.layer(iosession);
+                this.conn.upgrade(iosession);
+                tracker.connectTarget(layeringStrategy.isSecure());
+            } else {
+                tracker.connectTarget(false);
+            }
+        } else {
+            tracker.connectProxy(proxy, false);
+        }
+    }
+
+    public synchronized void updateTunnelProxy(final HttpHost next){
+        assertValid();
+        RouteTracker tracker = this.entry.getTracker();
+        if (!tracker.isConnected()) {
+            throw new IllegalStateException("Connection not open");
+        }
+        tracker.tunnelProxy(next, false);
+    }
+
+    public synchronized void updateTunnelTarget() {
+        assertValid();
+        RouteTracker tracker = this.entry.getTracker();
+        if (!tracker.isConnected()) {
+            throw new IllegalStateException("Connection not open");
+        }
+        if (tracker.isTunnelled()) {
+            throw new IllegalStateException("Connection is already tunnelled");
+        }
+        tracker.tunnelTarget(false);
+    }
+
+    public synchronized void updateLayered(){
+        assertValid();
+        RouteTracker tracker = this.entry.getTracker();
+        if (!tracker.isConnected()) {
+            throw new IllegalStateException("Connection not open");
+        }
+        if (!tracker.isTunnelled()) {
+            throw new IllegalStateException("Protocol layering without a tunnel not supported");
+        }
+        if (tracker.isLayered()) {
+            throw new IllegalStateException("Multiple protocol layering not supported");
+        }
+        HttpHost target = tracker.getTargetHost();
+        Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
+        LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+        if (layeringStrategy == null) {
+            throw new IllegalStateException(scheme.getName() +
+                    " scheme does not provider support for protocol layering");
+        }
+        IOSession iosession = this.entry.getIOSession();
+        iosession = layeringStrategy.layer(iosession);
+        this.conn.upgrade(iosession);
+        tracker.layerProtocol(layeringStrategy.isSecure());
+    }
+
     @Override
-    public String toString() {
-        HttpRoute route = this.entry.getRoute();
+    public synchronized String toString() {
+        HttpRoute route = this.entry.getPlannedRoute();
         StringBuilder buffer = new StringBuilder();
         buffer.append("HTTP connection: ");
         if (route.getLocalAddress() != null) {

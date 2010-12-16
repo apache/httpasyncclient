@@ -34,14 +34,14 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponseFactory;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.DefaultHttpResponseFactory;
-import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.impl.nio.pool.PoolEntryCallback;
-import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.conn.PoolStats;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
@@ -51,15 +51,16 @@ import org.apache.http.protocol.ExecutionContext;
 
 public class PoolingClientConnectionManager implements ClientConnectionManager {
 
-    private static final String HEADERS    = "org.apache.http.headers";
-    private static final String WIRE       = "org.apache.http.wire";
-
     private final Log log = LogFactory.getLog(getClass());
 
     private final HttpSessionPool pool;
+    private final SchemeRegistry schemeRegistry;
     private final HttpParams params;
 
-    public PoolingClientConnectionManager(final ConnectingIOReactor ioreactor, final HttpParams params) {
+    public PoolingClientConnectionManager(
+            final ConnectingIOReactor ioreactor,
+            final SchemeRegistry schemeRegistry,
+            final HttpParams params) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
@@ -67,14 +68,19 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         if (params == null) {
             throw new IllegalArgumentException("HTTP parameters may not be null");
         }
-        this.pool = new HttpSessionPool(ioreactor);
+        this.pool = new HttpSessionPool(ioreactor, schemeRegistry);
+        this.schemeRegistry = schemeRegistry;
         this.params = params;
+    }
+
+    public SchemeRegistry getSchemeRegistry() {
+        return this.schemeRegistry;
     }
 
     public synchronized Future<ManagedClientConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
-            final long connectTimeout,
+            final long timeout,
             final TimeUnit timeUnit,
             final FutureCallback<ManagedClientConnection> callback) {
         if (this.log.isDebugEnabled()) {
@@ -86,7 +92,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         }
         BasicFuture<ManagedClientConnection> future = new BasicFuture<ManagedClientConnection>(
                 callback);
-        this.pool.lease(route, state, connectTimeout, timeUnit, new InternalPoolEntryCallback(future));
+        this.pool.lease(route, state, timeout, timeUnit, new InternalPoolEntryCallback(future));
         if (this.log.isDebugEnabled()) {
             if (!future.isDone()) {
                 this.log.debug("I/O session could not be allocated immediately: " +
@@ -111,7 +117,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         HttpPoolEntry entry = adaptor.getEntry();
         IOSession iosession = entry.getIOSession();
         if (this.log.isDebugEnabled()) {
-            HttpRoute route = entry.getRoute();
+            HttpRoute route = entry.getPlannedRoute();
             PoolStats totals = this.pool.getTotalStats();
             PoolStats stats = this.pool.getStats(route);
             this.log.debug("Total: " + totals);
@@ -168,31 +174,16 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             if (log.isDebugEnabled()) {
                 log.debug("I/O session allocated: " + entry);
             }
-            IOSession session = entry.getIOSession();
-            NHttpClientConnection conn = (NHttpClientConnection) session.getAttribute(
+            IOSession iosession = entry.getIOSession();
+            OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
                     ExecutionContext.HTTP_CONNECTION);
             if (conn == null) {
-                Log log = LogFactory.getLog(session.getClass());
-                Log wirelog = LogFactory.getLog(WIRE);
-                Log headerlog = LogFactory.getLog(HEADERS);
-                if (log.isDebugEnabled() || wirelog.isDebugEnabled()) {
-                    session = new LoggingIOSession(session, log, wirelog);
-                }
-                if (headerlog.isDebugEnabled()) {
-                    conn = new LoggingNHttpClientConnection(
-                            headerlog,
-                            session,
-                            createHttpResponseFactory(),
-                            createByteBufferAllocator(),
-                            params);
-                } else {
-                    conn = new DefaultNHttpClientConnection(
-                            session,
-                            createHttpResponseFactory(),
-                            createByteBufferAllocator(),
-                            params);
-                }
-                session.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
+                conn = new DefaultClientConnection(
+                        iosession,
+                        createHttpResponseFactory(),
+                        createByteBufferAllocator(),
+                        params);
+                iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
             }
             ClientConnAdaptor result = new ClientConnAdaptor(
                     PoolingClientConnectionManager.this,

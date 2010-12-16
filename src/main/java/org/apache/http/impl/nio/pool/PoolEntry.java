@@ -46,18 +46,19 @@ public abstract class PoolEntry<T> {
         this.id = COUNTER.incrementAndGet();
     }
 
-    public T getRoute() {
+    protected T getRoute() {
         return this.route;
     }
 
-    public IOSession getIOSession() {
+    protected IOSession getIOSession() {
         return this.session;
     }
-    public Object getState() {
+
+    protected Object getState() {
         return this.state;
     }
 
-    public void setState(final Object state) {
+    protected void setState(final Object state) {
         this.state = state;
     }
 

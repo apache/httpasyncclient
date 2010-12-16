@@ -67,6 +67,16 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
         return this.contentConsumingEntity;
     }
 
+    private void releaseResources() {
+        if (this.contentConsumingEntity != null) {
+            try {
+                this.contentConsumingEntity.finish();
+                this.contentConsumingEntity = null;
+            } catch (IOException ex) {
+            }
+        }
+    }
+
     public synchronized void responseReceived(final HttpResponse response) {
         if (this.response != null) {
             throw new IllegalStateException("HTTP response already set");
@@ -78,16 +88,21 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         ConsumingNHttpEntity consumer = getConsumingHttpEntity();
         consumer.consumeContent(decoder, ioctrl);
+        if (decoder.isCompleted()) {
+            this.response.setEntity(consumer);
+            releaseResources();
+        }
     }
 
-    private void reset() {
-        if (this.contentConsumingEntity != null) {
-            try {
-                this.contentConsumingEntity.finish();
-                this.contentConsumingEntity = null;
-            } catch (IOException ex) {
-            }
+    public synchronized void responseCompleted() {
+        if (this.completed) {
+            return;
         }
+        this.completed = true;
+        if (this.response != null) {
+            this.result = this.response;
+        }
+        releaseResources();
     }
 
     public synchronized void cancel() {
@@ -96,7 +111,7 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
         }
         this.completed = true;
         this.response = null;
-        reset();
+        releaseResources();
     }
 
     public synchronized void failed(final Exception ex) {
@@ -106,22 +121,10 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
         this.completed = true;
         this.ex = ex;
         this.response = null;
-        reset();
+        releaseResources();
     }
 
-    public synchronized void completed() {
-        if (this.completed) {
-            return;
-        }
-        this.completed = true;
-        if (this.response != null) {
-            this.result = this.response;
-            this.result.setEntity(this.contentConsumingEntity);
-        }
-        reset();
-    }
-
-    public boolean isCompleted() {
+    public boolean isDone() {
         return this.completed;
     }
 
@@ -134,7 +137,7 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
     }
 
     public HttpResponse getResult() {
-        return this.response;
+        return this.result;
     }
 
 }

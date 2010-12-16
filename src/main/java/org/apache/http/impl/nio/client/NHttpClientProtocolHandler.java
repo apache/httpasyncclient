@@ -108,7 +108,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         }
         if (httpexchange != null) {
             HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
-            if (handler != null && !handler.isCompleted()) {
+            if (handler != null) {
                 handler.cancel();
             }
         }
@@ -120,7 +120,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         this.log.error("HTTP protocol exception: " + ex.getMessage(), ex);
         if (httpexchange != null) {
             HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
-            if (handler != null && !handler.isCompleted()) {
+            if (handler != null) {
                 handler.failed(ex);
             }
         }
@@ -133,7 +133,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         this.log.error("I/O error: " + ex.getMessage(), ex);
         if (httpexchange != null) {
             HttpAsyncExchangeHandler<?> handler = httpexchange.getHandler();
-            if (handler != null && !handler.isCompleted()) {
+            if (handler != null) {
                 handler.failed(ex);
             }
         }
@@ -150,7 +150,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (httpexchange.getRequestState() != MessageState.READY) {
             return;
         }
-        if (handler == null || handler.isCompleted()) {
+        if (handler == null || handler.isDone()) {
             if (this.log.isDebugEnabled()) {
                 this.log.debug("No request submitted " + formatState(conn, httpexchange));
             }
@@ -366,10 +366,12 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response processed " + formatState(conn, httpexchange));
         }
-        handler.completed();
+        handler.responseCompleted();
+        if (handler.isDone()) {
+            httpexchange.reset();
+        }
         if (conn.isOpen()) {
             // Ready for another request
-            httpexchange.reset();
             conn.requestOutput();
         }
     }

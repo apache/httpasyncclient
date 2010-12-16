@@ -32,6 +32,9 @@ import java.net.InetAddress;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
+import org.apache.http.nio.conn.scheme.LayeringStrategy;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.protocol.HttpContext;
 
 import org.apache.http.conn.routing.HttpRoute;
@@ -41,8 +44,11 @@ import org.apache.http.conn.params.ConnRouteParams;
 
 public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
 
-    public DefaultHttpAsyncRoutePlanner() {
+    private final SchemeRegistry schemeRegistry;
+
+    public DefaultHttpAsyncRoutePlanner(final SchemeRegistry schemeRegistry) {
         super();
+        this.schemeRegistry = schemeRegistry;
     }
 
     public HttpRoute determineRoute(
@@ -59,10 +65,11 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         if (target == null) {
             throw new IllegalStateException("Target host may be null");
         }
-
         InetAddress local = ConnRouteParams.getLocalAddress(request.getParams());
         HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
-        boolean secure = target.getSchemeName().equalsIgnoreCase("https");
+        Scheme scheme = this.schemeRegistry.getScheme(target);
+        LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+        boolean secure = layeringStrategy != null && layeringStrategy.isSecure();
         if (proxy == null) {
             route = new HttpRoute(target, local, secure);
         } else {

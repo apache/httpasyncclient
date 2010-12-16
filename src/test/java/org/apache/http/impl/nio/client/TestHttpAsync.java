@@ -18,6 +18,8 @@ import org.apache.http.localserver.ServerTestBase;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.params.CoreConnectionPNames;
@@ -52,7 +54,9 @@ public class TestHttpAsync extends ServerTestBase {
             .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
 
         ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, params);
-        this.sessionManager = new PoolingClientConnectionManager(ioReactor, params);
+        SchemeRegistry schemeRegistry = new SchemeRegistry();
+        schemeRegistry.register(new Scheme("http", 80, null));
+        this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry, params);
         this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager, params);
     }
 

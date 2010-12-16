@@ -24,33 +24,40 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.nio.conn.ssl;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.NHttpClientConnection;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-public interface ManagedClientConnection extends NHttpClientConnection, ConnectionReleaseTrigger {
+import javax.net.ssl.X509TrustManager;
 
-    HttpRoute getRoute();
-    
-    Object getState();
+import org.apache.http.conn.ssl.TrustStrategy;
 
-    void setState(Object state);
+class TrustManagerDecorator implements X509TrustManager {
 
-    void markReusable();
+    private final X509TrustManager trustManager;
+    private final TrustStrategy trustStrategy;
 
-    void markNonReusable();
+    TrustManagerDecorator(final X509TrustManager trustManager, final TrustStrategy trustStrategy) {
+        super();
+        this.trustManager = trustManager;
+        this.trustStrategy = trustStrategy;
+    }
 
-    boolean isReusable();
-    
-    void updateOpen(HttpRoute route);
-    
-    void updateTunnelTarget();
-    
-    void updateTunnelProxy(HttpHost next);
-    
-    void updateLayered();
-    
+    public void checkClientTrusted(
+            final X509Certificate[] chain, final String authType) throws CertificateException {
+        this.trustManager.checkClientTrusted(chain, authType);
+    }
+
+    public void checkServerTrusted(
+            final X509Certificate[] chain, final String authType) throws CertificateException {
+        if (!this.trustStrategy.isTrusted(chain, authType)) {
+            this.trustManager.checkServerTrusted(chain, authType);
+        }
+    }
+
+    public X509Certificate[] getAcceptedIssuers() {
+        return this.trustManager.getAcceptedIssuers();
+    }
+
 }

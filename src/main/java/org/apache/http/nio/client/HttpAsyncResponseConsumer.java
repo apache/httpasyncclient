@@ -39,13 +39,13 @@ public interface HttpAsyncResponseConsumer<T> {
 
     void consumeContent(ContentDecoder decoder, IOControl ioctrl) throws IOException;
 
-    void completed();
+    void responseCompleted();
 
     void failed(Exception ex);
 
     void cancel();
 
-    boolean isCompleted();
+    boolean isDone();
 
     T getResult();
 

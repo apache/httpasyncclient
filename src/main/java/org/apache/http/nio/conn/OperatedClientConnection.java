@@ -26,31 +26,11 @@
  */
 package org.apache.http.nio.conn;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.reactor.IOSession;
 
-public interface ManagedClientConnection extends NHttpClientConnection, ConnectionReleaseTrigger {
+public interface OperatedClientConnection extends NHttpClientConnection {
 
-    HttpRoute getRoute();
-    
-    Object getState();
+    void upgrade(IOSession iosession);
 
-    void setState(Object state);
-
-    void markReusable();
-
-    void markNonReusable();
-
-    boolean isReusable();
-    
-    void updateOpen(HttpRoute route);
-    
-    void updateTunnelTarget();
-    
-    void updateTunnelProxy(HttpHost next);
-    
-    void updateLayered();
-    
 }

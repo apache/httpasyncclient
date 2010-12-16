@@ -24,33 +24,14 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.nio.conn.scheme;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.reactor.IOSession;
 
-public interface ManagedClientConnection extends NHttpClientConnection, ConnectionReleaseTrigger {
+public interface LayeringStrategy {
 
-    HttpRoute getRoute();
-    
-    Object getState();
+    boolean isSecure();
 
-    void setState(Object state);
+    IOSession layer(IOSession iosession);
 
-    void markReusable();
-
-    void markNonReusable();
-
-    boolean isReusable();
-    
-    void updateOpen(HttpRoute route);
-    
-    void updateTunnelTarget();
-    
-    void updateTunnelProxy(HttpHost next);
-    
-    void updateLayered();
-    
 }

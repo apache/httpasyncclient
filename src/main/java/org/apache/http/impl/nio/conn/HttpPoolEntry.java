@@ -40,8 +40,31 @@ public class HttpPoolEntry extends PoolEntry<HttpRoute> {
         this.tracker = new RouteTracker(route);
     }
 
+    @Override
+    public IOSession getIOSession() {
+        return super.getIOSession();
+    }
+
+    public HttpRoute getPlannedRoute() {
+        return super.getRoute();
+    }
+
+    @Override
+    public Object getState() {
+        return super.getState();
+    }
+
+    @Override
+    public void setState(final Object state) {
+        super.setState(state);
+    }
+
     protected RouteTracker getTracker() {
-        return tracker;
+        return this.tracker;
+    }
+
+    public HttpRoute getEffectiveRoute() {
+        return this.tracker.toRoute();
     }
 
 }

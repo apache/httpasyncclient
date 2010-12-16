@@ -34,16 +34,29 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.pool.PoolEntryFactory;
 import org.apache.http.impl.nio.pool.RouteResolver;
 import org.apache.http.impl.nio.pool.SessionPool;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 
 class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
-    public HttpSessionPool(final ConnectingIOReactor ioreactor) {
-        super(ioreactor, new InternalEntryFactory(), new InternalRouteResolver(), 20, 50);
+    public HttpSessionPool(
+            final ConnectingIOReactor ioreactor, final SchemeRegistry schemeRegistry) {
+        super(ioreactor,
+                new InternalEntryFactory(),
+                new InternalRouteResolver(schemeRegistry),
+                20, 50);
     }
 
     static class InternalRouteResolver implements RouteResolver<HttpRoute> {
+
+        private final SchemeRegistry schemeRegistry;
+
+        InternalRouteResolver(final SchemeRegistry schemeRegistry) {
+            super();
+            this.schemeRegistry = schemeRegistry;
+        }
 
         public SocketAddress resolveLocalAddress(final HttpRoute route) {
             return new InetSocketAddress(route.getLocalAddress(), 0);
@@ -51,7 +64,13 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
         public SocketAddress resolveRemoteAddress(final HttpRoute route) {
             HttpHost target = route.getTargetHost();
-            return new InetSocketAddress(target.getHostName(), target.getPort());
+            String hostname = target.getHostName();
+            int port = target.getPort();
+            if (port < 0) {
+                Scheme scheme = this.schemeRegistry.getScheme(target);
+                port = scheme.resolvePort(port);
+            }
+            return new InetSocketAddress(hostname, port);
         }
 
     }

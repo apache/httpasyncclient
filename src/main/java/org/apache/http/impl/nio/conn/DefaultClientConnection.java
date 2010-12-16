@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
@@ -38,24 +39,37 @@ import org.apache.http.HttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.nio.NHttpMessageParser;
 import org.apache.http.nio.NHttpMessageWriter;
+import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionInputBuffer;
 import org.apache.http.nio.reactor.SessionOutputBuffer;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.params.HttpParams;
 
-public class LoggingNHttpClientConnection extends DefaultNHttpClientConnection {
+public class DefaultClientConnection
+                        extends DefaultNHttpClientConnection implements OperatedClientConnection {
 
-    private final Log headerlog;
+    private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
+    private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
+    private final Log log;
 
-    public LoggingNHttpClientConnection(
-            final Log headerlog,
+    public DefaultClientConnection(
             final IOSession iosession,
             final HttpResponseFactory responseFactory,
             final ByteBufferAllocator allocator,
             final HttpParams params) {
         super(iosession, responseFactory, allocator, params);
-        this.headerlog = headerlog;
+        this.log = LogFactory.getLog(iosession.getClass());
+        upgrade(iosession);
+    }
+
+    public void upgrade(final IOSession iosession) {
+        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
+            this.session = new LoggingIOSession(
+                    iosession, this.headerlog, this.wirelog);
+        } else {
+            this.session = iosession;
+        }
     }
 
     @Override

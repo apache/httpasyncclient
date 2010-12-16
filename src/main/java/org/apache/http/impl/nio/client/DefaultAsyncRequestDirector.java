@@ -32,20 +32,26 @@ import java.net.URISyntaxException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.logging.Log;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolException;
+import org.apache.http.ProtocolVersion;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.conn.routing.BasicRouteDirector;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.conn.routing.HttpRouteDirector;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.ClientParamsStack;
 import org.apache.http.impl.client.EntityEnclosingRequestWrapper;
 import org.apache.http.impl.client.RequestWrapper;
+import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -56,17 +62,19 @@ import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
+import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
 class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
-    public static final String HTTP_EXCHANGE_HANDLER    = "http.nio.async-exchange-handler";
-    public static final String HTTP_ROUTE_STATE         = "http.nio.route-state";
-    public static final String HTTP_ROUTE_TRACKER       = "http.nio.route-tracker";
+    public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
+
+    private final Log log;
 
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
@@ -75,15 +83,20 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private final ClientConnectionManager connmgr;
     private final HttpProcessor httppocessor;
     private final HttpRoutePlanner routePlanner;
+    private final HttpRouteDirector routeDirector;
     private final HttpParams clientParams;
 
-    private HttpRequest originalRequest;
-    private RequestWrapper currentRequest;
+    private ClientParamsStack params;
+    private RequestWrapper request;
+    private RequestWrapper current;
     private HttpRoute route;
+    private boolean routeEstablished;
     private Future<ManagedClientConnection> connFuture;
     private ManagedClientConnection managedConn;
+    private HttpResponse response;
 
     public DefaultAsyncRequestDirector(
+            final Log log,
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext localContext,
@@ -93,6 +106,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             final HttpRoutePlanner routePlanner,
             final HttpParams clientParams) {
         super();
+        this.log = log;
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.localContext = localContext;
@@ -100,22 +114,20 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.connmgr = connmgr;
         this.httppocessor = httppocessor;
         this.routePlanner = routePlanner;
+        this.routeDirector = new BasicRouteDirector();
         this.clientParams = clientParams;
     }
 
-    public void start() {
+    public synchronized void start() {
         try {
             HttpHost target = this.requestProducer.getTarget();
-            this.originalRequest = this.requestProducer.generateRequest();
-            HttpParams params = new ClientParamsStack(
-                    null, this.clientParams, this.originalRequest.getParams(), null);
-            this.currentRequest = wrapRequest(this.originalRequest);
-            this.currentRequest.setParams(params);
-            this.route = determineRoute(target, this.currentRequest, this.localContext);
-
-            long connectTimeout = HttpConnectionParams.getConnectionTimeout(params);
+            HttpRequest request = this.requestProducer.generateRequest();
+            this.params = new ClientParamsStack(null, this.clientParams, request.getParams(), null);
+            this.request = wrapRequest(request);
+            this.request.setParams(this.params);
+            this.route = determineRoute(target, this.request, this.localContext);
+            long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
             Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
-
             this.connFuture = this.connmgr.leaseConnection(
                     this.route, userToken,
                     connectTimeout, TimeUnit.MILLISECONDS,
@@ -135,29 +147,66 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         return this.requestProducer.getTarget();
     }
 
-    public HttpRequest generateRequest() throws IOException, HttpException {
+    public synchronized HttpRequest generateRequest() throws IOException, HttpException {
+        if (!this.routeEstablished) {
+            int step;
+            do {
+                HttpRoute fact = this.managedConn.getRoute();
+                step = this.routeDirector.nextStep(this.route, fact);
+                switch (step) {
+                case HttpRouteDirector.CONNECT_TARGET:
+                case HttpRouteDirector.CONNECT_PROXY:
+                    this.managedConn.updateOpen(this.route);
+                    break;
+                case HttpRouteDirector.TUNNEL_TARGET:
+                    this.log.debug("Tunnel required");
+                    HttpRequest connect = createConnectRequest(this.route);
+                    this.current = wrapRequest(connect);
+                    this.current.setParams(this.params);
+                    break;
+                case HttpRouteDirector.TUNNEL_PROXY:
+                    throw new HttpException("Proxy chains are not supported");
+                case HttpRouteDirector.LAYER_PROTOCOL:
+                    managedConn.updateLayered();
+                    break;
+                case HttpRouteDirector.UNREACHABLE:
+                    throw new HttpException("Unable to establish route: " +
+                            "planned = " + this.route + "; current = " + fact);
+                case HttpRouteDirector.COMPLETE:
+                    this.routeEstablished = true;
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown step indicator "
+                            + step + " from RouteDirector.");
+                }
+            } while (step > HttpRouteDirector.COMPLETE && this.current == null);
+        }
 
-        HttpHost target = (HttpHost) this.currentRequest.getParams().getParameter(
-                ClientPNames.VIRTUAL_HOST);
+        HttpHost target = (HttpHost) this.params.getParameter(ClientPNames.VIRTUAL_HOST);
         if (target == null) {
             target = this.route.getTargetHost();
         }
-
         HttpHost proxy = this.route.getProxyHost();
 
+        if (this.current == null) {
+            this.current = this.request;
+            // Re-write request URI if needed
+            rewriteRequestURI(this.current, this.route);
+        }
         // Reset headers on the request wrapper
-        this.currentRequest.resetHeaders();
-        // Re-write request URI if needed
-        rewriteRequestURI(this.currentRequest, this.route);
+        this.current.resetHeaders();
 
-        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, this.currentRequest);
+        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, this.current);
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
-        this.httppocessor.process(this.currentRequest, this.localContext);
-        return this.currentRequest;
+        this.httppocessor.process(this.current, this.localContext);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("Request submitted: " + this.current.getRequestLine());
+        }
+        return this.current;
     }
 
-    public void produceContent(
+    public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         this.requestProducer.produceContent(encoder, ioctrl);
         if (encoder.isCompleted()) {
@@ -173,80 +222,120 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.requestProducer.resetRequest();
     }
 
-    public void responseReceived(final HttpResponse response) throws IOException, HttpException {
-        response.setParams(this.currentRequest.getParams());
+    public synchronized void responseReceived(
+            final HttpResponse response) throws IOException, HttpException {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("Response received: " + response.getStatusLine());
+        }
+        response.setParams(this.params);
         this.localContext.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
         this.httppocessor.process(response, this.localContext);
-        this.responseConsumer.responseReceived(response);
-    }
 
-    public void consumeContent(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        this.responseConsumer.consumeContent(decoder, ioctrl);
-    }
+        int status = response.getStatusLine().getStatusCode();
 
-    public synchronized void completed() {
-        try {
-            if (this.managedConn != null) {
-                this.managedConn.releaseConnection();
+        if (!this.routeEstablished) {
+            if (this.current.getMethod().equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
+                this.managedConn.updateTunnelTarget();
+            } else {
+                this.response = response;
             }
-            this.managedConn = null;
-            this.requestProducer.resetRequest();
-            this.responseConsumer.completed();
-            this.resultFuture.completed(this.responseConsumer.getResult());
-        } catch (RuntimeException runex) {
-            this.resultFuture.failed(runex);
-            throw runex;
+        } else {
+            this.response = response;
         }
+        if (this.response != null) {
+            this.responseConsumer.responseReceived(response);
+        }
+        this.current = null;
+    }
+
+    public synchronized void consumeContent(
+            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+        if (this.response != null) {
+            this.responseConsumer.consumeContent(decoder, ioctrl);
+        } else {
+            this.log.debug("Discard intermediate response cocntent");
+        }
+    }
+
+    private void releaseResources() {
+        if (this.managedConn != null) {
+            try {
+                this.managedConn.releaseConnection();
+            } catch (IOException ioex) {
+                this.log.debug("I/O error releasing connection", ioex);
+            }
+        }
+        this.managedConn = null;
+        if (this.connFuture != null) {
+            this.connFuture.cancel(true);
+            this.connFuture = null;
+        }
+        this.requestProducer.resetRequest();
     }
 
     public synchronized void failed(final Exception ex) {
         try {
-            this.connFuture.cancel(true);
-            if (this.managedConn != null) {
-                this.managedConn.abortConnection();
-            }
-            this.managedConn = null;
-            this.requestProducer.resetRequest();
             this.responseConsumer.failed(ex);
-            this.resultFuture.failed(ex);
+        } finally {
+            try {
+                this.resultFuture.failed(ex);
+            } finally {
+                releaseResources();
+            }
+        }
+    }
+
+    public synchronized void responseCompleted() {
+        this.log.debug("Response completed");
+        try {
+            if (this.response != null) {
+                this.responseConsumer.responseCompleted();
+                if (this.responseConsumer.isDone()) {
+                    this.log.debug("Response processing completed");
+                    this.resultFuture.completed(this.responseConsumer.getResult());
+                    releaseResources();
+                }
+            } else {
+                this.managedConn.requestOutput();
+            }
         } catch (RuntimeException runex) {
-            this.resultFuture.failed(ex);
+            failed(runex);
             throw runex;
         }
     }
 
     public synchronized void cancel() {
+        this.log.debug("HTTP exchange cancelled");
         try {
-            this.connFuture.cancel(true);
-            if (this.managedConn != null) {
-                this.managedConn.abortConnection();
-            }
-            this.managedConn = null;
-            this.requestProducer.resetRequest();
             this.responseConsumer.cancel();
             this.resultFuture.cancel(true);
+            releaseResources();
         } catch (RuntimeException runex) {
-            this.resultFuture.failed(runex);
+            failed(runex);
             throw runex;
         }
     }
 
-    public boolean isCompleted() {
-        return this.responseConsumer.isCompleted();
+    public boolean isDone() {
+        return this.responseConsumer.isDone();
     }
 
     public T getResult() {
         return this.responseConsumer.getResult();
     }
 
-    private synchronized void sessionRequestCompleted(final ManagedClientConnection session) {
-        this.managedConn = session;
+    private synchronized void connectionRequestCompleted(final ManagedClientConnection conn) {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("Connection request suceeded: " + conn);
+        }
+        this.managedConn = conn;
         this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
         this.managedConn.requestOutput();
+        this.routeEstablished = this.route.equals(conn.getRoute());
     }
 
-    private synchronized void sessionRequestFailed(final Exception ex) {
+    private synchronized void connectionRequestFailed(final Exception ex) {
+        this.log.debug("Connection request failed", ex);
         try {
             this.requestProducer.resetRequest();
             this.responseConsumer.failed(ex);
@@ -255,7 +344,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    private synchronized void sessionRequestCancelled() {
+    private synchronized void connectionRequestCancelled() {
+        this.log.debug("Connection request cancelled");
         try {
             this.requestProducer.resetRequest();
             this.responseConsumer.cancel();
@@ -267,15 +357,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     class InternalFutureCallback implements FutureCallback<ManagedClientConnection> {
 
         public void completed(final ManagedClientConnection session) {
-            sessionRequestCompleted(session);
+            connectionRequestCompleted(session);
         }
 
         public void failed(final Exception ex) {
-            sessionRequestFailed(ex);
+            connectionRequestFailed(ex);
         }
 
         public void cancelled() {
-            sessionRequestCancelled();
+            connectionRequestCancelled();
         }
 
     }
@@ -320,9 +410,28 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 }
             }
         } catch (URISyntaxException ex) {
-            throw new ProtocolException("Invalid URI: " +
-                    request.getRequestLine().getUri(), ex);
+            throw new ProtocolException("Invalid URI: " + request.getRequestLine().getUri(), ex);
         }
+    }
+
+    private HttpRequest createConnectRequest(final HttpRoute route) {
+        // see RFC 2817, section 5.2 and
+        // INTERNET-DRAFT: Tunneling TCP based protocols through
+        // Web proxy servers
+        HttpHost target = route.getTargetHost();
+        String host = target.getHostName();
+        int port = target.getPort();
+        if (port < 0) {
+            Scheme scheme = this.connmgr.getSchemeRegistry().getScheme(target.getSchemeName());
+            port = scheme.getDefaultPort();
+        }
+        StringBuilder buffer = new StringBuilder(host.length() + 6);
+        buffer.append(host);
+        buffer.append(':');
+        buffer.append(Integer.toString(port));
+        ProtocolVersion ver = HttpProtocolParams.getVersion(this.params);
+        HttpRequest req = new BasicHttpRequest("CONNECT", buffer.toString(), ver);
+        return req;
     }
 
 }
