@@ -63,11 +63,14 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
         }
 
         public SocketAddress resolveRemoteAddress(final HttpRoute route) {
-            HttpHost target = route.getTargetHost();
-            String hostname = target.getHostName();
-            int port = target.getPort();
+            HttpHost firsthop = route.getProxyHost();
+            if (firsthop == null) {
+                firsthop = route.getTargetHost();
+            }
+            String hostname = firsthop.getHostName();
+            int port = firsthop.getPort();
             if (port < 0) {
-                Scheme scheme = this.schemeRegistry.getScheme(target);
+                Scheme scheme = this.schemeRegistry.getScheme(firsthop);
                 port = scheme.resolvePort(port);
             }
             return new InetSocketAddress(hostname, port);

@@ -26,8 +26,11 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.io.IOException;
+
+import org.apache.http.impl.nio.reactor.SSLIOSession;
 import org.apache.http.nio.NHttpClientHandler;
-import org.apache.http.nio.NHttpClientIOTarget;
+import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.ExecutionContext;
@@ -41,46 +44,83 @@ class InternalClientEventDispatch implements IOEventDispatch {
         this.handler = handler;
     }
 
-    private NHttpClientIOTarget getConnection(final IOSession session) {
-        return (NHttpClientIOTarget) session.getAttribute(ExecutionContext.HTTP_CONNECTION);
+    private OperatedClientConnection getConnection(final IOSession session) {
+        return (OperatedClientConnection) session.getAttribute(ExecutionContext.HTTP_CONNECTION);
     }
 
-    private void assertValid(final NHttpClientIOTarget conn) {
+    private void assertValid(final OperatedClientConnection conn) {
         if (conn == null) {
             throw new IllegalStateException("HTTP connection is null");
         }
     }
 
     public void connected(final IOSession session) {
-        NHttpClientIOTarget conn = getConnection(session);
+        OperatedClientConnection conn = getConnection(session);
         assertValid(conn);
         Object attachment = session.getAttribute(IOSession.ATTACHMENT_KEY);
         this.handler.connected(conn, attachment);
     }
 
     public void disconnected(final IOSession session) {
-        NHttpClientIOTarget conn = getConnection(session);
+        OperatedClientConnection conn = getConnection(session);
         if (conn != null) {
             this.handler.closed(conn);
         }
     }
 
     public void inputReady(final IOSession session) {
-        NHttpClientIOTarget conn = getConnection(session);
+        OperatedClientConnection conn = getConnection(session);
         assertValid(conn);
-        conn.consumeInput(this.handler);
+        SSLIOSession ssliosession = conn.getSSLIOSession();
+        if (ssliosession == null) {
+            conn.consumeInput(this.handler);
+        } else {
+            try {
+                if (ssliosession.isAppInputReady()) {
+                    conn.consumeInput(this.handler);
+                }
+                ssliosession.inboundTransport();
+            } catch (IOException ex) {
+                this.handler.exception(conn, ex);
+                ssliosession.shutdown();
+            }
+        }
     }
 
     public void outputReady(final IOSession session) {
-        NHttpClientIOTarget conn = getConnection(session);
+        OperatedClientConnection conn = getConnection(session);
         assertValid(conn);
-        conn.produceOutput(this.handler);
+        SSLIOSession ssliosession = conn.getSSLIOSession();
+        if (ssliosession == null) {
+            conn.produceOutput(this.handler);
+        } else {
+            try {
+                if (ssliosession.isAppOutputReady()) {
+                    conn.produceOutput(this.handler);
+                }
+                ssliosession.outboundTransport();
+            } catch (IOException ex) {
+                this.handler.exception(conn, ex);
+                ssliosession.shutdown();
+            }
+        }
     }
 
     public void timeout(IOSession session) {
-        NHttpClientIOTarget conn = getConnection(session);
+        OperatedClientConnection conn = getConnection(session);
         if (conn != null) {
-            this.handler.timeout(conn);
+            SSLIOSession ssliosession = conn.getSSLIOSession();
+            if (ssliosession == null) {
+                this.handler.timeout(conn);
+            } else {
+                this.handler.timeout(conn);
+                synchronized (ssliosession) {
+                    if (ssliosession.isOutboundDone() && !ssliosession.isInboundDone()) {
+                        // The session failed to terminate cleanly
+                        ssliosession.shutdown();
+                    }
+                }
+            }
         }
     }
 

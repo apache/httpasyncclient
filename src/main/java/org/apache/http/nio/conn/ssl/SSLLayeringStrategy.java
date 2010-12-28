@@ -60,6 +60,12 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     public static final String SSL   = "SSL";
     public static final String SSLV2 = "SSLv2";
 
+    private static final SSLLayeringStrategy DEFAULT_STRATEGY = new SSLLayeringStrategy();
+
+    public static SSLLayeringStrategy getLayeringStrategy() {
+        return DEFAULT_STRATEGY;
+    }
+
     private final SSLContext sslContext;
     private final X509HostnameVerifier hostnameVerifier;
 
@@ -92,6 +98,14 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         SSLContext sslcontext = SSLContext.getInstance(algo);
         sslcontext.init(keymanagers, trustmanagers, random);
         return sslcontext;
+    }
+
+    private static SSLContext createDefaultSSLContext() {
+        try {
+            return createSSLContext(TLS, null, null, null, null, null);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failure initializing default SSL context", ex);
+        }
     }
 
     public SSLLayeringStrategy(
@@ -166,11 +180,15 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         this(sslContext, new BrowserCompatHostnameVerifier());
     }
 
+    private SSLLayeringStrategy() {
+        this(createDefaultSSLContext());
+    }
+
     public boolean isSecure() {
         return true;
     }
 
-    public IOSession layer(final IOSession iosession) {
+    public SSLIOSession layer(final IOSession iosession) {
         return new SSLIOSession(iosession, this.sslContext, new InternalSSLSetupHandler());
     }
 

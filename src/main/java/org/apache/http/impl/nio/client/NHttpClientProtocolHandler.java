@@ -359,17 +359,27 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             conn.close();
         }
         HttpContext context = conn.getContext();
+        HttpRequest request = httpexchange.getRequest();
         HttpResponse response = httpexchange.getResponse();
-        if (!this.connStrategy.keepAlive(response, context)) {
-            conn.close();
+
+        String method = request.getRequestLine().getMethod();
+        int status = response.getStatusLine().getStatusCode();
+        if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
+            this.log.debug("CONNECT method succeeded");
+            conn.resetInput();
+        } else {
+            if (!this.connStrategy.keepAlive(response, context)) {
+                conn.close();
+            }
         }
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response processed " + formatState(conn, httpexchange));
         }
         handler.responseCompleted();
         if (handler.isDone()) {
-            httpexchange.reset();
+            httpexchange.setHandler(null);
         }
+        httpexchange.reset();
         if (conn.isOpen()) {
             // Ready for another request
             conn.requestOutput();
@@ -378,11 +388,15 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
 
     private boolean canResponseHaveBody(final HttpRequest request, final HttpResponse response) {
 
-        if (request != null && "HEAD".equalsIgnoreCase(request.getRequestLine().getMethod())) {
+        String method = request.getRequestLine().getMethod();
+        int status = response.getStatusLine().getStatusCode();
+
+        if (method.equalsIgnoreCase("HEAD")) {
             return false;
         }
-
-        int status = response.getStatusLine().getStatusCode();
+        if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
+            return false;
+        }
         return status >= HttpStatus.SC_OK
             && status != HttpStatus.SC_NO_CONTENT
             && status != HttpStatus.SC_NOT_MODIFIED

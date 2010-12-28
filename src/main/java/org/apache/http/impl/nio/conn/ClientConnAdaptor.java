@@ -33,9 +33,13 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpResponseFactory;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
+import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.conn.ConnectionShutdownException;
+import org.apache.http.impl.nio.reactor.SSLIOSession;
+import org.apache.http.impl.nio.reactor.SSLMode;
 import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
@@ -43,6 +47,10 @@ import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.util.ByteBufferAllocator;
+import org.apache.http.nio.util.HeapByteBufferAllocator;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
 class ClientConnAdaptor implements ManagedClientConnection {
@@ -55,14 +63,16 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
     public ClientConnAdaptor(
             final ClientConnectionManager manager,
-            final HttpPoolEntry entry,
-            final OperatedClientConnection conn) {
+            final HttpPoolEntry entry) {
         super();
         this.manager = manager;
         this.entry = entry;
-        this.conn = conn;
         this.released = false;
         this.reusable = true;
+
+        IOSession iosession = entry.getIOSession();
+        this.conn = (OperatedClientConnection) iosession.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
     }
 
     protected ClientConnectionManager getManager() {
@@ -136,18 +146,26 @@ class ClientConnAdaptor implements ManagedClientConnection {
         releaseConnection();
     }
 
-    public boolean isOpen() {
-        return !this.released;
-    }
-
-    public boolean isStale() {
-        return !this.released;
-    }
-
     private void assertValid() {
         if (this.released) {
             throw new ConnectionShutdownException();
         }
+    }
+
+    private OperatedClientConnection getWrappedConnection() {
+        OperatedClientConnection conn = this.conn;
+        if (conn == null) {
+            throw new ConnectionShutdownException();
+        }
+        return conn;
+    }
+
+    public synchronized boolean isOpen() {
+        return !this.released && this.conn != null;
+    }
+
+    public boolean isStale() {
+        return isOpen();
     }
 
     public HttpRoute getRoute() {
@@ -157,104 +175,139 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
     public synchronized HttpConnectionMetrics getMetrics() {
         assertValid();
-        return this.conn.getMetrics();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getMetrics();
     }
 
     public synchronized int getSocketTimeout() {
         assertValid();
-        return this.conn.getSocketTimeout();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getSocketTimeout();
     }
 
     public synchronized void setSocketTimeout(int timeout) {
         assertValid();
-        this.conn.setSocketTimeout(timeout);
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.setSocketTimeout(timeout);
     }
 
-    public int getStatus() {
-        return this.released ? NHttpConnection.CLOSED : NHttpConnection.ACTIVE;
+    public synchronized int getStatus() {
+        return this.conn == null || !this.conn.isOpen() ?
+                NHttpConnection.CLOSED : NHttpConnection.ACTIVE;
     }
 
     public synchronized HttpContext getContext() {
         assertValid();
-        return this.conn.getContext();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getContext();
     }
 
     public synchronized HttpRequest getHttpRequest() {
         assertValid();
-        return this.conn.getHttpRequest();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getHttpRequest();
     }
 
     public synchronized HttpResponse getHttpResponse() {
         assertValid();
-        return this.conn.getHttpResponse();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getHttpResponse();
     }
 
     public synchronized void requestInput() {
         assertValid();
-        this.conn.requestInput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.requestInput();
     }
 
     public synchronized void requestOutput() {
         assertValid();
-        this.conn.requestOutput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.requestOutput();
     }
 
     public synchronized void suspendInput() {
         assertValid();
-        this.conn.suspendInput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.suspendInput();
     }
 
     public synchronized void suspendOutput() {
         assertValid();
-        this.conn.suspendOutput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.suspendOutput();
     }
 
     public synchronized boolean isRequestSubmitted() {
         assertValid();
-        return this.conn.isRequestSubmitted();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.isRequestSubmitted();
     }
 
     public synchronized void resetInput() {
         assertValid();
-        this.conn.resetInput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.resetInput();
     }
 
     public synchronized void resetOutput() {
         assertValid();
-        this.conn.resetOutput();
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.resetOutput();
     }
 
     public synchronized void submitRequest(
             final HttpRequest request) throws IOException, HttpException {
         assertValid();
-        this.conn.submitRequest(request);
+        OperatedClientConnection conn = getWrappedConnection();
+        conn.submitRequest(request);
     }
 
-    public synchronized void updateOpen(final HttpRoute route) {
+    protected ByteBufferAllocator createByteBufferAllocator() {
+        return new HeapByteBufferAllocator();
+    }
+
+    protected HttpResponseFactory createHttpResponseFactory() {
+        return new DefaultHttpResponseFactory();
+    }
+
+    public synchronized void open(
+            final HttpRoute route,
+            final HttpContext context, final HttpParams params) throws IOException {
         assertValid();
         RouteTracker tracker = this.entry.getTracker();
         if (tracker.isConnected()) {
             throw new IllegalStateException("Connection already open");
         }
+
         HttpHost target = route.getTargetHost();
         HttpHost proxy = route.getProxyHost();
+        IOSession iosession = this.entry.getIOSession();
+
         if (proxy == null) {
             Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
             LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
-                IOSession iosession = this.entry.getIOSession();
-                iosession = layeringStrategy.layer(iosession);
-                this.conn.upgrade(iosession);
-                tracker.connectTarget(layeringStrategy.isSecure());
-            } else {
-                tracker.connectTarget(false);
+                SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
+                ssliosession.bind(SSLMode.CLIENT, params);
+                iosession = ssliosession;
             }
+        }
+
+        OperatedClientConnection conn = new DefaultClientConnection(
+                iosession, createHttpResponseFactory(), createByteBufferAllocator(), params);
+        iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
+
+        this.conn = conn;
+        if (proxy == null) {
+            tracker.connectTarget(conn.getSSLIOSession() != null);
         } else {
             tracker.connectProxy(proxy, false);
         }
     }
 
-    public synchronized void updateTunnelProxy(final HttpHost next){
+    public synchronized void tunnelProxy(
+            final HttpHost next, final HttpParams params) throws IOException {
         assertValid();
         RouteTracker tracker = this.entry.getTracker();
         if (!tracker.isConnected()) {
@@ -263,7 +316,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
         tracker.tunnelProxy(next, false);
     }
 
-    public synchronized void updateTunnelTarget() {
+    public synchronized void tunnelTarget(
+            final HttpParams params) throws IOException {
         assertValid();
         RouteTracker tracker = this.entry.getTracker();
         if (!tracker.isConnected()) {
@@ -275,8 +329,10 @@ class ClientConnAdaptor implements ManagedClientConnection {
         tracker.tunnelTarget(false);
     }
 
-    public synchronized void updateLayered(){
+    public synchronized void layerProtocol(
+            final HttpContext context, final HttpParams params) throws IOException {
         assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
         RouteTracker tracker = this.entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
@@ -295,8 +351,10 @@ class ClientConnAdaptor implements ManagedClientConnection {
                     " scheme does not provider support for protocol layering");
         }
         IOSession iosession = this.entry.getIOSession();
-        iosession = layeringStrategy.layer(iosession);
-        this.conn.upgrade(iosession);
+        SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
+        ssliosession.bind(SSLMode.CLIENT, params);
+
+        conn.upgrade(ssliosession);
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 

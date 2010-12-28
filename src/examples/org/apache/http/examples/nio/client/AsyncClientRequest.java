@@ -33,35 +33,13 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.nio.client.BasicHttpAsyncClient;
-import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.SyncBasicHttpParams;
 
 public class AsyncClientRequest {
 
     public static void main(String[] args) throws Exception {
-        HttpParams params = new SyncBasicHttpParams();
-        params
-            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 5000)
-            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 10000)
-            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
-            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
-            .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
-        DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(1, params);
-        PoolingClientConnectionManager sessmrg = new PoolingClientConnectionManager(ioReactor, params);
-        sessmrg.setTotalMax(5);
-        sessmrg.setDefaultMaxPerHost(3);
-
-        HttpAsyncClient httpclient = new BasicHttpAsyncClient(
-                ioReactor,
-                sessmrg,
-                params);
-
+        HttpAsyncClient httpclient = new BasicHttpAsyncClient();
         httpclient.start();
         try {
             HttpHost target = new HttpHost("www.apache.org", 80);

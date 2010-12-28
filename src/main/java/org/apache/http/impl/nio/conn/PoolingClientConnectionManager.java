@@ -31,23 +31,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpResponseFactory;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.pool.PoolEntryCallback;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
-import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.util.ByteBufferAllocator;
-import org.apache.http.nio.util.HeapByteBufferAllocator;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.ExecutionContext;
 
 public class PoolingClientConnectionManager implements ClientConnectionManager {
 
@@ -55,22 +48,24 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
     private final HttpSessionPool pool;
     private final SchemeRegistry schemeRegistry;
-    private final HttpParams params;
 
     public PoolingClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final SchemeRegistry schemeRegistry,
-            final HttpParams params) {
+            final SchemeRegistry schemeRegistry) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
         }
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
+        if (schemeRegistry == null) {
+            throw new IllegalArgumentException("Scheme registory may not be null");
         }
         this.pool = new HttpSessionPool(ioreactor, schemeRegistry);
         this.schemeRegistry = schemeRegistry;
-        this.params = params;
+    }
+
+    public PoolingClientConnectionManager(
+            final ConnectingIOReactor ioreactor) {
+        this(ioreactor, SchemeRegistryFactory.createDefault());
     }
 
     public SchemeRegistry getSchemeRegistry() {
@@ -152,14 +147,6 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         this.pool.shutdown();
     }
 
-    protected ByteBufferAllocator createByteBufferAllocator() {
-        return new HeapByteBufferAllocator();
-    }
-
-    protected HttpResponseFactory createHttpResponseFactory() {
-        return new DefaultHttpResponseFactory();
-    }
-
     class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute, HttpPoolEntry> {
 
         private final BasicFuture<ManagedClientConnection> future;
@@ -174,22 +161,10 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             if (log.isDebugEnabled()) {
                 log.debug("I/O session allocated: " + entry);
             }
-            IOSession iosession = entry.getIOSession();
-            OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
-                    ExecutionContext.HTTP_CONNECTION);
-            if (conn == null) {
-                conn = new DefaultClientConnection(
-                        iosession,
-                        createHttpResponseFactory(),
-                        createByteBufferAllocator(),
-                        params);
-                iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
-            }
-            ClientConnAdaptor result = new ClientConnAdaptor(
+            ManagedClientConnection conn = new ClientConnAdaptor(
                     PoolingClientConnectionManager.this,
-                    entry,
-                    conn);
-            if (!this.future.completed(result)) {
+                    entry);
+            if (!this.future.completed(conn)) {
                 pool.release(entry, true);
             }
         }

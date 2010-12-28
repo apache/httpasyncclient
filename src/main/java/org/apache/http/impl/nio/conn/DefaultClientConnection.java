@@ -37,6 +37,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
+import org.apache.http.impl.nio.reactor.SSLIOSession;
 import org.apache.http.nio.NHttpMessageParser;
 import org.apache.http.nio.NHttpMessageWriter;
 import org.apache.http.nio.conn.OperatedClientConnection;
@@ -53,6 +54,8 @@ public class DefaultClientConnection
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
     private final Log log;
 
+    private SSLIOSession ssliosession;
+
     public DefaultClientConnection(
             final IOSession iosession,
             final HttpResponseFactory responseFactory,
@@ -60,16 +63,33 @@ public class DefaultClientConnection
             final HttpParams params) {
         super(iosession, responseFactory, allocator, params);
         this.log = LogFactory.getLog(iosession.getClass());
-        upgrade(iosession);
+        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
+            this.session = new LoggingIOSession(iosession, this.log, this.wirelog);
+        }
+        if (iosession instanceof SSLIOSession) {
+            this.ssliosession = (SSLIOSession) iosession;
+        } else {
+            this.ssliosession = null;
+        }
     }
 
     public void upgrade(final IOSession iosession) {
+        this.session.setBufferStatus(null);
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(
-                    iosession, this.headerlog, this.wirelog);
+            this.session = new LoggingIOSession(iosession, this.headerlog, this.wirelog);
         } else {
             this.session = iosession;
         }
+        this.session.setBufferStatus(this);
+        if (iosession instanceof SSLIOSession) {
+            this.ssliosession = (SSLIOSession) iosession;
+        } else {
+            this.ssliosession = null;
+        }
+    }
+
+    public SSLIOSession getSSLIOSession() {
+        return this.ssliosession;
     }
 
     @Override

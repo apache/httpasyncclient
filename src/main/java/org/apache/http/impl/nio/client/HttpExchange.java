@@ -108,7 +108,6 @@ class HttpExchange {
     public void reset() {
         resetInput();
         resetOutput();
-        this.handler = null;
     }
 
     public boolean isValid() {

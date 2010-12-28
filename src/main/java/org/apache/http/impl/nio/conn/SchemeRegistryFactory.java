@@ -24,37 +24,27 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.impl.nio.conn;
 
-import java.io.IOException;
+import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HttpContext;
+/**
+ * @since 4.1
+ */
+@ThreadSafe
+public final class SchemeRegistryFactory {
 
-public interface ManagedClientConnection extends NHttpClientConnection, ConnectionReleaseTrigger {
-
-    HttpRoute getRoute();
-
-    Object getState();
-
-    void setState(Object state);
-
-    void markReusable();
-
-    void markNonReusable();
-
-    boolean isReusable();
-
-    void open(HttpRoute route, HttpContext context, HttpParams params) throws IOException;
-
-    void tunnelTarget(HttpParams params) throws IOException;
-
-    void tunnelProxy(HttpHost next, HttpParams params) throws IOException;
-
-    void layerProtocol(HttpContext context, HttpParams params) throws IOException;
+    public static SchemeRegistry createDefault() {
+        SchemeRegistry registry = new SchemeRegistry();
+        registry.register(
+                new Scheme("http", 80, null));
+        registry.register(
+                new Scheme("https", 443, SSLLayeringStrategy.getLayeringStrategy()));
+        return registry;
+    }
 
 }
+

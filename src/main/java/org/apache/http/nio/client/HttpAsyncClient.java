@@ -33,6 +33,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.reactor.IOReactorStatus;
+import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
 public interface HttpAsyncClient {
@@ -42,6 +43,8 @@ public interface HttpAsyncClient {
     void shutdown() throws InterruptedException;
 
     IOReactorStatus getStatus();
+
+    HttpParams getParams();
 
     <T> Future<T> execute(
             HttpAsyncRequestProducer requestProducer,

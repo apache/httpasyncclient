@@ -156,7 +156,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 switch (step) {
                 case HttpRouteDirector.CONNECT_TARGET:
                 case HttpRouteDirector.CONNECT_PROXY:
-                    this.managedConn.updateOpen(this.route);
                     break;
                 case HttpRouteDirector.TUNNEL_TARGET:
                     this.log.debug("Tunnel required");
@@ -167,7 +166,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 case HttpRouteDirector.TUNNEL_PROXY:
                     throw new HttpException("Proxy chains are not supported");
                 case HttpRouteDirector.LAYER_PROTOCOL:
-                    managedConn.updateLayered();
+                    managedConn.layerProtocol(this.localContext, this.params);
                     break;
                 case HttpRouteDirector.UNREACHABLE:
                     throw new HttpException("Unable to establish route: " +
@@ -235,7 +234,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
         if (!this.routeEstablished) {
             if (this.current.getMethod().equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
-                this.managedConn.updateTunnelTarget();
+                this.managedConn.tunnelTarget(this.params);
             } else {
                 this.response = response;
             }
@@ -253,7 +252,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         if (this.response != null) {
             this.responseConsumer.consumeContent(decoder, ioctrl);
         } else {
-            this.log.debug("Discard intermediate response cocntent");
+            this.log.debug("Discard intermediate response content");
         }
     }
 
@@ -328,10 +327,20 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request suceeded: " + conn);
         }
-        this.managedConn = conn;
-        this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
-        this.managedConn.requestOutput();
-        this.routeEstablished = this.route.equals(conn.getRoute());
+        try {
+            if (!conn.isOpen()) {
+                conn.open(this.route, this.localContext, this.params);
+            }
+            this.managedConn = conn;
+            this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
+            this.managedConn.requestOutput();
+            this.routeEstablished = this.route.equals(conn.getRoute());
+        } catch (IOException ex) {
+            failed(ex);
+        } catch (RuntimeException runex) {
+            failed(runex);
+            throw runex;
+        }
     }
 
     private synchronized void connectionRequestFailed(final Exception ex) {

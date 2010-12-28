@@ -1,11 +1,20 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -14,12 +23,14 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.localserver.LocalTestServer;
 import org.apache.http.localserver.ServerTestBase;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.params.BasicHttpParams;
@@ -29,22 +40,66 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestHttpAsync extends ServerTestBase {
+public class TestHttpsAsync extends ServerTestBase {
 
+    private SSLContext serverSSLContext;
+    private SSLContext clientSSLContext;
     private HttpHost target;
     private PoolingClientConnectionManager sessionManager;
     private HttpAsyncClient httpclient;
 
+    private KeyManagerFactory createKeyManagerFactory() throws NoSuchAlgorithmException {
+        String algo = KeyManagerFactory.getDefaultAlgorithm();
+        try {
+            return KeyManagerFactory.getInstance(algo);
+        } catch (NoSuchAlgorithmException ex) {
+            return KeyManagerFactory.getInstance("SunX509");
+        }
+    }
+
+    private TrustManagerFactory createTrustManagerFactory() throws NoSuchAlgorithmException {
+        String algo = TrustManagerFactory.getDefaultAlgorithm();
+        try {
+            return TrustManagerFactory.getInstance(algo);
+        } catch (NoSuchAlgorithmException ex) {
+            return TrustManagerFactory.getInstance("SunX509");
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        ClassLoader cl = getClass().getClassLoader();
+        URL url = cl.getResource("test.keystore");
+        KeyStore keystore  = KeyStore.getInstance("jks");
+        char[] pwd = "nopassword".toCharArray();
+        keystore.load(url.openStream(), pwd);
+
+        TrustManagerFactory tmf = createTrustManagerFactory();
+        tmf.init(keystore);
+        TrustManager[] tm = tmf.getTrustManagers();
+
+        KeyManagerFactory kmfactory = createKeyManagerFactory();
+        kmfactory.init(keystore, pwd);
+        KeyManager[] km = kmfactory.getKeyManagers();
+
+        this.serverSSLContext = SSLContext.getInstance("TLS");
+        this.serverSSLContext.init(km, tm, null);
+
+        this.clientSSLContext = SSLContext.getInstance("TLS");
+        this.clientSSLContext.init(null, tm, null);
+
+        this.localServer = new LocalTestServer(this.serverSSLContext);
         this.localServer.registerDefaultHandlers();
+        this.localServer.start();
         int port = this.localServer.getServiceAddress().getPort();
-        this.target = new HttpHost("localhost", port);
+        this.target = new HttpHost("localhost", port, "https");
 
         ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, new BasicHttpParams());
         SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, null));
+        schemeRegistry.register(new Scheme("https", 443, new SSLLayeringStrategy(this.clientSSLContext)));
         this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry);
         this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager);
     }

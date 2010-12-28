@@ -35,6 +35,7 @@
   </parent>
   <artifactId>httpasyncclient</artifactId>
   <name>HttpAsyncClient</name>
+  <version>4.0-alpha1-SNAPSHOT</version>
   <description>
    HttpComponents Async HttpClient
   </description>

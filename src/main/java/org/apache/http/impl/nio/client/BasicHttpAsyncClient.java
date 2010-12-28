@@ -39,6 +39,8 @@ import org.apache.http.HttpResponse;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
+import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
+import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
@@ -70,11 +72,12 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     private final ClientConnectionManager connmgr;
 
     private Thread reactorThread;
+    private volatile Exception ex;
 
     public BasicHttpAsyncClient(
             final ConnectingIOReactor ioReactor,
             final ClientConnectionManager connmgr,
-            final HttpParams params) throws IOReactorException {
+            final HttpParams params) {
         super();
         this.log = LogFactory.getLog(getClass());
         if (params != null) {
@@ -84,6 +87,29 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         }
         this.ioReactor = ioReactor;
         this.connmgr = connmgr;
+    }
+
+    public BasicHttpAsyncClient(
+            final HttpParams params) throws IOReactorException {
+        super();
+        this.log = LogFactory.getLog(getClass());
+        if (params != null) {
+            this.params = params;
+        } else {
+            this.params = createDefaultHttpParams();
+        }
+        this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
+        this.connmgr = new PoolingClientConnectionManager(this.ioReactor);
+    }
+
+    public BasicHttpAsyncClient() throws IOReactorException {
+        this(null);
+    }
+
+    public BasicHttpAsyncClient(
+            final ConnectingIOReactor ioReactor,
+            final ClientConnectionManager connmgr) throws IOReactorException {
+        this(ioReactor, connmgr, null);
     }
 
     protected ClientConnectionManager getConnectionManager() {
@@ -124,16 +150,25 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
                 createConnectionReuseStrategy());
-        IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
         try {
+            IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
             this.ioReactor.execute(ioEventDispatch);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);
+            this.ex = ex;
         }
+    }
+
+    public HttpParams getParams() {
+        return this.params;
     }
 
     public IOReactorStatus getStatus() {
         return this.ioReactor.getStatus();
+    }
+
+    public Exception getException() {
+        return this.ex;
     }
 
     public synchronized void start() {

@@ -26,11 +26,15 @@
  */
 package org.apache.http.nio.conn;
 
+import org.apache.http.impl.nio.reactor.SSLIOSession;
 import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.NHttpClientIOTarget;
 import org.apache.http.nio.reactor.IOSession;
 
-public interface OperatedClientConnection extends NHttpClientConnection {
+public interface OperatedClientConnection extends NHttpClientConnection, NHttpClientIOTarget {
 
     void upgrade(IOSession iosession);
+
+    SSLIOSession getSSLIOSession();
 
 }
