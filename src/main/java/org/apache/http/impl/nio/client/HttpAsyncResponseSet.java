@@ -24,27 +24,32 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.conn;
+package org.apache.http.impl.nio.client;
 
-import org.apache.http.annotation.ThreadSafe;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
-import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * @since 4.1
- */
-@ThreadSafe
-public final class SchemeRegistryFactory {
+import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 
-    public static SchemeRegistry createDefault() {
-        SchemeRegistry registry = new SchemeRegistry();
-        registry.register(
-                new Scheme("http", 80, null));
-        registry.register(
-                new Scheme("https", 443, SSLLayeringStrategy.getDefaultStrategy()));
-        return registry;
+class HttpAsyncResponseSet {
+
+    private final ConcurrentHashMap<HttpAsyncResponseConsumer<?>, Boolean> map;
+
+    public HttpAsyncResponseSet() {
+        super();
+        this.map = new ConcurrentHashMap<HttpAsyncResponseConsumer<?>, Boolean>();
+    }
+
+    public void add(final HttpAsyncResponseConsumer<?> o) {
+        this.map.put(o, Boolean.TRUE);
+    }
+
+    public void remove(final Object o) {
+        this.map.remove(o);
+    }
+
+    public Iterator<HttpAsyncResponseConsumer<?>> iterator() {
+        return this.map.keySet().iterator();
     }
 
 }
-

@@ -132,9 +132,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                     this.route, userToken,
                     connectTimeout, TimeUnit.MILLISECONDS,
                     new InternalFutureCallback());
-        } catch (HttpException ex) {
-            failed(ex);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             failed(ex);
         }
     }

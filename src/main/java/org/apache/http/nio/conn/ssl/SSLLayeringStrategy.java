@@ -60,10 +60,8 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     public static final String SSL   = "SSL";
     public static final String SSLV2 = "SSLv2";
 
-    private static final SSLLayeringStrategy DEFAULT_STRATEGY = new SSLLayeringStrategy();
-
-    public static SSLLayeringStrategy getLayeringStrategy() {
-        return DEFAULT_STRATEGY;
+    public static SSLLayeringStrategy getDefaultStrategy() {
+        return new SSLLayeringStrategy();
     }
 
     private final SSLContext sslContext;

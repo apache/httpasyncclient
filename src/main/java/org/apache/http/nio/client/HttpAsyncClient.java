@@ -31,6 +31,7 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
@@ -63,6 +64,14 @@ public interface HttpAsyncClient {
 
     Future<HttpResponse> execute(
             HttpHost target, HttpRequest request,
+            FutureCallback<HttpResponse> callback);
+
+    Future<HttpResponse> execute(
+            HttpUriRequest request, HttpContext context,
+            FutureCallback<HttpResponse> callback);
+
+    Future<HttpResponse> execute(
+            HttpUriRequest request,
             FutureCallback<HttpResponse> callback);
 
 }

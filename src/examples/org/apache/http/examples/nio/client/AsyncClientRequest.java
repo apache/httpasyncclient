@@ -30,10 +30,9 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.Future;
 
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.nio.client.BasicHttpAsyncClient;
-import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.client.HttpAsyncClient;
 
 public class AsyncClientRequest {
@@ -42,11 +41,10 @@ public class AsyncClientRequest {
         HttpAsyncClient httpclient = new BasicHttpAsyncClient();
         httpclient.start();
         try {
-            HttpHost target = new HttpHost("www.apache.org", 80);
             Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
             for (int i = 0; i < 10; i++) {
-                BasicHttpRequest request = new BasicHttpRequest("GET", "/");
-                queue.add(httpclient.execute(target, request, null));
+                HttpGet request = new HttpGet("http://www.apache.org/");
+                queue.add(httpclient.execute(request, null));
             }
             while (!queue.isEmpty()) {
                 Future<HttpResponse> future = queue.remove();
