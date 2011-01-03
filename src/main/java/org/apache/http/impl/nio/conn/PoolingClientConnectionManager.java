@@ -40,7 +40,6 @@ import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.nio.reactor.IOSession;
 
 public class PoolingClientConnectionManager implements ClientConnectionManager {
 
@@ -51,7 +50,8 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
     public PoolingClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final SchemeRegistry schemeRegistry) {
+            final SchemeRegistry schemeRegistry,
+            final long timeToLive, final TimeUnit tunit) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
@@ -59,27 +59,42 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         if (schemeRegistry == null) {
             throw new IllegalArgumentException("Scheme registory may not be null");
         }
-        this.pool = new HttpSessionPool(ioreactor, schemeRegistry);
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
+        }
+        this.pool = new HttpSessionPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
     }
 
     public PoolingClientConnectionManager(
+            final ConnectingIOReactor ioreactor,
+            final SchemeRegistry schemeRegistry) {
+        this(ioreactor, schemeRegistry, -1, TimeUnit.MILLISECONDS);
+    }
+
+    public PoolingClientConnectionManager(
             final ConnectingIOReactor ioreactor) {
-        this(ioreactor, SchemeRegistryFactory.createDefault());
+        this(ioreactor, SchemeRegistryFactory.createDefault(), -1, TimeUnit.MILLISECONDS);
     }
 
     public SchemeRegistry getSchemeRegistry() {
         return this.schemeRegistry;
     }
 
-    public synchronized Future<ManagedClientConnection> leaseConnection(
+    public Future<ManagedClientConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
             final long timeout,
-            final TimeUnit timeUnit,
+            final TimeUnit tunit,
             final FutureCallback<ManagedClientConnection> callback) {
+        if (route == null) {
+            throw new IllegalArgumentException("HTTP route may not be null");
+        }
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
+        }
         if (this.log.isDebugEnabled()) {
-            this.log.debug("I/O session request: route[" + route + "][state: " + state + "]");
+            this.log.debug("Connection request: route[" + route + "][state: " + state + "]");
             PoolStats totals = this.pool.getTotalStats();
             PoolStats stats = this.pool.getStats(route);
             this.log.debug("Total: " + totals);
@@ -87,39 +102,64 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         }
         BasicFuture<ManagedClientConnection> future = new BasicFuture<ManagedClientConnection>(
                 callback);
-        this.pool.lease(route, state, timeout, timeUnit, new InternalPoolEntryCallback(future));
+        this.pool.lease(route, state, timeout, tunit, new InternalPoolEntryCallback(future));
         if (this.log.isDebugEnabled()) {
             if (!future.isDone()) {
-                this.log.debug("I/O session could not be allocated immediately: " +
+                this.log.debug("Connection could not be allocated immediately: " +
                         "route[" + route + "][state: " + state + "]");
             }
         }
         return future;
     }
 
-    public synchronized void releaseConnection(final ManagedClientConnection conn) {
+    public void releaseConnection(
+            final ManagedClientConnection conn,
+            final long validDuration,
+            final TimeUnit tunit) {
+        if (conn == null) {
+            throw new IllegalArgumentException("HTTP connection may not be null");
+        }
         if (!(conn instanceof ClientConnAdaptor)) {
-            throw new IllegalArgumentException
-                ("I/O session class mismatch, " +
-                 "I/O session not obtained from this manager");
+            throw new IllegalArgumentException("Connection class mismatch, " +
+                 "connection not obtained from this manager");
+        }
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
         }
         ClientConnAdaptor adaptor = (ClientConnAdaptor) conn;
         ClientConnectionManager manager = adaptor.getManager();
         if (manager != null && manager != this) {
-            throw new IllegalArgumentException
-                ("I/O session not obtained from this manager");
+            throw new IllegalArgumentException("connection not obtained from this manager");
         }
         HttpPoolEntry entry = adaptor.getEntry();
-        IOSession iosession = entry.getIOSession();
         if (this.log.isDebugEnabled()) {
             HttpRoute route = entry.getPlannedRoute();
+            Object state = entry.getState();
+            this.log.debug("Releasing connection: route[" + route + "][state: " + state + "]");
             PoolStats totals = this.pool.getTotalStats();
             PoolStats stats = this.pool.getStats(route);
             this.log.debug("Total: " + totals);
             this.log.debug("Route [" + route + "]: " + stats);
-            this.log.debug("I/O session released: " + entry);
         }
-        this.pool.release(entry, adaptor.isReusable() && !iosession.isClosed());
+
+        boolean reusable = adaptor.isReusable();
+        if (reusable) {
+            entry.setExpiry(tunit.toMillis(validDuration));
+            if (this.log.isDebugEnabled()) {
+                entry.setExpiry(tunit.toMillis(validDuration));
+                String s;
+                if (validDuration >= 0) {
+                    s = validDuration + " " + tunit;
+                } else {
+                    s = "ever";
+                }
+                HttpRoute route = entry.getPlannedRoute();
+                Object state = entry.getState();
+                this.log.debug("Pooling connection" +
+                        " [" + route + "][" + state + "]; keep alive for " + s);
+            }
+        }
+        this.pool.release(entry, reusable);
     }
 
     public PoolStats getTotalStats() {
@@ -142,8 +182,20 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         this.pool.setMaxPerHost(route, max);
     }
 
-    public synchronized void shutdown() {
-        this.log.debug("I/O session manager shut down");
+    public void closeIdleConnections(long idleTimeout, final TimeUnit tunit) {
+        if (log.isDebugEnabled()) {
+            log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
+        }
+        this.pool.closeIdle(idleTimeout, tunit);
+    }
+
+    public void closeExpiredConnections() {
+        log.debug("Closing expired connections");
+        this.pool.closeExpired();
+    }
+
+    public void shutdown() {
+        this.log.debug("Connection manager shut down");
         this.pool.shutdown();
     }
 
@@ -159,7 +211,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
         public void completed(final HttpPoolEntry entry) {
             if (log.isDebugEnabled()) {
-                log.debug("I/O session allocated: " + entry);
+                log.debug("Connection allocated: " + entry);
             }
             ManagedClientConnection conn = new ClientConnAdaptor(
                     PoolingClientConnectionManager.this,
@@ -171,13 +223,13 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
         public void failed(final Exception ex) {
             if (log.isDebugEnabled()) {
-                log.debug("I/O session request failed", ex);
+                log.debug("Connection request failed", ex);
             }
             this.future.failed(ex);
         }
 
         public void cancelled() {
-            log.debug("I/O session request cancelled");
+            log.debug("Connection request cancelled");
             this.future.cancel(true);
         }
 

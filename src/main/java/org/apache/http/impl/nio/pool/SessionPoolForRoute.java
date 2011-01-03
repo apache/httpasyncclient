@@ -76,7 +76,7 @@ class SessionPoolForRoute<T, E extends PoolEntry<T>> {
             while (it.hasPrevious()) {
                 E entry = it.previous();
                 IOSession iosession = entry.getIOSession();
-                if (iosession.isClosed()) {
+                if (iosession.isClosed() || entry.isExpired(System.currentTimeMillis())) {
                     it.remove();
                 } else {
                     if (entry.getState() == null || entry.getState().equals(state)) {

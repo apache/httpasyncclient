@@ -42,7 +42,8 @@ public interface ClientConnectionManager {
             long connectTimeout, TimeUnit timeUnit,
             FutureCallback<ManagedClientConnection> callback);
 
-    void releaseConnection(ManagedClientConnection session);
+    void releaseConnection(ManagedClientConnection session,
+            long validDuration, TimeUnit timeUnit);
 
     void shutdown();
 

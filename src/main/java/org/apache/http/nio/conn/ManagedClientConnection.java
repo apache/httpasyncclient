@@ -27,6 +27,7 @@
 package org.apache.http.nio.conn;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ConnectionReleaseTrigger;
@@ -56,5 +57,7 @@ public interface ManagedClientConnection extends NHttpClientConnection, Connecti
     void tunnelProxy(HttpHost next, HttpParams params) throws IOException;
 
     void layerProtocol(HttpContext context, HttpParams params) throws IOException;
+
+    void setIdleDuration(long duration, TimeUnit tunit);
 
 }

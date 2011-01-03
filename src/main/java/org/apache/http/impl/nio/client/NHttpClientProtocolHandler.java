@@ -31,7 +31,6 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpInetConnection;
@@ -58,16 +57,12 @@ import org.apache.http.protocol.HttpContext;
  */
 class NHttpClientProtocolHandler implements NHttpClientHandler {
 
-    private final Log log;
+    private final Log log = LogFactory.getLog(getClass());
 
     private static final String HTTP_EXCHNAGE = "http.nio.exchange";
 
-    private final ConnectionReuseStrategy connStrategy;
-
-    public NHttpClientProtocolHandler(
-            final ConnectionReuseStrategy connStrategy) {
-        this.connStrategy = connStrategy;
-        this.log = LogFactory.getLog(getClass());
+    public NHttpClientProtocolHandler() {
+        super();
     }
 
     private void closeConnection(final NHttpClientConnection conn) {
@@ -358,7 +353,6 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (!httpexchange.isValid()) {
             conn.close();
         }
-        HttpContext context = conn.getContext();
         HttpRequest request = httpexchange.getRequest();
         HttpResponse response = httpexchange.getResponse();
 
@@ -367,10 +361,6 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
             this.log.debug("CONNECT method succeeded");
             conn.resetInput();
-        } else {
-            if (!this.connStrategy.keepAlive(response, context)) {
-                conn.close();
-            }
         }
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response processed " + formatState(conn, httpexchange));
@@ -380,10 +370,6 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             httpexchange.setHandler(null);
         }
         httpexchange.reset();
-        if (conn.isOpen()) {
-            // Ready for another request
-            conn.requestOutput();
-        }
     }
 
     private boolean canResponseHaveBody(final HttpRequest request, final HttpResponse response) {

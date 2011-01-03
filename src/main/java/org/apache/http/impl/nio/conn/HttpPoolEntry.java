@@ -26,17 +26,20 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import org.apache.commons.logging.Log;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.nio.pool.PoolEntry;
 import org.apache.http.nio.reactor.IOSession;
 
-public class HttpPoolEntry extends PoolEntry<HttpRoute> {
+class HttpPoolEntry extends PoolEntry<HttpRoute> {
 
+    private final Log log;
     private final RouteTracker tracker;
 
-    public HttpPoolEntry(final HttpRoute route, final IOSession session) {
+    HttpPoolEntry(final Log log, final HttpRoute route, final IOSession session) {
         super(route, session);
+        this.log = log;
         this.tracker = new RouteTracker(route);
     }
 
@@ -65,6 +68,15 @@ public class HttpPoolEntry extends PoolEntry<HttpRoute> {
 
     public HttpRoute getEffectiveRoute() {
         return this.tracker.toRoute();
+    }
+
+    @Override
+    public boolean isExpired(long now) {
+        boolean expired = super.isExpired(now);
+        if (expired && this.log.isDebugEnabled()) {
+            this.log.debug("Connection expired: " + this);
+        }
+        return expired;
     }
 
 }

@@ -38,6 +38,10 @@ public abstract class PoolEntry<T> {
     private final T route;
     private final IOSession session;
     private Object state;
+    private long created;
+    private long updated;
+    private long deadline;
+    private long expiry;
 
     public PoolEntry(final T route, final IOSession session) {
         super();
@@ -60,6 +64,48 @@ public abstract class PoolEntry<T> {
 
     protected void setState(final Object state) {
         this.state = state;
+    }
+
+    public long getCreated() {
+        return this.created;
+    }
+
+    public void setCreated(long created) {
+        this.created = created;
+    }
+
+    public long getUpdated() {
+        return this.updated;
+    }
+
+    public void setUpdated(long updated) {
+        this.updated = updated;
+    }
+
+    public long getDeadline() {
+        return this.deadline;
+    }
+
+    public void setDeadline(long deadline) {
+        this.deadline = deadline;
+    }
+
+    public long getExpiry() {
+        return this.expiry;
+    }
+
+    public void setExpiry(long expiry) {
+        this.expiry = expiry;
+    }
+
+    public boolean isExpired(long now) {
+        if (this.deadline > 0 && this.deadline < now) {
+            return true;
+        }
+        if (this.expiry > 0 && this.expiry < now) {
+            return true;
+        }
+        return false;
     }
 
     @Override

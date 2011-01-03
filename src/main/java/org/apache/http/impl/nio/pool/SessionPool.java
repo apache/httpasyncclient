@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.pool;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
@@ -123,15 +124,20 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
 
     public void lease(
             final T route, final Object state,
-            final long connectTimeout, final TimeUnit timeUnit,
+            final long connectTimeout, final TimeUnit tunit,
             final PoolEntryCallback<T, E> callback) {
+        if (route == null) {
+            throw new IllegalArgumentException("Route may not be null");
+        }
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit must not be null.");
+        }
         if (this.isShutDown) {
             throw new IllegalStateException("Session pool has been shut down");
         }
         this.lock.lock();
         try {
-            TimeUnit unit = timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS;
-            int timeout = (int) unit.toMillis(connectTimeout);
+            int timeout = (int) tunit.toMillis(connectTimeout);
             if (timeout < 0) {
                 timeout = 0;
             }
@@ -155,6 +161,8 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 pool.freeEntry(entry, reusable);
                 if (reusable) {
                     this.availableSessions.add(entry);
+                } else {
+                    entryShutdown(entry);
                 }
                 processPendingRequests();
             }
@@ -350,6 +358,9 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
     }
 
     public PoolStats getStats(final T route) {
+        if (route == null) {
+            throw new IllegalArgumentException("Route may not be null");
+        }
         this.lock.lock();
         try {
             SessionPoolForRoute<T, E> pool = getPool(route);
@@ -358,6 +369,49 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                     pool.getPendingCount(),
                     pool.getAvailableCount(),
                     getMaxPerRoute(route));
+        } finally {
+            this.lock.unlock();
+        }
+    }
+
+    public void closeIdle(long idletime, final TimeUnit tunit) {
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit must not be null.");
+        }
+        long time = tunit.toMillis(idletime);
+        if (time < 0) {
+            time = 0;
+        }
+        long deadline = System.currentTimeMillis() - time;
+        this.lock.lock();
+        try {
+            Iterator<E> it = this.availableSessions.iterator();
+            while (it.hasNext()) {
+                E entry = it.next();
+                if (entry.getUpdated() <= deadline) {
+                    it.remove();
+                    entryShutdown(entry);
+                }
+            }
+            processPendingRequests();
+        } finally {
+            this.lock.unlock();
+        }
+    }
+
+    public void closeExpired() {
+        long now = System.currentTimeMillis();
+        this.lock.lock();
+        try {
+            Iterator<E> it = this.availableSessions.iterator();
+            while (it.hasNext()) {
+                E entry = it.next();
+                if (entry.isExpired(now)) {
+                    it.remove();
+                    entryShutdown(entry);
+                }
+            }
+            processPendingRequests();
         } finally {
             this.lock.unlock();
         }

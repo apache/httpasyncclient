@@ -27,6 +27,7 @@
 package org.apache.http.impl.nio.conn;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
@@ -56,8 +57,8 @@ import org.apache.http.protocol.HttpContext;
 class ClientConnAdaptor implements ManagedClientConnection {
 
     private final ClientConnectionManager manager;
-    private volatile HttpPoolEntry entry;
-    private volatile OperatedClientConnection conn;
+    private HttpPoolEntry entry;
+    private OperatedClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
 
@@ -88,7 +89,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
             return;
         }
         this.released = true;
-        this.manager.releaseConnection(this);
+        this.manager.releaseConnection(this, this.entry.getExpiry(), TimeUnit.MILLISECONDS);
         this.entry = null;
         this.conn = null;
     }
@@ -101,7 +102,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = false;
         IOSession iosession = this.entry.getIOSession();
         iosession.shutdown();
-        this.manager.releaseConnection(this);
+        this.manager.releaseConnection(this, -1, TimeUnit.MILLISECONDS);
         this.entry = null;
         this.conn = null;
     }
@@ -138,11 +139,16 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = true;
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
         abortConnection();
     }
 
-    public void close() {
+    public synchronized void close() throws IOException {
+        if (this.released) {
+            return;
+        }
+        this.conn.close();
+        this.reusable = false;
         releaseConnection();
     }
 
@@ -356,6 +362,13 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
         conn.upgrade(ssliosession);
         tracker.layerProtocol(layeringStrategy.isSecure());
+    }
+
+    public void setIdleDuration(final long duration, final TimeUnit tunit) {
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
+        }
+        this.entry.setExpiry(tunit.toMillis(duration));
     }
 
     @Override

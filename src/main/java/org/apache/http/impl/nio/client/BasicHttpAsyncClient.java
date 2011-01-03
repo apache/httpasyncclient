@@ -40,8 +40,10 @@ import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
@@ -150,13 +152,16 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         return new DefaultConnectionReuseStrategy();
     }
 
+    protected ConnectionKeepAliveStrategy createConnectionKeepAliveStrategy() {
+        return new DefaultConnectionKeepAliveStrategy();
+    }
+
     protected HttpRoutePlanner createHttpRoutePlanner() {
         return new DefaultHttpAsyncRoutePlanner(this.connmgr.getSchemeRegistry());
     }
 
     private void doExecute() {
-        NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler(
-                createConnectionReuseStrategy());
+        NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler();
         try {
             IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
             this.ioReactor.execute(ioEventDispatch);
@@ -221,6 +226,8 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
                     this.connmgr,
                     createHttpProcessor(),
                     createHttpRoutePlanner(),
+                    createConnectionReuseStrategy(),
+                    createConnectionKeepAliveStrategy(),
                     this.params);
         }
         httpexchange.start();

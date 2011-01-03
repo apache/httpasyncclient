@@ -28,7 +28,9 @@ package org.apache.http.impl.nio.conn;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.logging.Log;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.pool.PoolEntryFactory;
@@ -41,10 +43,13 @@ import org.apache.http.nio.reactor.IOSession;
 
 class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
-    public HttpSessionPool(
-            final ConnectingIOReactor ioreactor, final SchemeRegistry schemeRegistry) {
+    HttpSessionPool(
+            final Log log,
+            final ConnectingIOReactor ioreactor,
+            final SchemeRegistry schemeRegistry,
+            long timeToLive, final TimeUnit tunit) {
         super(ioreactor,
-                new InternalEntryFactory(),
+                new InternalEntryFactory(log, tunit.toMillis(timeToLive)),
                 new InternalRouteResolver(schemeRegistry),
                 20, 50);
     }
@@ -80,8 +85,24 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
     static class InternalEntryFactory implements PoolEntryFactory<HttpRoute, HttpPoolEntry> {
 
+        private final Log log;
+        private final long connTimeToLive;
+
+        InternalEntryFactory(final Log log, final long connTimeToLive) {
+            super();
+            this.log = log;
+            this.connTimeToLive = connTimeToLive;
+        }
+
         public HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-            return new HttpPoolEntry(route, session);
+            HttpPoolEntry entry = new HttpPoolEntry(this.log, route, session);
+            long now = System.currentTimeMillis();
+            entry.setCreated(now);
+            entry.setUpdated(now);
+            if (this.connTimeToLive > 0) {
+                entry.setDeadline(now + this.connTimeToLive);
+            }
+            return entry;
         }
 
     };
