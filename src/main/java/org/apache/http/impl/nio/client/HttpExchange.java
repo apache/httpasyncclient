@@ -28,7 +28,6 @@ package org.apache.http.impl.nio.client;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 
 class HttpExchange {
 
@@ -36,7 +35,6 @@ class HttpExchange {
     private MessageState responseState;
     private HttpRequest request;
     private HttpResponse response;
-    private HttpAsyncExchangeHandler<?> handler;
     private boolean valid;
     private int timeout;
 
@@ -77,14 +75,6 @@ class HttpExchange {
 
     public void setResponse(final HttpResponse response) {
         this.response = response;
-    }
-
-    public void setHandler(final HttpAsyncExchangeHandler<?> handler) {
-        this.handler = handler;
-    }
-
-    public HttpAsyncExchangeHandler<?> getHandler() {
-        return this.handler;
     }
 
     public int getTimeout() {

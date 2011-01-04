@@ -289,6 +289,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private void releaseResources() {
         if (this.managedConn != null) {
             try {
+                this.managedConn.getContext().removeAttribute(HTTP_EXCHANGE_HANDLER);
                 this.managedConn.releaseConnection();
             } catch (IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
