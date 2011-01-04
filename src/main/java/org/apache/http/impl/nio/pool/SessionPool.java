@@ -49,7 +49,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
     private final PoolEntryFactory<T, E> factory;
     private final SessionRequestCallback sessionRequestCallback;
     private final RouteResolver<T> routeResolver;
-    private final Map<T, SessionPoolForRoute<T, E>> routeToPool;
+    private final Map<T, RouteSpecificPool<T, E>> routeToPool;
     private final LinkedList<LeaseRequest<T, E>> leasingRequests;
     private final Set<SessionRequest> pendingSessions;
     private final Set<PoolEntry<T>> leasedSessions;
@@ -81,7 +81,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.factory = factory;
         this.sessionRequestCallback = new InternalSessionRequestCallback();
         this.routeResolver = routeResolver;
-        this.routeToPool = new HashMap<T, SessionPoolForRoute<T, E>>();
+        this.routeToPool = new HashMap<T, RouteSpecificPool<T, E>>();
         this.leasingRequests = new LinkedList<LeaseRequest<T, E>>();
         this.pendingSessions = new HashSet<SessionRequest>();
         this.leasedSessions = new HashSet<PoolEntry<T>>();
@@ -99,7 +99,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.isShutDown = true;
         this.lock.lock();
         try {
-            for (SessionPoolForRoute<T, E> pool: this.routeToPool.values()) {
+            for (RouteSpecificPool<T, E> pool: this.routeToPool.values()) {
                 pool.shutdown();
             }
             this.routeToPool.clear();
@@ -113,10 +113,10 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         }
     }
 
-    private SessionPoolForRoute<T, E> getPool(final T route) {
-        SessionPoolForRoute<T, E> pool = this.routeToPool.get(route);
+    private RouteSpecificPool<T, E> getPool(final T route) {
+        RouteSpecificPool<T, E> pool = this.routeToPool.get(route);
         if (pool == null) {
-            pool = new SessionPoolForRoute<T, E>(route, this.factory);
+            pool = new RouteSpecificPool<T, E>(route, this.factory);
             this.routeToPool.put(route, pool);
         }
         return pool;
@@ -157,7 +157,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.lock.lock();
         try {
             if (this.leasedSessions.remove(entry)) {
-                SessionPoolForRoute<T, E> pool = getPool(entry.getRoute());
+                RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
                 pool.freeEntry(entry, reusable);
                 if (reusable) {
                     this.availableSessions.add(entry);
@@ -196,12 +196,12 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 if (!this.availableSessions.isEmpty()) {
                     E entry = this.availableSessions.remove();
                     entryShutdown(entry);
-                    SessionPoolForRoute<T, E> pool = getPool(entry.getRoute());
+                    RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
                     pool.freeEntry(entry, false);
                 }
             }
 
-            SessionPoolForRoute<T, E> pool = getPool(request.getRoute());
+            RouteSpecificPool<T, E> pool = getPool(request.getRoute());
             E entry = pool.getFreeEntry(state);
             if (entry != null) {
                 it.remove();
@@ -240,7 +240,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T, E> pool = getPool(route);
+            RouteSpecificPool<T, E> pool = getPool(route);
             PoolEntry<T> entry = pool.completed(request);
             this.leasedSessions.add(entry);
         } finally {
@@ -257,7 +257,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T, E> pool = getPool(route);
+            RouteSpecificPool<T, E> pool = getPool(route);
             pool.cancelled(request);
         } finally {
             this.lock.unlock();
@@ -273,7 +273,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T, E> pool = getPool(route);
+            RouteSpecificPool<T, E> pool = getPool(route);
             pool.failed(request);
         } finally {
             this.lock.unlock();
@@ -289,7 +289,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.lock.lock();
         try {
             this.pendingSessions.remove(request);
-            SessionPoolForRoute<T, E> pool = getPool(route);
+            RouteSpecificPool<T, E> pool = getPool(route);
             pool.timeout(request);
         } finally {
             this.lock.unlock();
@@ -363,7 +363,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         }
         this.lock.lock();
         try {
-            SessionPoolForRoute<T, E> pool = getPool(route);
+            RouteSpecificPool<T, E> pool = getPool(route);
             return new PoolStats(
                     pool.getLeasedCount(),
                     pool.getPendingCount(),

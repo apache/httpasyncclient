@@ -37,7 +37,7 @@ import java.util.Set;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 
-class SessionPoolForRoute<T, E extends PoolEntry<T>> {
+class RouteSpecificPool<T, E extends PoolEntry<T>> {
 
     private final T route;
     private final PoolEntryFactory<T, E> factory;
@@ -45,7 +45,7 @@ class SessionPoolForRoute<T, E extends PoolEntry<T>> {
     private final LinkedList<E> availableSessions;
     private final Map<SessionRequest, PoolEntryCallback<T, E>> pendingSessions;
 
-    public SessionPoolForRoute(final T route, final PoolEntryFactory<T, E> factory) {
+    public RouteSpecificPool(final T route, final PoolEntryFactory<T, E> factory) {
         super();
         this.route = route;
         this.factory = factory;
