@@ -26,6 +26,7 @@
  */
 package org.apache.http.impl.nio.pool;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.nio.reactor.IOSession;
@@ -37,17 +38,34 @@ public abstract class PoolEntry<T> {
     private final long id;
     private final T route;
     private final IOSession session;
+    private final long created;
+    private final long validUnit;
+
     private Object state;
-    private long created;
     private long updated;
-    private long deadline;
     private long expiry;
 
-    public PoolEntry(final T route, final IOSession session) {
+    public PoolEntry(final T route, final IOSession session,
+            final long timeToLive, final TimeUnit tunit) {
         super();
+        if (route == null) {
+            throw new IllegalArgumentException("Route may not be null");
+        }
+        if (session == null) {
+            throw new IllegalArgumentException("I/O session may not be null");
+        }
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
+        }
         this.route = route;
         this.session = session;
         this.id = COUNTER.incrementAndGet();
+        this.created = System.currentTimeMillis();
+        if (timeToLive > 0) {
+            this.validUnit = this.created + tunit.toMillis(timeToLive);
+        } else {
+            this.validUnit = Long.MAX_VALUE;
+        }
     }
 
     protected T getRoute() {
@@ -58,6 +76,14 @@ public abstract class PoolEntry<T> {
         return this.session;
     }
 
+    public long getCreated() {
+        return this.created;
+    }
+
+    public long getValidUnit() {
+        return this.validUnit;
+    }
+
     protected Object getState() {
         return this.state;
     }
@@ -66,46 +92,30 @@ public abstract class PoolEntry<T> {
         this.state = state;
     }
 
-    public long getCreated() {
-        return this.created;
-    }
-
-    public void setCreated(long created) {
-        this.created = created;
-    }
-
     public long getUpdated() {
         return this.updated;
-    }
-
-    public void setUpdated(long updated) {
-        this.updated = updated;
-    }
-
-    public long getDeadline() {
-        return this.deadline;
-    }
-
-    public void setDeadline(long deadline) {
-        this.deadline = deadline;
     }
 
     public long getExpiry() {
         return this.expiry;
     }
 
-    public void setExpiry(long expiry) {
-        this.expiry = expiry;
+    public void updateExpiry(final long time, final TimeUnit tunit) {
+        if (tunit == null) {
+            throw new IllegalArgumentException("Time unit may not be null");
+        }
+        this.updated = System.currentTimeMillis();
+        long newExpiry;
+        if (time > 0) {
+            newExpiry = this.updated + tunit.toMillis(time);
+        } else {
+            newExpiry = Long.MAX_VALUE;
+        }
+        this.expiry = Math.min(newExpiry, this.validUnit);
     }
 
-    public boolean isExpired(long now) {
-        if (this.deadline > 0 && this.deadline < now) {
-            return true;
-        }
-        if (this.expiry > 0 && this.expiry < now) {
-            return true;
-        }
-        return false;
+    public boolean isExpired(final long now) {
+        return now >= this.expiry;
     }
 
     @Override

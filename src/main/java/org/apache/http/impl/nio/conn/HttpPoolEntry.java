@@ -26,6 +26,9 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.logging.Log;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
@@ -37,8 +40,9 @@ class HttpPoolEntry extends PoolEntry<HttpRoute> {
     private final Log log;
     private final RouteTracker tracker;
 
-    HttpPoolEntry(final Log log, final HttpRoute route, final IOSession session) {
-        super(route, session);
+    HttpPoolEntry(final Log log, final HttpRoute route, final IOSession session,
+            final long timeToLive, final TimeUnit tunit) {
+        super(route, session, timeToLive, tunit);
         this.log = log;
         this.tracker = new RouteTracker(route);
     }
@@ -74,7 +78,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute> {
     public boolean isExpired(long now) {
         boolean expired = super.isExpired(now);
         if (expired && this.log.isDebugEnabled()) {
-            this.log.debug("Connection expired: " + this);
+            this.log.debug("Connection " + this + " expired @ " + new Date(getExpiry()));
         }
         return expired;
     }

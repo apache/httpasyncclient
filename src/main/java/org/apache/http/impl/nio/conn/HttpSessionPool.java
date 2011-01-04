@@ -49,7 +49,7 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
             final SchemeRegistry schemeRegistry,
             long timeToLive, final TimeUnit tunit) {
         super(ioreactor,
-                new InternalEntryFactory(log, tunit.toMillis(timeToLive)),
+                new InternalEntryFactory(log, timeToLive, tunit),
                 new InternalRouteResolver(schemeRegistry),
                 20, 50);
     }
@@ -87,22 +87,17 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
         private final Log log;
         private final long connTimeToLive;
+        private final TimeUnit tunit;
 
-        InternalEntryFactory(final Log log, final long connTimeToLive) {
+        InternalEntryFactory(final Log log, final long connTimeToLive, final TimeUnit tunit) {
             super();
             this.log = log;
             this.connTimeToLive = connTimeToLive;
+            this.tunit = tunit;
         }
 
         public HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-            HttpPoolEntry entry = new HttpPoolEntry(this.log, route, session);
-            long now = System.currentTimeMillis();
-            entry.setCreated(now);
-            entry.setUpdated(now);
-            if (this.connTimeToLive > 0) {
-                entry.setDeadline(now + this.connTimeToLive);
-            }
-            return entry;
+            return new HttpPoolEntry(this.log, route, session, this.connTimeToLive, this.tunit);
         }
 
     };

@@ -129,7 +129,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         ClientConnAdaptor adaptor = (ClientConnAdaptor) conn;
         ClientConnectionManager manager = adaptor.getManager();
         if (manager != null && manager != this) {
-            throw new IllegalArgumentException("connection not obtained from this manager");
+            throw new IllegalArgumentException("Connection not obtained from this manager");
         }
         HttpPoolEntry entry = adaptor.getEntry();
         if (this.log.isDebugEnabled()) {
@@ -144,19 +144,18 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
         boolean reusable = adaptor.isReusable();
         if (reusable) {
-            entry.setExpiry(tunit.toMillis(validDuration));
+            entry.updateExpiry(validDuration, tunit);
             if (this.log.isDebugEnabled()) {
-                entry.setExpiry(tunit.toMillis(validDuration));
                 String s;
-                if (validDuration >= 0) {
-                    s = validDuration + " " + tunit;
+                if (validDuration > 0) {
+                    s = "for " + validDuration + " " + tunit;
                 } else {
-                    s = "ever";
+                    s = "indefinitely";
                 }
                 HttpRoute route = entry.getPlannedRoute();
                 Object state = entry.getState();
                 this.log.debug("Pooling connection" +
-                        " [" + route + "][" + state + "]; keep alive for " + s);
+                        " [" + route + "][" + state + "]; keep alive " + s);
             }
         }
         this.pool.release(entry, reusable);

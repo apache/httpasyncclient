@@ -368,7 +368,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        this.entry.setExpiry(tunit.toMillis(duration));
+        this.entry.updateExpiry(duration, tunit);
     }
 
     @Override
