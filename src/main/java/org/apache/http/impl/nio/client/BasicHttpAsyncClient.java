@@ -39,11 +39,13 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
@@ -148,6 +150,10 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         return httpProcessor;
     }
 
+    protected HttpRoutePlanner createHttpRoutePlanner() {
+        return new DefaultHttpAsyncRoutePlanner(this.connmgr.getSchemeRegistry());
+    }
+
     protected ConnectionReuseStrategy createConnectionReuseStrategy() {
         return new DefaultConnectionReuseStrategy();
     }
@@ -156,8 +162,8 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         return new DefaultConnectionKeepAliveStrategy();
     }
 
-    protected HttpRoutePlanner createHttpRoutePlanner() {
-        return new DefaultHttpAsyncRoutePlanner(this.connmgr.getSchemeRegistry());
+    protected RedirectStrategy createRedirectStrategy() {
+        return new DefaultRedirectStrategy();
     }
 
     private void doExecute() {
@@ -228,6 +234,7 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
                     createHttpRoutePlanner(),
                     createConnectionReuseStrategy(),
                     createConnectionKeepAliveStrategy(),
+                    createRedirectStrategy(),
                     this.params);
         }
         httpexchange.start();

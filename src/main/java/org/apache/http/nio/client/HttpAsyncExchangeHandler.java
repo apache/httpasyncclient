@@ -26,7 +26,11 @@
  */
 package org.apache.http.nio.client;
 
+import org.apache.http.HttpResponse;
+
 public interface HttpAsyncExchangeHandler<T>
     extends HttpAsyncRequestProducer, HttpAsyncResponseConsumer<T> {
+
+    boolean keepAlive(HttpResponse response);
 
 }

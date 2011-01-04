@@ -61,6 +61,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
     private OperatedClientConnection conn;
     private volatile boolean released;
     private volatile boolean reusable;
+    private long expiry;
+    private TimeUnit tunit;
 
     public ClientConnAdaptor(
             final ClientConnectionManager manager,
@@ -70,6 +72,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.entry = entry;
         this.released = false;
         this.reusable = true;
+        this.expiry = -1;
+        this.tunit = TimeUnit.MILLISECONDS;
 
         IOSession iosession = entry.getIOSession();
         this.conn = (OperatedClientConnection) iosession.getAttribute(
@@ -89,7 +93,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
             return;
         }
         this.released = true;
-        this.manager.releaseConnection(this, this.entry.getExpiry(), TimeUnit.MILLISECONDS);
+        this.manager.releaseConnection(this, this.expiry, this.tunit);
         this.entry = null;
         this.conn = null;
     }
@@ -102,7 +106,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = false;
         IOSession iosession = this.entry.getIOSession();
         iosession.shutdown();
-        this.manager.releaseConnection(this, -1, TimeUnit.MILLISECONDS);
+        this.manager.releaseConnection(this, this.expiry, this.tunit);
         this.entry = null;
         this.conn = null;
     }
@@ -167,7 +171,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
     }
 
     public synchronized boolean isOpen() {
-        return !this.released && this.conn != null;
+        return !this.released && this.conn != null && this.conn.isOpen();
     }
 
     public boolean isStale() {
@@ -364,11 +368,12 @@ class ClientConnAdaptor implements ManagedClientConnection {
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
-    public void setIdleDuration(final long duration, final TimeUnit tunit) {
+    public synchronized void setIdleDuration(final long duration, final TimeUnit tunit) {
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        this.entry.updateExpiry(duration, tunit);
+        this.expiry = duration;
+        this.tunit = tunit;
     }
 
     @Override

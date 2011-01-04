@@ -361,6 +361,10 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
             this.log.debug("CONNECT method succeeded");
             conn.resetInput();
+        } else {
+            if (!handler.keepAlive(response)) {
+                conn.close();
+            }
         }
         if (this.log.isDebugEnabled()) {
             this.log.debug("Response processed " + formatState(conn, httpexchange));
