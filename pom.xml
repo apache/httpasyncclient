@@ -24,59 +24,46 @@
    information on the Apache Software Foundation, please see
    <http://www.apache.org />.
  -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
   <parent>
     <artifactId>project</artifactId>
     <groupId>org.apache.httpcomponents</groupId>
-    <version>4.0</version>
+    <version>4.1.1</version>
     <relativePath>../project/pom.xml</relativePath>
   </parent>
-  <artifactId>httpasyncclient</artifactId>
-  <name>HttpAsyncClient</name>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.apache.httpcomponents</groupId>
+  <artifactId>httpcomponents-asyncclient</artifactId>
+  <name>HttpComponents AsyncClient</name>
   <version>4.0-alpha1-SNAPSHOT</version>
-  <description>
-   HttpComponents Async HttpClient
-  </description>
-  <url>http://hc.apache.org/httpcomponents-client</url>
-  <packaging>jar</packaging>
+  <description>Components to build asynchronous client side HTTP services</description>
+  <url>http://hc.apache.org/httpcomponents-asyncclient</url>
+  <inceptionYear>2010</inceptionYear>
+  <packaging>pom</packaging>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>${httpcore.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore-nio</artifactId>
-      <version>${httpcore.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>${httpclient.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>${commons-logging.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>${httpclient.version}</version>
-      <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <organization>
+    <name>The Apache Software Foundation</name>
+    <url>http://www.apache.org/</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>Apache License</name>
+      <url>LICENSE.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <issueManagement>
+    <system>Jira</system>
+    <url>http://issues.apache.org/jira/browse/HTTPASYNC</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</developerConnection>
+    <url>https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</url>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -91,42 +78,95 @@
     <junit.version>4.8.1</junit.version>
   </properties>
 
+  <modules>
+    <module>httpasyncclient</module>
+  </modules>
+
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-        <includes>
-            <include>**/*.properties</include>
-        </includes>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
+        <artifactId>maven-notice-plugin</artifactId>
+        <groupId>org.apache.httpcomponents</groupId>
+        <executions>
+          <execution>
+            <id>attach-notice-license</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
-          <source>${maven.compile.source}</source>
-          <target>${maven.compile.target}</target>
-          <optimize>${maven.compile.optimize}</optimize>
-          <showDeprecations>${maven.compile.deprecation}</showDeprecations>
+          <projectTitle>Apache HttpComponents</projectTitle>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
+        <artifactId>maven-source-plugin</artifactId>
         <executions>
           <execution>
+            <id>attach-sources</id>
             <goals>
-              <goal>test-jar</goal>
+              <goal>jar</goal>
             </goals>
           </execution>
         </executions>
       </plugin>
       <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <source>1.5</source>
+          <links>
+            <link>http://download.oracle.com/javase/1.5.0/docs/api/</link>
+            <link>http://hc.apache.org/httpcomponents-core-ga/httpcore/apidocs/</link>
+            <link>http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/</link>
+          </links>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-site-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>pre-site</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${basedir}/target/site/examples</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/examples</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+
+       <plugin>
+         <artifactId>maven-project-info-reports-plugin</artifactId>
+         <reportSets>
+           <reportSet>
+             <reports>
+               <report>dependencies</report>
+               <report>project-team</report>
+               <report>mailing-list</report>
+               <report>issue-tracking</report>
+               <report>scm</report>
+             </reports>
+           </reportSet>
+         </reportSets>
+      </plugin>
+
+    </plugins>
+  </reporting>
 
 </project>
