@@ -125,6 +125,32 @@
         <artifactId>maven-site-plugin</artifactId>
       </plugin>
       <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/bin.xml</descriptor>
+            <descriptor>src/main/assembly/src.xml</descriptor>
+          </descriptors>
+          <tarLongFileMode>gnu</tarLongFileMode>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <inherited>false</inherited>
+        <configuration>
+          <tasks>
+            <ant antfile="src/main/assembly/build.xml">
+              <property name="target" value="${project.build.directory}" />
+              <property name="package.name" value="${project.artifactId}-${project.version}-bin" />
+            </ant>
+            <ant antfile="src/main/assembly/build.xml">
+              <property name="target" value="${project.build.directory}" />
+              <property name="package.name" value="${project.artifactId}-${project.version}-src" />
+            </ant>
+          </tasks>
+        </configuration>
+      </plugin>
+      <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
