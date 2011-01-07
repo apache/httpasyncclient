@@ -46,7 +46,7 @@ public class TestHttpAsync extends ServerTestBase {
         SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, null));
         this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry);
-        this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager);
+        this.httpclient = new DefaultHttpAsyncClient(ioReactor, this.sessionManager);
     }
 
     @After

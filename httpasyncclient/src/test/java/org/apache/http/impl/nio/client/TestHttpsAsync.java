@@ -101,7 +101,7 @@ public class TestHttpsAsync extends ServerTestBase {
         schemeRegistry.register(new Scheme("http", 80, null));
         schemeRegistry.register(new Scheme("https", 443, new SSLLayeringStrategy(this.clientSSLContext)));
         this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry);
-        this.httpclient = new BasicHttpAsyncClient(ioReactor, this.sessionManager);
+        this.httpclient = new DefaultHttpAsyncClient(ioReactor, this.sessionManager);
     }
 
     @After

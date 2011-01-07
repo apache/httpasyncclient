@@ -38,9 +38,11 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
@@ -59,99 +61,59 @@ import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
-import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.BasicHttpProcessor;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
-import org.apache.http.protocol.RequestConnControl;
-import org.apache.http.protocol.RequestContent;
-import org.apache.http.protocol.RequestExpectContinue;
-import org.apache.http.protocol.RequestTargetHost;
-import org.apache.http.protocol.RequestUserAgent;
 
-public class BasicHttpAsyncClient implements HttpAsyncClient {
+public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
-    private final Log log;
-    private final HttpParams params;
+    private final Log log = LogFactory.getLog(getClass());;
     private final ConnectingIOReactor ioReactor;
     private final ClientConnectionManager connmgr;
     private final HttpAsyncResponseSet pendingResponses;
 
     private Thread reactorThread;
+    private BasicHttpProcessor mutableProcessor;
+    private ImmutableHttpProcessor protocolProcessor;
+    private ConnectionReuseStrategy reuseStrategy;
+    private ConnectionKeepAliveStrategy keepAliveStrategy;
+    private RedirectStrategy redirectStrategy;
+    private HttpRoutePlanner routePlanner;
+    private HttpParams params;
 
-    public BasicHttpAsyncClient(
+    protected AbstractHttpAsyncClient(
             final ConnectingIOReactor ioReactor,
             final ClientConnectionManager connmgr,
             final HttpParams params) {
         super();
-        this.log = LogFactory.getLog(getClass());
-        if (params != null) {
-            this.params = params;
-        } else {
-            this.params = createDefaultHttpParams();
-        }
         this.ioReactor = ioReactor;
         this.connmgr = connmgr;
         this.pendingResponses = new HttpAsyncResponseSet();
+        this.params = params;
     }
 
-    public BasicHttpAsyncClient(
+    protected AbstractHttpAsyncClient(
             final HttpParams params) throws IOReactorException {
         super();
-        this.log = LogFactory.getLog(getClass());
-        if (params != null) {
-            this.params = params;
-        } else {
-            this.params = createDefaultHttpParams();
-        }
-        this.ioReactor = new DefaultConnectingIOReactor(2, this.params);
+        this.ioReactor = new DefaultConnectingIOReactor(2, params);
         this.connmgr = new PoolingClientConnectionManager(this.ioReactor);
         this.pendingResponses = new HttpAsyncResponseSet();
+        this.params = params;
     }
 
-    public BasicHttpAsyncClient() throws IOReactorException {
-        this(null);
-    }
+    protected abstract HttpParams createHttpParams();
 
-    public BasicHttpAsyncClient(
-            final ConnectingIOReactor ioReactor,
-            final ClientConnectionManager connmgr) throws IOReactorException {
-        this(ioReactor, connmgr, null);
-    }
+    protected abstract BasicHttpProcessor createHttpProcessor();
 
-    protected ClientConnectionManager getConnectionManager() {
-        return this.connmgr;
-    }
-
-    protected HttpParams createDefaultHttpParams() {
-        HttpParams params = new SyncBasicHttpParams();
-        params
-            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 5000)
-            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 10000)
-            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
-            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
-            .setParameter(CoreProtocolPNames.USER_AGENT, "HttpComponents/1.1");
-        return params;
-    }
-
-    protected HttpProcessor createHttpProcessor() {
-        HttpRequestInterceptor[] interceptors = new HttpRequestInterceptor[] {
-                new RequestContent(),
-                new RequestTargetHost(),
-                new RequestConnControl(),
-                new RequestUserAgent(),
-                new RequestExpectContinue()
-        };
-        ImmutableHttpProcessor httpProcessor = new ImmutableHttpProcessor(interceptors);
-        return httpProcessor;
-    }
-
-    protected HttpRoutePlanner createHttpRoutePlanner() {
-        return new DefaultHttpAsyncRoutePlanner(this.connmgr.getSchemeRegistry());
+    protected HttpContext createHttpContext() {
+        HttpContext context = new BasicHttpContext();
+        context.setAttribute(
+                ClientContext.SCHEME_REGISTRY,
+                getConnectionManager().getSchemeRegistry());
+        return context;
     }
 
     protected ConnectionReuseStrategy createConnectionReuseStrategy() {
@@ -162,8 +124,146 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
         return new DefaultConnectionKeepAliveStrategy();
     }
 
-    protected RedirectStrategy createRedirectStrategy() {
-        return new DefaultRedirectStrategy();
+    protected HttpRoutePlanner createHttpRoutePlanner() {
+        return new DefaultHttpAsyncRoutePlanner(getConnectionManager().getSchemeRegistry());
+    }
+
+    public synchronized final HttpParams getParams() {
+        if (this.params == null) {
+            this.params = createHttpParams();
+        }
+        return this.params;
+    }
+
+    public synchronized ClientConnectionManager getConnectionManager() {
+        return this.connmgr;
+    }
+
+    public synchronized final ConnectionReuseStrategy getConnectionReuseStrategy() {
+        if (this.reuseStrategy == null) {
+            this.reuseStrategy = createConnectionReuseStrategy();
+        }
+        return this.reuseStrategy;
+    }
+
+    public synchronized void setReuseStrategy(final ConnectionReuseStrategy reuseStrategy) {
+        this.reuseStrategy = reuseStrategy;
+    }
+
+    public synchronized final ConnectionKeepAliveStrategy getConnectionKeepAliveStrategy() {
+        if (this.keepAliveStrategy == null) {
+            this.keepAliveStrategy = createConnectionKeepAliveStrategy();
+        }
+        return this.keepAliveStrategy;
+    }
+
+    public synchronized void setKeepAliveStrategy(final ConnectionKeepAliveStrategy keepAliveStrategy) {
+        this.keepAliveStrategy = keepAliveStrategy;
+    }
+
+    public synchronized final RedirectStrategy getRedirectStrategy() {
+        if (this.redirectStrategy == null) {
+            this.redirectStrategy = new DefaultRedirectStrategy();
+        }
+        return this.redirectStrategy;
+    }
+
+    public synchronized void setRedirectStrategy(final RedirectStrategy redirectStrategy) {
+        this.redirectStrategy = redirectStrategy;
+    }
+
+    public synchronized final HttpRoutePlanner getRoutePlanner() {
+        if (this.routePlanner == null) {
+            this.routePlanner = createHttpRoutePlanner();
+        }
+        return this.routePlanner;
+    }
+
+    public synchronized void setRoutePlanner(final HttpRoutePlanner routePlanner) {
+        this.routePlanner = routePlanner;
+    }
+
+    protected synchronized final BasicHttpProcessor getHttpProcessor() {
+        if (this.mutableProcessor == null) {
+            this.mutableProcessor = createHttpProcessor();
+        }
+        return this.mutableProcessor;
+    }
+
+    private synchronized final HttpProcessor getProtocolProcessor() {
+        if (this.protocolProcessor == null) {
+            // Get mutable HTTP processor
+            BasicHttpProcessor proc = getHttpProcessor();
+            // and create an immutable copy of it
+            int reqc = proc.getRequestInterceptorCount();
+            HttpRequestInterceptor[] reqinterceptors = new HttpRequestInterceptor[reqc];
+            for (int i = 0; i < reqc; i++) {
+                reqinterceptors[i] = proc.getRequestInterceptor(i);
+            }
+            int resc = proc.getResponseInterceptorCount();
+            HttpResponseInterceptor[] resinterceptors = new HttpResponseInterceptor[resc];
+            for (int i = 0; i < resc; i++) {
+                resinterceptors[i] = proc.getResponseInterceptor(i);
+            }
+            this.protocolProcessor = new ImmutableHttpProcessor(reqinterceptors, resinterceptors);
+        }
+        return this.protocolProcessor;
+    }
+
+    public synchronized int getResponseInterceptorCount() {
+        return getHttpProcessor().getResponseInterceptorCount();
+    }
+
+    public synchronized HttpResponseInterceptor getResponseInterceptor(int index) {
+        return getHttpProcessor().getResponseInterceptor(index);
+    }
+
+    public synchronized HttpRequestInterceptor getRequestInterceptor(int index) {
+        return getHttpProcessor().getRequestInterceptor(index);
+    }
+
+    public synchronized int getRequestInterceptorCount() {
+        return getHttpProcessor().getRequestInterceptorCount();
+    }
+
+    public synchronized void addResponseInterceptor(final HttpResponseInterceptor itcp) {
+        getHttpProcessor().addInterceptor(itcp);
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void addResponseInterceptor(final HttpResponseInterceptor itcp, int index) {
+        getHttpProcessor().addInterceptor(itcp, index);
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void clearResponseInterceptors() {
+        getHttpProcessor().clearResponseInterceptors();
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void removeResponseInterceptorByClass(Class<? extends HttpResponseInterceptor> clazz) {
+        getHttpProcessor().removeResponseInterceptorByClass(clazz);
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void addRequestInterceptor(final HttpRequestInterceptor itcp) {
+        getHttpProcessor().addInterceptor(itcp);
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void addRequestInterceptor(final HttpRequestInterceptor itcp, int index) {
+        getHttpProcessor().addInterceptor(itcp, index);
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void clearRequestInterceptors() {
+        getHttpProcessor().clearRequestInterceptors();
+        this.protocolProcessor = null;
+    }
+
+    public synchronized void removeRequestInterceptorByClass(Class<? extends HttpRequestInterceptor> clazz) {
+        getHttpProcessor().removeRequestInterceptorByClass(clazz);
+        this.protocolProcessor = null;
     }
 
     private void doExecute() {
@@ -180,10 +280,6 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
                 it.remove();
             }
         }
-    }
-
-    public HttpParams getParams() {
-        return this.params;
     }
 
     public IOReactorStatus getStatus() {
@@ -230,12 +326,12 @@ public class BasicHttpAsyncClient implements HttpAsyncClient {
                     new ResponseCompletedCallback<T>(callback,
                             responseConsumer, this.pendingResponses),
                     this.connmgr,
-                    createHttpProcessor(),
-                    createHttpRoutePlanner(),
-                    createConnectionReuseStrategy(),
-                    createConnectionKeepAliveStrategy(),
-                    createRedirectStrategy(),
-                    this.params);
+                    getProtocolProcessor(),
+                    getRoutePlanner(),
+                    getConnectionReuseStrategy(),
+                    getConnectionKeepAliveStrategy(),
+                    getRedirectStrategy(),
+                    getParams());
         }
         httpexchange.start();
         return httpexchange.getResultFuture();

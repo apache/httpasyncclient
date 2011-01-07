@@ -32,13 +32,13 @@ import java.util.concurrent.Future;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.nio.client.BasicHttpAsyncClient;
+import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
 
 public class AsyncClientRequest {
 
     public static void main(String[] args) throws Exception {
-        HttpAsyncClient httpclient = new BasicHttpAsyncClient();
+        HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
         httpclient.start();
         try {
             Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
