@@ -95,10 +95,14 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.params = params;
     }
 
-    protected AbstractHttpAsyncClient(
-            final HttpParams params) throws IOReactorException {
+    protected AbstractHttpAsyncClient(HttpParams params) throws IOReactorException {
         super();
-        this.ioReactor = new DefaultConnectingIOReactor(2, params);
+        if (params == null) {
+            params = createHttpParams();
+        }
+        DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(2, params);
+        defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
+        this.ioReactor = defaultioreactor;
         this.connmgr = new PoolingClientConnectionManager(this.ioReactor);
         this.pendingResponses = new HttpAsyncResponseSet();
         this.params = params;

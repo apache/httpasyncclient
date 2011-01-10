@@ -26,8 +26,6 @@
  */
 package org.apache.http.examples.nio.client;
 
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.Future;
 
 import org.apache.http.HttpResponse;
@@ -35,23 +33,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
 
-public class AsyncClientRequest {
+public class AsyncClientHttpExchange {
 
     public static void main(String[] args) throws Exception {
         HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
         httpclient.start();
         try {
-            Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
-            for (int i = 0; i < 10; i++) {
-                HttpGet request = new HttpGet("http://www.apache.org/");
-                queue.add(httpclient.execute(request, null));
-            }
-            while (!queue.isEmpty()) {
-                Future<HttpResponse> future = queue.remove();
-                HttpResponse response = future.get();
-                System.out.println("Response: " + response.getStatusLine());
-            }
-
+            HttpGet request = new HttpGet("http://www.apache.org/");
+            Future<HttpResponse> future = httpclient.execute(request, null);
+            HttpResponse response = future.get();
+            System.out.println("Response: " + response.getStatusLine());
             System.out.println("Shutting down");
         } finally {
             httpclient.shutdown();
