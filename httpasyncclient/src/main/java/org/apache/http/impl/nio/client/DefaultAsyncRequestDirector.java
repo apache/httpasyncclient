@@ -339,11 +339,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
             if (this.finalResponse != null) {
                 this.responseConsumer.responseCompleted();
-                if (this.responseConsumer.isDone()) {
-                    this.log.debug("Response processed");
-                    this.resultFuture.completed(this.responseConsumer.getResult());
-                    releaseResources();
-                }
+                this.log.debug("Response processed");
+                this.resultFuture.completed(this.responseConsumer.getResult());
+                releaseResources();
             } else {
                 if (this.followup != null) {
                     HttpRoute actualRoute = this.mainRequest.getRoute();
@@ -381,7 +379,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public boolean isDone() {
-        return this.responseConsumer.isDone();
+        return this.resultFuture.isDone();
     }
 
     public T getResult() {

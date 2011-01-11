@@ -45,8 +45,6 @@ public interface HttpAsyncResponseConsumer<T> {
 
     void cancel();
 
-    boolean isDone();
-
     T getResult();
 
 }

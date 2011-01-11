@@ -124,10 +124,6 @@ public class BasicHttpAsyncResponseConsumer implements HttpAsyncResponseConsumer
         releaseResources();
     }
 
-    public boolean isDone() {
-        return this.completed;
-    }
-
     public Exception getException() {
         return this.ex;
     }

@@ -31,6 +31,8 @@ import org.apache.http.HttpResponse;
 public interface HttpAsyncExchangeHandler<T>
     extends HttpAsyncRequestProducer, HttpAsyncResponseConsumer<T> {
 
+    boolean isDone();
+
     boolean keepAlive(HttpResponse response);
 
 }
