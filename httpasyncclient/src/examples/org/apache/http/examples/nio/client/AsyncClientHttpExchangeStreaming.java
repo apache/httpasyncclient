@@ -157,10 +157,6 @@ public class AsyncClientHttpExchangeStreaming {
             return this.result;
         }
 
-        public boolean isDone() {
-            return this.result != null;
-        }
-
     }
 
 }
