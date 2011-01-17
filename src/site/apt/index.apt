@@ -23,12 +23,12 @@
 ~~ <http://www.apache.org/>.
 
     ----------
-    HttpComponents HttpClient Overview
+    HttpComponents HttpAsyncClient Overview
     ----------
     ----------
     ----------
 
-HttpClient Overview
+HttpAsyncClient Overview
 
     The Hyper-Text Transfer Protocol (HTTP) is perhaps the most significant protocol used on the 
     Internet today. Web services, network-enabled appliances and the growth of network computing 
@@ -84,7 +84,7 @@ HttpClient Overview
 
 {Standards Compliance}
 
-    HttpClient strives to conform to the following specifications endorsed by the Internet 
+    HttpAsyncClient strives to conform to the following specifications endorsed by the Internet 
     Engineering Task Force (IETF) and the internet at large:
 
     * {{{http://www.ietf.org/rfc/rfc1945.txt}RFC 1945}} Hypertext Transfer Protocol -- HTTP/1.0

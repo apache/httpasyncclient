@@ -30,20 +30,20 @@
 
 HttpAsyncClient Examples
 
-    * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/AsyncClientRequest.java}Asynchronous 
+    * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/AsyncClientHttpExchange.java}Asynchronous 
       HTTP exchange}}
 
-    This example demostrates a basic asynchronous HTTP request / response exchange. 
+    This example demonstrates a basic asynchronous HTTP request / response exchange. 
     Response content is buffered in memory for simplicity.
 
-    * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/AsyncClientResponseStreaming.java}Event based 
+    * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/AsyncClientHttpExchangeStreaming.java}Event based 
       content streaming}}
     
-    This example demostrates an asynchronous HTTP request / response exchange with a full content 
+    This example demonstrates an asynchronous HTTP request / response exchange with a full content 
     streaming.
 
     * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/AsyncClientHttpExchangeFutureCallback.java}Concurrent 
-      asynchronous HTTP exchnages}}
+      asynchronous HTTP exchanges}}
     
-    This example demostrates a fully asynchronous execution of multiple HTTP exchanges where the 
+    This example demonstrates a fully asynchronous execution of multiple HTTP exchanges where the 
     result of an individual operation is reported using a callback interface.
