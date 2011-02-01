@@ -26,6 +26,7 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -40,11 +41,15 @@ import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
+import org.apache.http.nio.reactor.IOEventDispatch;
+import org.apache.http.nio.reactor.IOReactorException;
+import org.apache.http.nio.reactor.IOReactorStatus;
 
 public class PoolingClientConnectionManager implements ClientConnectionManager {
 
     private final Log log = LogFactory.getLog(getClass());
 
+    private final ConnectingIOReactor ioreactor;
     private final HttpSessionPool pool;
     private final SchemeRegistry schemeRegistry;
 
@@ -62,23 +67,42 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
+        this.ioreactor = ioreactor;
         this.pool = new HttpSessionPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
     }
 
     public PoolingClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final SchemeRegistry schemeRegistry) {
+            final SchemeRegistry schemeRegistry) throws IOReactorException {
         this(ioreactor, schemeRegistry, -1, TimeUnit.MILLISECONDS);
     }
 
     public PoolingClientConnectionManager(
-            final ConnectingIOReactor ioreactor) {
-        this(ioreactor, SchemeRegistryFactory.createDefault(), -1, TimeUnit.MILLISECONDS);
+            final ConnectingIOReactor ioreactor) throws IOReactorException {
+        this(ioreactor, SchemeRegistryFactory.createDefault());
     }
 
     public SchemeRegistry getSchemeRegistry() {
         return this.schemeRegistry;
+    }
+
+    public void execute(final IOEventDispatch eventDispatch) throws IOException {
+        this.ioreactor.execute(eventDispatch);
+    }
+
+    public IOReactorStatus getStatus() {
+        return this.ioreactor.getStatus();
+    }
+
+    public void shutdown(long waitMs) throws IOException {
+        this.log.debug("Connection manager shut down");
+        this.pool.shutdown(waitMs);
+    }
+
+    public void shutdown() throws IOException {
+        this.log.debug("Connection manager shut down");
+        this.pool.shutdown(2000);
     }
 
     public Future<ManagedClientConnection> leaseConnection(
@@ -191,11 +215,6 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
     public void closeExpiredConnections() {
         log.debug("Closing expired connections");
         this.pool.closeExpired();
-    }
-
-    public void shutdown() {
-        this.log.debug("Connection manager shut down");
-        this.pool.shutdown();
     }
 
     class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute, HttpPoolEntry> {

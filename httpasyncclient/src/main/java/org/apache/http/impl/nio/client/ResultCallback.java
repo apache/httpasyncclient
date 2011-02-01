@@ -26,44 +26,16 @@
  */
 package org.apache.http.impl.nio.client;
 
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
-import org.apache.http.nio.concurrent.FutureCallback;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 
-class ResponseCompletedCallback<T> implements FutureCallback<T> {
+interface ResultCallback<T> {
 
-    private final FutureCallback<T> callback;
-    private final HttpAsyncResponseConsumer<T> responseConsumer;
-    private final HttpAsyncResponseSet set;
+    void completed(T result, HttpAsyncExchangeHandler<T> handler);
 
-    public ResponseCompletedCallback(
-            final FutureCallback<T> callback,
-            final HttpAsyncResponseConsumer<T> responseConsumer,
-            final HttpAsyncResponseSet set) {
-        super();
-        this.callback = callback;
-        this.responseConsumer = responseConsumer;
-        this.set = set;
-    }
+    void failed(Exception ex, HttpAsyncExchangeHandler<T> handler);
 
-    public void completed(final T result) {
-        this.set.remove(this.responseConsumer);
-        if (this.callback != null) {
-            this.callback.completed(result);
-        }
-    }
+    void cancelled(HttpAsyncExchangeHandler<T> handler);
 
-    public void failed(final Exception ex) {
-        this.set.remove(this.responseConsumer);
-        if (this.callback != null) {
-            this.callback.failed(ex);
-        }
-    }
-
-    public void cancelled() {
-        this.set.remove(this.responseConsumer);
-        if (this.callback != null) {
-            this.callback.cancelled();
-        }
-    }
+    boolean isDone();
 
 }

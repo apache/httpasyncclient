@@ -32,8 +32,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.reactor.IOReactor;
 
-public interface ClientConnectionManager {
+public interface ClientConnectionManager extends IOReactor {
 
     SchemeRegistry getSchemeRegistry();
 
@@ -44,7 +45,5 @@ public interface ClientConnectionManager {
 
     void releaseConnection(ManagedClientConnection session,
             long validDuration, TimeUnit timeUnit);
-
-    void shutdown();
 
 }

@@ -27,11 +27,15 @@
 package org.apache.http.impl.nio.conn;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLSession;
 
 import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpInetConnection;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseFactory;
@@ -181,6 +185,56 @@ class ClientConnAdaptor implements ManagedClientConnection {
     public HttpRoute getRoute() {
         assertValid();
         return this.entry.getEffectiveRoute();
+    }
+
+    public SSLSession getSSLSession() {
+        return null;
+    }
+
+    public boolean isSecure() {
+        assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
+        return conn.getSSLIOSession() != null;
+    }
+
+    public InetAddress getLocalAddress() {
+        assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
+        if (conn instanceof HttpInetConnection) {
+            return ((HttpInetConnection) conn).getLocalAddress();
+        } else {
+            return null;
+        }
+    }
+
+    public int getLocalPort() {
+        assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
+        if (conn instanceof HttpInetConnection) {
+            return ((HttpInetConnection) conn).getLocalPort();
+        } else {
+            return -1;
+        }
+    }
+
+    public InetAddress getRemoteAddress() {
+        assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
+        if (conn instanceof HttpInetConnection) {
+            return ((HttpInetConnection) conn).getRemoteAddress();
+        } else {
+            return null;
+        }
+    }
+
+    public int getRemotePort() {
+        assertValid();
+        OperatedClientConnection conn = getWrappedConnection();
+        if (conn instanceof HttpInetConnection) {
+            return ((HttpInetConnection) conn).getRemotePort();
+        } else {
+            return -1;
+        }
     }
 
     public synchronized HttpConnectionMetrics getMetrics() {

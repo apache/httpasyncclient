@@ -26,6 +26,7 @@
  */
 package org.apache.http.impl.nio.pool;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -92,7 +93,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.maxTotal = maxTotal;
     }
 
-    public void shutdown() {
+    public void shutdown(long waitMs) throws IOException {
         if (this.isShutDown) {
             return ;
         }
@@ -108,6 +109,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
             this.pendingSessions.clear();
             this.availableSessions.clear();
             this.leasingRequests.clear();
+            this.ioreactor.shutdown(waitMs);
         } finally {
             this.lock.unlock();
         }

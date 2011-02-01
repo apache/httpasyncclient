@@ -68,7 +68,6 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
-import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
@@ -89,7 +88,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final HttpContext localContext;
-    private final BasicFuture<T> resultFuture;
+    private final ResultCallback<T> resultCallback;
     private final ClientConnectionManager connmgr;
     private final HttpProcessor httppocessor;
     private final HttpRoutePlanner routePlanner;
@@ -119,7 +118,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext localContext,
-            final FutureCallback<T> callback,
+            final ResultCallback<T> callback,
             final ClientConnectionManager connmgr,
             final HttpProcessor httppocessor,
             final HttpRoutePlanner routePlanner,
@@ -132,7 +131,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.localContext = localContext;
-        this.resultFuture = new BasicFuture<T>(callback);
+        this.resultCallback = callback;
         this.connmgr = connmgr;
         this.httppocessor = httppocessor;
         this.routePlanner = routePlanner;
@@ -158,10 +157,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         } catch (Exception ex) {
             failed(ex);
         }
-    }
-
-    public Future<T> getResultFuture() {
-        return this.resultFuture;
     }
 
     public HttpHost getTarget() {
@@ -220,6 +215,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, this.currentRequest);
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
+        this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
         this.httppocessor.process(this.currentRequest, this.localContext);
         if (this.log.isDebugEnabled()) {
             this.log.debug("Request submitted: " + this.currentRequest.getRequestLine());
@@ -308,7 +304,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             this.responseConsumer.failed(ex);
         } finally {
             try {
-                this.resultFuture.failed(ex);
+                this.resultCallback.failed(ex, this);
             } finally {
                 releaseResources();
             }
@@ -340,7 +336,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             if (this.finalResponse != null) {
                 this.responseConsumer.responseCompleted();
                 this.log.debug("Response processed");
-                this.resultFuture.completed(this.responseConsumer.getResult());
+                this.resultCallback.completed(this.responseConsumer.getResult(), this);
                 releaseResources();
             } else {
                 if (this.followup != null) {
@@ -370,7 +366,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.log.debug("HTTP exchange cancelled");
         try {
             this.responseConsumer.cancel();
-            this.resultFuture.cancel(true);
+            this.resultCallback.cancelled(this);
             releaseResources();
         } catch (RuntimeException runex) {
             failed(runex);
@@ -379,7 +375,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     public boolean isDone() {
-        return this.resultFuture.isDone();
+        return this.resultCallback.isDone();
     }
 
     public T getResult() {
@@ -413,7 +409,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             this.requestProducer.resetRequest();
             this.responseConsumer.failed(ex);
         } finally {
-            this.resultFuture.failed(ex);
+            this.resultCallback.failed(ex, this);
         }
     }
 
@@ -423,7 +419,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             this.requestProducer.resetRequest();
             this.responseConsumer.cancel();
         } finally {
-            this.resultFuture.cancel(true);
+            this.resultCallback.cancelled(this);
         }
     }
 

@@ -27,10 +27,10 @@
 package org.apache.http.impl.nio.client;
 
 import org.apache.http.HttpVersion;
+import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.protocol.RequestDefaultHeaders;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.nio.conn.ClientConnectionManager;
-import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -38,7 +38,6 @@ import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.BasicHttpProcessor;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.protocol.RequestConnControl;
 import org.apache.http.protocol.RequestContent;
 import org.apache.http.protocol.RequestExpectContinue;
 import org.apache.http.protocol.RequestTargetHost;
@@ -48,10 +47,9 @@ import org.apache.http.util.VersionInfo;
 public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
 
     public DefaultHttpAsyncClient(
-            final ConnectingIOReactor ioReactor,
             final ClientConnectionManager connmgr,
             final HttpParams params) {
-        super(ioReactor, connmgr, params);
+        super(connmgr, params);
     }
 
     public DefaultHttpAsyncClient(
@@ -60,13 +58,12 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
     }
 
     public DefaultHttpAsyncClient() throws IOReactorException {
-        this(null);
+        super(null);
     }
 
     public DefaultHttpAsyncClient(
-            final ConnectingIOReactor ioReactor,
             final ClientConnectionManager connmgr) throws IOReactorException {
-        this(ioReactor, connmgr, null);
+        this(connmgr, null);
     }
 
     @Override
@@ -99,7 +96,7 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         httpproc.addInterceptor(new RequestContent());
         httpproc.addInterceptor(new RequestTargetHost());
         // Recommended protocol interceptors
-        httpproc.addInterceptor(new RequestConnControl());
+        httpproc.addInterceptor(new RequestClientConnControl());
         httpproc.addInterceptor(new RequestUserAgent());
         httpproc.addInterceptor(new RequestExpectContinue());
         return httpproc;

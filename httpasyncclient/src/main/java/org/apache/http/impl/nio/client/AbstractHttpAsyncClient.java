@@ -28,7 +28,8 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
@@ -43,6 +44,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
@@ -52,12 +54,12 @@ import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.client.HttpAsyncClient;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
-import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
@@ -71,9 +73,8 @@ import org.apache.http.protocol.ImmutableHttpProcessor;
 public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());;
-    private final ConnectingIOReactor ioReactor;
     private final ClientConnectionManager connmgr;
-    private final HttpAsyncResponseSet pendingResponses;
+    private final Queue<HttpAsyncExchangeHandler<?>> queue;
 
     private Thread reactorThread;
     private BasicHttpProcessor mutableProcessor;
@@ -84,14 +85,14 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private HttpRoutePlanner routePlanner;
     private HttpParams params;
 
+    private volatile boolean terminated;
+
     protected AbstractHttpAsyncClient(
-            final ConnectingIOReactor ioReactor,
             final ClientConnectionManager connmgr,
             final HttpParams params) {
         super();
-        this.ioReactor = ioReactor;
         this.connmgr = connmgr;
-        this.pendingResponses = new HttpAsyncResponseSet();
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
         this.params = params;
     }
 
@@ -102,9 +103,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         }
         DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(2, params);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
-        this.ioReactor = defaultioreactor;
-        this.connmgr = new PoolingClientConnectionManager(this.ioReactor);
-        this.pendingResponses = new HttpAsyncResponseSet();
+        this.connmgr = new PoolingClientConnectionManager(defaultioreactor);
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
         this.params = params;
     }
 
@@ -274,20 +274,20 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler();
         try {
             IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
-            this.ioReactor.execute(ioEventDispatch);
+            this.connmgr.execute(ioEventDispatch);
         } catch (Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);
-            Iterator<HttpAsyncResponseConsumer<?>> it = this.pendingResponses.iterator();
-            while (it.hasNext()) {
-                HttpAsyncResponseConsumer<?> responseConsumer = it.next();
-                responseConsumer.failed(ex);
-                it.remove();
+        } finally {
+            this.terminated = true;
+            while (!this.queue.isEmpty()) {
+                HttpAsyncResponseConsumer<?> responseConsumer = this.queue.remove();
+                responseConsumer.cancel();
             }
         }
     }
 
     public IOReactorStatus getStatus() {
-        return this.ioReactor.getStatus();
+        return this.connmgr.getStatus();
     }
 
     public synchronized void start() {
@@ -303,9 +303,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     public synchronized void shutdown() throws InterruptedException {
-        this.connmgr.shutdown();
         try {
-            this.ioReactor.shutdown(5000);
+            this.connmgr.shutdown(5000);
         } catch (IOException ex) {
             this.log.error("I/O error shutting down", ex);
         }
@@ -319,7 +318,11 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        this.pendingResponses.add(responseConsumer);
+        if (this.terminated) {
+            throw new IllegalStateException("Client terminated");
+        }
+        BasicFuture<T> future = new BasicFuture<T>(callback);
+        ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
         DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
             httpexchange = new DefaultAsyncRequestDirector<T>(
@@ -327,8 +330,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     requestProducer,
                     responseConsumer,
                     context,
-                    new ResponseCompletedCallback<T>(callback,
-                            responseConsumer, this.pendingResponses),
+                    resultCallback,
                     this.connmgr,
                     getProtocolProcessor(),
                     getRoutePlanner(),
@@ -337,8 +339,9 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     getRedirectStrategy(),
                     getParams());
         }
+        this.queue.add(httpexchange);
         httpexchange.start();
-        return httpexchange.getResultFuture();
+        return future;
     }
 
     public <T> Future<T> execute(
@@ -370,12 +373,11 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
         URI requestURI = request.getURI();
         if (requestURI.isAbsolute()) {
-            if (requestURI.getHost() == null) {
+            target = URIUtils.extractHost(requestURI);
+            if (target == null) {
                 throw new ClientProtocolException(
                         "URI does not specify a valid host name: " + requestURI);
             }
-            target = new HttpHost(requestURI.getHost(), requestURI.getPort(), requestURI.getScheme());
-            // TODO use URIUtils#extractTarget once it becomes available
         }
         return target;
     }

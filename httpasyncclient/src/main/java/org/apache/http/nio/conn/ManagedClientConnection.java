@@ -31,14 +31,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ConnectionReleaseTrigger;
+import org.apache.http.conn.HttpRoutedConnection;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
-public interface ManagedClientConnection extends NHttpClientConnection, ConnectionReleaseTrigger {
-
-    HttpRoute getRoute();
+public interface ManagedClientConnection
+    extends HttpRoutedConnection, NHttpClientConnection, ConnectionReleaseTrigger {
 
     Object getState();
 

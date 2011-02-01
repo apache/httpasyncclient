@@ -26,30 +26,40 @@
  */
 package org.apache.http.impl.nio.client;
 
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Queue;
 
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
+import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.concurrent.BasicFuture;
 
-class HttpAsyncResponseSet {
+class DefaultResultCallback<T> implements ResultCallback<T> {
 
-    private final ConcurrentHashMap<HttpAsyncResponseConsumer<?>, Boolean> map;
+    private final BasicFuture<T> future;
+    private final Queue<HttpAsyncExchangeHandler<?>> queue;
 
-    public HttpAsyncResponseSet() {
+    DefaultResultCallback(
+            final BasicFuture<T> future, final Queue<HttpAsyncExchangeHandler<?>> queue) {
         super();
-        this.map = new ConcurrentHashMap<HttpAsyncResponseConsumer<?>, Boolean>();
+        this.future = future;
+        this.queue = queue;
     }
 
-    public void add(final HttpAsyncResponseConsumer<?> o) {
-        this.map.put(o, Boolean.TRUE);
+    public void completed(final T result, final HttpAsyncExchangeHandler<T> handler) {
+        this.future.completed(result);
+        this.queue.remove(handler);
     }
 
-    public void remove(final Object o) {
-        this.map.remove(o);
+    public void failed(final Exception ex, final HttpAsyncExchangeHandler<T> handler) {
+        this.future.failed(ex);
+        this.queue.remove(handler);
     }
 
-    public Iterator<HttpAsyncResponseConsumer<?>> iterator() {
-        return this.map.keySet().iterator();
+    public void cancelled(final HttpAsyncExchangeHandler<T> handler) {
+        this.future.cancel(true);
+        this.queue.remove(handler);
+    }
+
+    public boolean isDone() {
+        return this.future.isDone();
     }
 
 }
