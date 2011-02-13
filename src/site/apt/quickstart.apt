@@ -28,7 +28,7 @@
     ----------
     ----------
 
-HttpClient Quick Start
+HttpAsyncClient Quick Start
 
     [[1]] Download 'Binary' package of the latest official release from the 
     {{{http://hc.apache.org/downloads.cgi} project download page}}. 

@@ -23,7 +23,7 @@
 ~~ <http://www.apache.org/>.
 
     ----------
-    HttpComponents HttpClient Module
+    HttpComponents HttpAsyncClient Module
     ----------
     ----------
     ----------
