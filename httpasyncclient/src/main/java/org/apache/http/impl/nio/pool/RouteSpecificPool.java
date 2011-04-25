@@ -75,15 +75,10 @@ class RouteSpecificPool<T, E extends PoolEntry<T>> {
             ListIterator<E> it = this.availableSessions.listIterator(this.availableSessions.size());
             while (it.hasPrevious()) {
                 E entry = it.previous();
-                IOSession iosession = entry.getIOSession();
-                if (iosession.isClosed() || entry.isExpired(System.currentTimeMillis())) {
+                if (entry.getState() == null || entry.getState().equals(state)) {
                     it.remove();
-                } else {
-                    if (entry.getState() == null || entry.getState().equals(state)) {
-                        it.remove();
-                        this.leasedSessions.add(entry);
-                        return entry;
-                    }
+                    this.leasedSessions.add(entry);
+                    return entry;
                 }
             }
         }

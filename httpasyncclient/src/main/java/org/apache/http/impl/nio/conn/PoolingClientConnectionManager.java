@@ -158,8 +158,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         HttpPoolEntry entry = adaptor.getEntry();
         if (this.log.isDebugEnabled()) {
             HttpRoute route = entry.getPlannedRoute();
-            Object state = entry.getState();
-            this.log.debug("Releasing connection: route[" + route + "][state: " + state + "]");
+            this.log.debug("Releasing connection: " + entry);
             PoolStats totals = this.pool.getTotalStats();
             PoolStats stats = this.pool.getStats(route);
             this.log.debug("Total: " + totals);
@@ -176,10 +175,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
                 } else {
                     s = "indefinitely";
                 }
-                HttpRoute route = entry.getPlannedRoute();
-                Object state = entry.getState();
-                this.log.debug("Pooling connection" +
-                        " [" + route + "][" + state + "]; keep alive " + s);
+                this.log.debug("Pooling connection: " + entry + "; keep alive " + s);
             }
         }
         this.pool.release(entry, reusable);

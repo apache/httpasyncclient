@@ -204,7 +204,20 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
             }
 
             RouteSpecificPool<T, E> pool = getPool(request.getRoute());
-            E entry = pool.getFreeEntry(state);
+            E entry = null;
+            for (;;) {
+                entry = pool.getFreeEntry(state);
+                if (entry == null) {
+                    break;
+                }
+                IOSession iosession = entry.getIOSession();
+                if (iosession.isClosed() || entry.isExpired(System.currentTimeMillis())) {
+                    this.availableSessions.remove(entry);
+                    pool.freeEntry(entry, false);
+                } else {
+                    break;
+                }
+            }
             if (entry != null) {
                 it.remove();
                 this.availableSessions.remove(entry);
@@ -227,6 +240,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                             route,
                             this.sessionRequestCallback);
                     sessionRequest.setConnectTimeout(timeout);
+                    this.pendingSessions.add(sessionRequest);
                     pool.addPending(sessionRequest, callback);
                 }
             }
