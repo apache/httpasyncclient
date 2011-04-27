@@ -319,7 +319,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             final HttpContext context,
             final FutureCallback<T> callback) {
         if (this.terminated) {
-            throw new IllegalStateException("Client terminated");
+            throw new IllegalStateException("Client has been shut down");
         }
         BasicFuture<T> future = new BasicFuture<T>(callback);
         ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
@@ -366,22 +366,6 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         return execute(target, request, new BasicHttpContext(), callback);
     }
 
-    private HttpHost determineTarget(final HttpUriRequest request) throws ClientProtocolException {
-        // A null target may be acceptable if there is a default target.
-        // Otherwise, the null target is detected in the director.
-        HttpHost target = null;
-
-        URI requestURI = request.getURI();
-        if (requestURI.isAbsolute()) {
-            target = URIUtils.extractHost(requestURI);
-            if (target == null) {
-                throw new ClientProtocolException(
-                        "URI does not specify a valid host name: " + requestURI);
-            }
-        }
-        return target;
-    }
-
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final FutureCallback<HttpResponse> callback) {
@@ -401,6 +385,22 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             return future;
         }
         return execute(target, request, context, callback);
+    }
+
+    private HttpHost determineTarget(final HttpUriRequest request) throws ClientProtocolException {
+        // A null target may be acceptable if there is a default target.
+        // Otherwise, the null target is detected in the director.
+        HttpHost target = null;
+
+        URI requestURI = request.getURI();
+        if (requestURI.isAbsolute()) {
+            target = URIUtils.extractHost(requestURI);
+            if (target == null) {
+                throw new ClientProtocolException(
+                        "URI does not specify a valid host name: " + requestURI);
+            }
+        }
+        return target;
     }
 
 }

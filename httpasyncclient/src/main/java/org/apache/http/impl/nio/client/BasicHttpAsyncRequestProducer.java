@@ -35,15 +35,13 @@ import org.apache.http.HttpRequest;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.entity.NHttpEntityWrapper;
 import org.apache.http.nio.entity.ProducingNHttpEntity;
 
-public class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
+class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
 
     private final HttpHost target;
     private final HttpRequest request;
-
-    private volatile ProducingNHttpEntity contentProducingEntity;
+    private final ProducingNHttpEntity producer;
 
     public BasicHttpAsyncRequestProducer(final HttpHost target, final HttpRequest request) {
         super();
@@ -55,6 +53,19 @@ public class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
         }
         this.target = target;
         this.request = request;
+        HttpEntity entity = null;
+        if (request instanceof HttpEntityEnclosingRequest) {
+            entity = ((HttpEntityEnclosingRequest) request).getEntity();
+        }
+        if (entity != null) {
+            if (entity instanceof ProducingNHttpEntity) {
+                this.producer = (ProducingNHttpEntity) entity;
+            } else {
+                this.producer = new NHttpEntityWrapper(entity);
+            }
+        } else {
+            this.producer = null;
+        }
     }
 
     public HttpRequest generateRequest() {
@@ -65,59 +76,31 @@ public class BasicHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
         return this.target;
     }
 
-    protected ProducingNHttpEntity createProducingHttpEntity(
-            final HttpRequest request) throws IOException {
-        HttpEntity entity = null;
-        if (request instanceof HttpEntityEnclosingRequest) {
-            entity = ((HttpEntityEnclosingRequest) request).getEntity();
-        }
-        if (entity != null) {
-            if (entity instanceof ProducingNHttpEntity) {
-                return (ProducingNHttpEntity) entity;
-            } else {
-                return new NHttpEntityWrapper(entity);
-            }
-        } else {
-            return null;
-        }
-    }
-
-    private ProducingNHttpEntity getProducingHttpEntity() throws IOException {
-        if (this.contentProducingEntity == null) {
-            this.contentProducingEntity = createProducingHttpEntity(this.request);
-            if (this.contentProducingEntity == null) {
-                throw new IllegalStateException("Content producer is null");
-            }
-        }
-        return this.contentProducingEntity;
-    }
-
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        ProducingNHttpEntity producer = getProducingHttpEntity();
-        producer.produceContent(encoder, ioctrl);
+        if (this.producer == null) {
+            throw new IllegalStateException("Content producer is null");
+        }
+        this.producer.produceContent(encoder, ioctrl);
+        if (encoder.isCompleted()) {
+            this.producer.finish();
+        }
     }
 
     public synchronized boolean isRepeatable() {
-        if (this.request instanceof HttpEntityEnclosingRequest) {
-            HttpEntity entity = ((HttpEntityEnclosingRequest) this.request).getEntity();
-            if (entity != null) {
-                return entity.isRepeatable();
-            } else {
-                return true;
-            }
+        if (this.producer != null) {
+            return this.producer.isRepeatable();
         } else {
             return true;
         }
     }
 
     public synchronized void resetRequest() {
-        if (this.contentProducingEntity != null) {
-            try {
-                this.contentProducingEntity.finish();
-                this.contentProducingEntity = null;
-            } catch (IOException ex) {
+        try {
+            if (this.producer != null) {
+                this.producer.finish();
             }
+        } catch (IOException ignore) {
         }
     }
 

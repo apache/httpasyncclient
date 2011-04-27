@@ -27,28 +27,15 @@
 package org.apache.http.examples.nio.client;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
 import java.util.concurrent.Future;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.message.BasicHttpRequest;
-import org.apache.http.nio.ContentDecoder;
-import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.nio.client.methods.AsyncCharConsumer;
+import org.apache.http.nio.client.methods.HttpAsyncGet;
 
 public class AsyncClientHttpExchangeStreaming {
 
@@ -57,7 +44,8 @@ public class AsyncClientHttpExchangeStreaming {
         httpclient.start();
         try {
             Future<Boolean> future = httpclient.execute(
-                    new MyRequestProducer(), new MyResponseConsumer(), null);
+                    new HttpAsyncGet("http://localhost:8080/"),
+                    new MyResponseConsumer(), null);
             Boolean result = future.get();
             if (result != null && result.booleanValue()) {
                 System.out.println("Request successfully executed");
@@ -71,90 +59,26 @@ public class AsyncClientHttpExchangeStreaming {
         System.out.println("Done");
     }
 
-    static class MyRequestProducer implements HttpAsyncRequestProducer {
+    static class MyResponseConsumer extends AsyncCharConsumer<Boolean> {
 
-        public HttpRequest generateRequest() throws IOException, HttpException {
-            BasicHttpRequest request = new BasicHttpRequest("GET", "/");
-            return request;
+        @Override
+        protected void onResponseReceived(final HttpResponse response) {
         }
 
-        public HttpHost getTarget() {
-            return new HttpHost("www.apache.org");
-        }
-
-        public boolean isRepeatable() {
-            return true;
-        }
-
-        public void produceContent(
-                final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-            // Should never be called for non entity enclosing requests
-        }
-
-        public void resetRequest() {
-        }
-
-    }
-
-    static class MyResponseConsumer implements HttpAsyncResponseConsumer<Boolean> {
-
-        private Charset charset;
-        private CharsetDecoder decoder;
-        private ByteBuffer bbuf;
-        private CharBuffer cbuf;
-
-        private volatile Boolean result;
-
-        public synchronized void responseReceived(
-                final HttpResponse response) throws IOException, HttpException {
-            System.out.println("HTTP response: " + response.getStatusLine());
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                String s = EntityUtils.getContentCharSet(entity);
-                if (s == null) {
-                    s = HTTP.DEFAULT_CONTENT_CHARSET;
-                }
-                this.charset = Charset.forName(s);
-                this.decoder = this.charset.newDecoder();
-                this.bbuf = ByteBuffer.allocate(1024);
-                this.cbuf = CharBuffer.allocate(1024);
+        @Override
+        protected void onCharReceived(final CharBuffer buf, final IOControl ioctrl) throws IOException {
+            while (buf.hasRemaining()) {
+                System.out.print(buf.get());
             }
         }
 
-        public synchronized void consumeContent(
-                final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-            int bytesRead;
-            do {
-                bytesRead = decoder.read(this.bbuf);
-                this.bbuf.flip();
-                CoderResult result = this.decoder.decode(this.bbuf, this.cbuf, decoder.isCompleted());
-                if (result.isError()) {
-                    result.throwException();
-                }
-                this.bbuf.compact();
-                this.cbuf.flip();
-                while (this.cbuf.hasRemaining()) {
-                    System.out.print(this.cbuf.get());
-                }
-                this.cbuf.compact();
-            } while (bytesRead > 0);
+        @Override
+        protected void onCleanup() {
         }
 
-        public void responseCompleted() {
-            this.result = Boolean.TRUE;
-        }
-
-        public void cancel() {
-            this.result = Boolean.FALSE;
-        }
-
-        public void failed(final Exception ex) {
-            this.result = Boolean.FALSE;
-            ex.printStackTrace();
-        }
-
-        public Boolean getResult() {
-            return this.result;
+        @Override
+        protected Boolean buildResult() {
+            return Boolean.TRUE;
         }
 
     }

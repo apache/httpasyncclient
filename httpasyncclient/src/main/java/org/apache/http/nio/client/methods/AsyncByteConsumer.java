@@ -24,52 +24,52 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.client;
+package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.methods.AbstractHttpAsyncResponseConsumer;
-import org.apache.http.nio.entity.BufferingNHttpEntity;
-import org.apache.http.nio.entity.ConsumingNHttpEntity;
-import org.apache.http.nio.util.HeapByteBufferAllocator;
 
-class BasicHttpAsyncResponseConsumer extends AbstractHttpAsyncResponseConsumer<HttpResponse> {
+public abstract class AsyncByteConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
 
-    private volatile HttpResponse response;
-    private volatile ConsumingNHttpEntity consumer;
+    private final int bufSize;
+    private ByteBuffer bbuf;
 
-    public BasicHttpAsyncResponseConsumer() {
+    public AsyncByteConsumer(int bufSize) {
         super();
+        this.bufSize = bufSize;
     }
 
-    @Override
-    protected void onResponseReceived(final HttpResponse response) {
-        this.response = response;
-        if (response.getEntity() != null) {
-            this.consumer = new BufferingNHttpEntity(
-                    response.getEntity(), new HeapByteBufferAllocator());
-        } else {
-            this.consumer = null;
-        }
-        this.response.setEntity(this.consumer);
+    public AsyncByteConsumer() {
+        this(8 * 1024);
     }
+
+    protected abstract void onByteReceived(
+            final ByteBuffer buf, final IOControl ioctrl) throws IOException;
 
     @Override
     protected void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        this.consumer.consumeContent(decoder, ioctrl);
+        if (this.bbuf == null) {
+            this.bbuf = ByteBuffer.allocate(this.bufSize);
+        }
+        for (;;) {
+            int bytesRead = decoder.read(this.bbuf);
+            if (bytesRead <= 0) {
+                break;
+            }
+            this.bbuf.flip();
+            onByteReceived(this.bbuf, ioctrl);
+            this.bbuf.clear();
+        }
     }
 
     @Override
-    protected void onCleanup() {
-    }
-
-    @Override
-    protected HttpResponse buildResult() {
-        return this.response;
+    void releaseResources() {
+        this.bbuf = null;
+        super.releaseResources();
     }
 
 }
