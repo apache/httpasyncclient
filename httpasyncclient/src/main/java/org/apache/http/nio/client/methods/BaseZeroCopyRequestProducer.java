@@ -27,9 +27,11 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.channels.FileChannel;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -37,57 +39,44 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.nio.ContentEncoder;
+import org.apache.http.nio.ContentEncoderChannel;
+import org.apache.http.nio.FileContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.entity.NByteArrayEntity;
-import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.nio.entity.ProducingNHttpEntity;
-import org.apache.http.protocol.HTTP;
 
-abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestProducer, Closeable {
+abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer, Closeable {
 
     private final URI requestURI;
-    private final ProducingNHttpEntity producer;
+    private final File file;
+    private final String contentType;
 
-    protected BaseHttpAsyncEntityRequestProducer(
-            final URI requestURI, final String content, String mimeType, String charset) {
+    private FileChannel fileChannel;
+    private long idx = -1;
+
+    protected BaseZeroCopyRequestProducer(
+            final URI requestURI, final File file, final String contentType) {
         super();
         if (requestURI == null) {
             throw new IllegalArgumentException("Request URI may not be null");
         }
-        if (mimeType == null) {
-            mimeType = HTTP.PLAIN_TEXT_TYPE;
-        }
-        if (charset == null) {
-            charset = HTTP.DEFAULT_CONTENT_CHARSET;
+        if (file == null) {
+            throw new IllegalArgumentException("Source file may not be null");
         }
         this.requestURI = requestURI;
-        try {
-            NStringEntity entity = new NStringEntity(content, charset);
-            entity.setContentType(mimeType + HTTP.CHARSET_PARAM + charset);
-            this.producer = entity;
-        } catch (UnsupportedEncodingException ex) {
-            throw new IllegalArgumentException("Unsupported charset: " + charset);
-        }
-    }
-
-    protected BaseHttpAsyncEntityRequestProducer(
-            final URI requestURI, final byte[] content, final String contentType) {
-        super();
-        if (requestURI == null) {
-            throw new IllegalArgumentException("Request URI may not be null");
-        }
-        this.requestURI = requestURI;
-        NByteArrayEntity entity = new NByteArrayEntity(content);
-        entity.setContentType(contentType);
-        this.producer = entity;
+        this.file = file;
+        this.contentType = contentType;
     }
 
     protected abstract HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity);
 
     public HttpRequest generateRequest() throws IOException, HttpException {
-        return createRequest(this.requestURI, this.producer);
+        BasicHttpEntity entity = new BasicHttpEntity();
+        entity.setChunked(false);
+        entity.setContentLength(this.file.length());
+        entity.setContentType(this.contentType);
+        return createRequest(this.requestURI, entity);
     }
 
     public synchronized HttpHost getTarget() {
@@ -96,25 +85,46 @@ abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestPro
 
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        this.producer.produceContent(encoder, ioctrl);
-        if (encoder.isCompleted()) {
-            this.producer.finish();
+        if (this.fileChannel == null) {
+            FileInputStream in = new FileInputStream(this.file);
+            this.fileChannel = in.getChannel();
+            this.idx = 0;
+        }
+        long transferred;
+        if (encoder instanceof FileContentEncoder) {
+            transferred = ((FileContentEncoder)encoder).transfer(
+                    this.fileChannel, this.idx, Integer.MAX_VALUE);
+        } else {
+            transferred = this.fileChannel.transferTo(
+                    this.idx, Integer.MAX_VALUE, new ContentEncoderChannel(encoder));
+        }
+        if (transferred > 0) {
+            this.idx += transferred;
+        }
+
+        if (this.idx >= this.fileChannel.size()) {
+            encoder.complete();
+            this.fileChannel.close();
+            this.fileChannel = null;
         }
     }
 
     public synchronized boolean isRepeatable() {
-        return this.producer.isRepeatable();
+        return true;
     }
 
     public synchronized void resetRequest() {
         try {
-            this.producer.finish();
+            close();
         } catch (IOException ignore) {
         }
     }
 
     public synchronized void close() throws IOException {
-        this.producer.finish();
+        if (this.fileChannel != null) {
+            this.fileChannel.close();
+            this.fileChannel = null;
+        }
     }
 
 }

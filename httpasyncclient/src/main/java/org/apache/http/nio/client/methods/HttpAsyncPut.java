@@ -26,7 +26,6 @@
  */
 package org.apache.http.nio.client.methods;
 
-import java.io.File;
 import java.net.URI;
 
 import org.apache.http.HttpEntity;
@@ -39,10 +38,6 @@ public class HttpAsyncPut extends BaseHttpAsyncEntityRequestProducer {
         super(requestURI, content, contentType);
     }
 
-    public HttpAsyncPut(final URI requestURI, final File content, final String contentType) {
-        super(requestURI, content, contentType);
-    }
-
     public HttpAsyncPut(final URI requestURI, final String content, String mimeType, String charset) {
         super(requestURI, content, mimeType, charset);
     }
@@ -52,10 +47,6 @@ public class HttpAsyncPut extends BaseHttpAsyncEntityRequestProducer {
     }
 
     public HttpAsyncPut(final String requestURI, final byte[] content, final String contentType) {
-        super(URI.create(requestURI), content, contentType);
-    }
-
-    public HttpAsyncPut(final String requestURI, final File content, final String contentType) {
         super(URI.create(requestURI), content, contentType);
     }
 

@@ -29,15 +29,18 @@ package org.apache.http.nio.client.methods;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.ServerTestBase;
+import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.scheme.Scheme;
@@ -48,6 +51,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TestAsyncConsumers extends ServerTestBase {
 
@@ -202,6 +206,74 @@ public class TestAsyncConsumers extends ServerTestBase {
             String result = future.get();
             Assert.assertEquals(s, result);
         }
+    }
+
+    @Test
+    public void testResourceReleaseOnSuccess() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        for (int i= 0; i < 25; i++) {
+            sb.append("blah blah blah blah\r\n");
+            sb.append("yada yada yada yada\r\n");
+        }
+        String s = sb.toString();
+
+        this.httpclient.start();
+        HttpAsyncPost httppost = new HttpAsyncPost(this.target.toURI() + "/echo/stuff", s);
+        AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
+        Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        String result = future.get();
+        Assert.assertEquals(s, result);
+        Mockito.verify(consumer).responseCompleted();
+        Mockito.verify(consumer).buildResult();
+        Mockito.verify(consumer).releaseResources();
+        Mockito.verify(consumer).onCleanup();
+    }
+
+    @Test
+    public void testResourceReleaseOnException() throws Exception {
+        this.httpclient.start();
+
+        HttpAsyncPost httppost = new HttpAsyncPost(this.target.toURI() + "/echo/stuff", "stuff");
+        AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
+        Mockito.doThrow(new IOException("Kaboom")).when(consumer).consumeContent(
+                Mockito.any(ContentDecoder.class), Mockito.any(IOControl.class));
+
+        Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        try {
+            future.get();
+            Assert.fail("ExecutionException expected");
+        } catch (ExecutionException ex) {
+            Throwable t = ex.getCause();
+            Assert.assertNotNull(t);
+            Assert.assertTrue(t instanceof IOException);
+            Assert.assertEquals("Kaboom", t.getMessage());
+        }
+        Mockito.verify(consumer).failed(Mockito.any(IOException.class));
+        Mockito.verify(consumer).releaseResources();
+        Mockito.verify(consumer).onCleanup();
+    }
+
+    @Test
+    public void testResourceReleaseOnBuildFailure() throws Exception {
+        this.httpclient.start();
+
+        HttpAsyncPost httppost = new HttpAsyncPost(this.target.toURI() + "/echo/stuff", "stuff");
+        AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
+        Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult();
+
+        Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        try {
+            future.get();
+            Assert.fail("ExecutionException expected");
+        } catch (ExecutionException ex) {
+            Throwable t = ex.getCause();
+            Assert.assertNotNull(t);
+            Assert.assertTrue(t instanceof HttpException);
+            Assert.assertEquals("Kaboom", t.getMessage());
+        }
+        Mockito.verify(consumer).responseCompleted();
+        Mockito.verify(consumer).releaseResources();
+        Mockito.verify(consumer).onCleanup();
     }
 
 }

@@ -47,4 +47,6 @@ public interface HttpAsyncResponseConsumer<T> {
 
     T getResult();
 
+    Exception getException();
+
 }

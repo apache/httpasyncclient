@@ -26,43 +26,28 @@
  */
 package org.apache.http.nio.client.methods;
 
+import java.io.File;
 import java.net.URI;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 
-public class HttpAsyncPost extends BaseHttpAsyncEntityRequestProducer {
+public class ZeroCopyPut extends BaseZeroCopyRequestProducer {
 
-    public HttpAsyncPost(final URI requestURI, final byte[] content, final String contentType) {
+    public ZeroCopyPut(final URI requestURI, final File content, final String contentType) {
         super(requestURI, content, contentType);
     }
 
-    public HttpAsyncPost(final URI requestURI, final String content, String mimeType, String charset) {
-        super(requestURI, content, mimeType, charset);
-    }
-
-    public HttpAsyncPost(final URI requestURI, final String content) {
-        super(requestURI, content, null, null);
-    }
-
-    public HttpAsyncPost(final String requestURI, final byte[] content, final String contentType) {
+    public ZeroCopyPut(final String requestURI, final File content, final String contentType) {
         super(URI.create(requestURI), content, contentType);
-    }
-
-    public HttpAsyncPost(final String requestURI, final String content, String mimeType, String charset) {
-        super(URI.create(requestURI), content, mimeType, charset);
-    }
-
-    public HttpAsyncPost(final String requestURI, final String content) {
-        super(URI.create(requestURI), content, null, null);
     }
 
     @Override
     protected HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity) {
-        HttpPost httppost = new HttpPost(requestURI);
-        httppost.setEntity(entity);
-        return httppost;
+        HttpPut httpput = new HttpPut(requestURI);
+        httpput.setEntity(entity);
+        return httpput;
     }
 
 }

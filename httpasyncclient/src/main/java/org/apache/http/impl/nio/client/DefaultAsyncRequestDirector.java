@@ -336,7 +336,13 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             if (this.finalResponse != null) {
                 this.responseConsumer.responseCompleted();
                 this.log.debug("Response processed");
-                this.resultCallback.completed(this.responseConsumer.getResult(), this);
+                T result = this.responseConsumer.getResult();
+                Exception ex = this.responseConsumer.getException();
+                if (ex == null) {
+                    this.resultCallback.completed(result, this);
+                } else {
+                    this.resultCallback.failed(ex, this);
+                }
                 releaseResources();
             } else {
                 if (this.followup != null) {
@@ -380,6 +386,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
 
     public T getResult() {
         return this.responseConsumer.getResult();
+    }
+
+    public Exception getException() {
+        return this.responseConsumer.getException();
     }
 
     private synchronized void connectionRequestCompleted(final ManagedClientConnection conn) {

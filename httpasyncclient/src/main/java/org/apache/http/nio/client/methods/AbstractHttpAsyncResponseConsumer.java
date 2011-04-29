@@ -79,7 +79,7 @@ public abstract class AbstractHttpAsyncResponseConsumer<T> implements HttpAsyncR
         try {
             this.result = buildResult();
         } catch (Exception ex) {
-            failed(ex);
+            this.ex = ex;
         } finally {
             releaseResources();
         }
