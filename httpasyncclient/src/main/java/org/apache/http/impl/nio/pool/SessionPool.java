@@ -199,7 +199,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                     E entry = this.availableSessions.remove();
                     entryShutdown(entry);
                     RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
-                    pool.freeEntry(entry, false);
+                    pool.remove(entry);
                 }
             }
 
