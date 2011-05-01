@@ -282,7 +282,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    private void releaseResources() {
+    private void releaseConnection() {
         if (this.managedConn != null) {
             try {
                 this.managedConn.getContext().removeAttribute(HTTP_EXCHANGE_HANDLER);
@@ -290,8 +290,19 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             } catch (IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
             }
+            this.managedConn = null;
         }
-        this.managedConn = null;
+    }
+
+    private void releaseResources() {
+        if (this.managedConn != null) {
+            try {
+                this.managedConn.abortConnection();
+            } catch (IOException ioex) {
+                this.log.debug("I/O error releasing connection", ioex);
+            }
+            this.managedConn = null;
+        }
         if (this.connFuture != null) {
             this.connFuture.cancel(true);
             this.connFuture = null;
@@ -343,13 +354,13 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 } else {
                     this.resultCallback.failed(ex, this);
                 }
-                releaseResources();
+                releaseConnection();
             } else {
                 if (this.followup != null) {
                     HttpRoute actualRoute = this.mainRequest.getRoute();
                     HttpRoute newRoute = this.followup.getRoute();
                     if (!actualRoute.equals(newRoute)) {
-                        releaseResources();
+                        releaseConnection();
                     }
                     this.mainRequest = this.followup;
                 }
@@ -373,10 +384,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         try {
             this.responseConsumer.cancel();
             this.resultCallback.cancelled(this);
-            releaseResources();
         } catch (RuntimeException runex) {
-            failed(runex);
+            this.resultCallback.failed(runex, this);
             throw runex;
+        } finally {
+            releaseResources();
         }
     }
 

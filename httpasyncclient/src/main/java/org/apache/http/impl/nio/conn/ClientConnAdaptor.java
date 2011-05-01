@@ -108,8 +108,6 @@ class ClientConnAdaptor implements ManagedClientConnection {
         }
         this.released = true;
         this.reusable = false;
-        IOSession iosession = this.entry.getIOSession();
-        iosession.shutdown();
         this.manager.releaseConnection(this, this.expiry, this.tunit);
         this.entry = null;
         this.conn = null;
@@ -147,8 +145,12 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = true;
     }
 
-    public synchronized void shutdown() {
-        abortConnection();
+    public synchronized void shutdown() throws IOException {
+        if (this.released) {
+            return;
+        }
+        this.conn.shutdown();
+        this.reusable = false;
     }
 
     public synchronized void close() throws IOException {
