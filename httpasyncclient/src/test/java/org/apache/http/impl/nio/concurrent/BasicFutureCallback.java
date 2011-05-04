@@ -24,52 +24,50 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.pool;
+package org.apache.http.impl.nio.concurrent;
 
-class LeaseRequest<T, E extends PoolEntry<T>> {
+import org.apache.http.nio.concurrent.FutureCallback;
 
-    private final T route;
-    private final Object state;
-    private final int connectTimeout;
-    private final PoolEntryCallback<T, E> callback;
+class BasicFutureCallback<T> implements FutureCallback<T> {
 
-    public LeaseRequest(
-            final T route,
-            final Object state,
-            final int connectTimeout,
-            final PoolEntryCallback<T, E> callback) {
-        super();
-        this.route = route;
-        this.state = state;
-        this.connectTimeout = connectTimeout;
-        this.callback = callback;
+    private T result;
+    private Exception ex;
+    private boolean completed;
+    private boolean failed;
+    private boolean cancelled;
+
+    public void completed(final T result) {
+        this.result = result;
+        this.completed = true;
     }
 
-    public T getRoute() {
-        return this.route;
+    public T getResult() {
+        return this.result;
     }
 
-    public Object getState() {
-        return this.state;
+    public Exception getException() {
+        return this.ex;
     }
 
-    public PoolEntryCallback<T, E> getCallback() {
-        return this.callback;
+    public void failed(final Exception ex) {
+        this.ex = ex;
+        this.failed = true;
     }
 
-    public int getConnectTimeout() {
-        return this.connectTimeout;
+    public void cancelled() {
+        this.cancelled = true;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("[");
-        buffer.append(this.route);
-        buffer.append("][");
-        buffer.append(this.state);
-        buffer.append("]");
-        return buffer.toString();
+    public boolean isCompleted() {
+        return this.completed;
+    }
+
+    public boolean isFailed() {
+        return this.failed;
+    }
+
+    public boolean isCancelled() {
+        return this.cancelled;
     }
 
 }

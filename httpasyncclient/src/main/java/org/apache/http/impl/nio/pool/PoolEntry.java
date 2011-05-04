@@ -66,6 +66,7 @@ public abstract class PoolEntry<T> {
         } else {
             this.validUnit = Long.MAX_VALUE;
         }
+        this.expiry = this.validUnit;
     }
 
     protected T getRoute() {

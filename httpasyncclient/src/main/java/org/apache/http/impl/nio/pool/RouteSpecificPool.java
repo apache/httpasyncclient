@@ -29,8 +29,8 @@ package org.apache.http.impl.nio.pool;
 import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,10 +72,21 @@ class RouteSpecificPool<T, E extends PoolEntry<T>> {
 
     public E getFreeEntry(final Object state) {
         if (!this.availableSessions.isEmpty()) {
-            ListIterator<E> it = this.availableSessions.listIterator(this.availableSessions.size());
-            while (it.hasPrevious()) {
-                E entry = it.previous();
-                if (entry.getState() == null || entry.getState().equals(state)) {
+            if (state != null) {
+                Iterator<E> it = this.availableSessions.iterator();
+                while (it.hasNext()) {
+                    E entry = it.next();
+                    if (state.equals(entry.getState())) {
+                        it.remove();
+                        this.leasedSessions.add(entry);
+                        return entry;
+                    }
+                }
+            }
+            Iterator<E> it = this.availableSessions.iterator();
+            while (it.hasNext()) {
+                E entry = it.next();
+                if (entry.getState() == null) {
                     it.remove();
                     this.leasedSessions.add(entry);
                     return entry;
@@ -85,17 +96,16 @@ class RouteSpecificPool<T, E extends PoolEntry<T>> {
         return null;
     }
 
-    public E deleteLastUsed() {
-        return this.availableSessions.poll();
-    }
-
     public boolean remove(final E entry) {
         if (entry == null) {
             throw new IllegalArgumentException("Pool entry may not be null");
         }
-        boolean foundLeased = this.leasedSessions.remove(entry);
-        boolean foundFree = this.availableSessions.remove(entry);
-        return foundLeased || foundFree;
+        if (!this.availableSessions.remove(entry)) {
+            if (!this.leasedSessions.remove(entry)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void freeEntry(final E entry, boolean reusable) {
@@ -177,7 +187,7 @@ class RouteSpecificPool<T, E extends PoolEntry<T>> {
         buffer.append("][pending: ");
         buffer.append(this.pendingSessions.size());
         buffer.append("]");
-        return super.toString();
+        return buffer.toString();
     }
 
 }
