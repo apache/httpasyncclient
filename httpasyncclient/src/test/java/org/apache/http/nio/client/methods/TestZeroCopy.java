@@ -41,7 +41,6 @@ import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -49,26 +48,17 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
-import org.apache.http.localserver.ServerTestBase;
-import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
-import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.params.BasicHttpParams;
+import org.apache.http.localserver.AsyncHttpTestBase;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestZeroCopy extends ServerTestBase {
+public class TestZeroCopy extends AsyncHttpTestBase {
 
     private static final String[] TEXT = {
         "blah blah blah blah blah blah blah blah blah blah blah blah blah blah",
@@ -80,10 +70,6 @@ public class TestZeroCopy extends ServerTestBase {
     private static Charset ASCII = Charset.forName("ascii");
     private static File TEST_FILE;
     private File tmpfile;
-
-    private HttpHost target;
-    private PoolingClientConnectionManager sessionManager;
-    private HttpAsyncClient httpclient;
 
     @BeforeClass
     public static void createSrcFile() throws Exception {
@@ -108,25 +94,6 @@ public class TestZeroCopy extends ServerTestBase {
             TEST_FILE.delete();
             TEST_FILE = null;
         }
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        int port = this.localServer.getServiceAddress().getPort();
-        this.target = new HttpHost("localhost", port);
-
-        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, new BasicHttpParams());
-        SchemeRegistry schemeRegistry = new SchemeRegistry();
-        schemeRegistry.register(new Scheme("http", 80, null));
-        this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry);
-        this.httpclient = new DefaultHttpAsyncClient(this.sessionManager);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        this.httpclient.shutdown();
-        super.tearDown();
     }
 
     @After
@@ -232,7 +199,6 @@ public class TestZeroCopy extends ServerTestBase {
         this.localServer.register("/bounce", new TestHandler(false));
         File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        this.httpclient.start();
         TestZeroCopyPost httppost = new TestZeroCopyPost(this.target.toURI() + "/bounce", false);
         TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
         Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
@@ -260,7 +226,6 @@ public class TestZeroCopy extends ServerTestBase {
         this.localServer.register("/bounce", new TestHandler(true));
         File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        this.httpclient.start();
         TestZeroCopyPost httppost = new TestZeroCopyPost(this.target.toURI() + "/bounce", true);
         TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
         Future<Integer> future = this.httpclient.execute(httppost, consumer, null);

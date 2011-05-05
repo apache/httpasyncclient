@@ -48,31 +48,20 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.localserver.AsyncHttpTestBase;
 import org.apache.http.localserver.LocalTestServer;
-import org.apache.http.localserver.ServerTestBase;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.params.BasicHttpParams;
 import org.apache.http.util.EntityUtils;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-public class TestHttpsAsync extends ServerTestBase {
-
-    private SSLContext serverSSLContext;
-    private SSLContext clientSSLContext;
-    private HttpHost target;
-    private PoolingClientConnectionManager sessionManager;
-    private HttpAsyncClient httpclient;
+public class TestHttpsAsync extends AsyncHttpTestBase {
 
     private KeyManagerFactory createKeyManagerFactory() throws NoSuchAlgorithmException {
         String algo = KeyManagerFactory.getDefaultAlgorithm();
@@ -92,10 +81,8 @@ public class TestHttpsAsync extends ServerTestBase {
         }
     }
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-
+    @Override
+    protected LocalTestServer createServer() throws Exception {
         ClassLoader cl = getClass().getClassLoader();
         URL url = cl.getResource("test.keystore");
         KeyStore keystore  = KeyStore.getInstance("jks");
@@ -110,35 +97,45 @@ public class TestHttpsAsync extends ServerTestBase {
         kmfactory.init(keystore, pwd);
         KeyManager[] km = kmfactory.getKeyManagers();
 
-        this.serverSSLContext = SSLContext.getInstance("TLS");
-        this.serverSSLContext.init(km, tm, null);
+        SSLContext serverSSLContext = SSLContext.getInstance("TLS");
+        serverSSLContext.init(km, tm, null);
 
-        this.clientSSLContext = SSLContext.getInstance("TLS");
-        this.clientSSLContext.init(null, tm, null);
-
-        this.localServer = new LocalTestServer(this.serverSSLContext);
-        this.localServer.registerDefaultHandlers();
-        this.localServer.start();
-        int port = this.localServer.getServiceAddress().getPort();
-        this.target = new HttpHost("localhost", port, "https");
-
-        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(2, new BasicHttpParams());
-        SchemeRegistry schemeRegistry = new SchemeRegistry();
-        schemeRegistry.register(new Scheme("http", 80, null));
-        schemeRegistry.register(new Scheme("https", 443, new SSLLayeringStrategy(this.clientSSLContext)));
-        this.sessionManager = new PoolingClientConnectionManager(ioReactor, schemeRegistry);
-        this.httpclient = new DefaultHttpAsyncClient(this.sessionManager);
+        LocalTestServer localServer = new LocalTestServer(serverSSLContext);
+        localServer.registerDefaultHandlers();
+        return localServer;
     }
 
-    @After
-    public void tearDown() throws Exception {
-        this.httpclient.shutdown();
-        super.tearDown();
+    @Override
+    protected PoolingClientConnectionManager createConnectionManager(
+            final ConnectingIOReactor ioreactor) throws Exception {
+        ClassLoader cl = getClass().getClassLoader();
+        URL url = cl.getResource("test.keystore");
+        KeyStore keystore  = KeyStore.getInstance("jks");
+        char[] pwd = "nopassword".toCharArray();
+        keystore.load(url.openStream(), pwd);
+
+        TrustManagerFactory tmf = createTrustManagerFactory();
+        tmf.init(keystore);
+        TrustManager[] tm = tmf.getTrustManagers();
+
+        SSLContext clientSSLContext = SSLContext.getInstance("TLS");
+        clientSSLContext.init(null, tm, null);
+
+        SchemeRegistry schemeRegistry = new SchemeRegistry();
+        schemeRegistry.register(new Scheme("http", 80, null));
+        schemeRegistry.register(new Scheme("https", 443, new SSLLayeringStrategy(clientSSLContext)));
+        return new PoolingClientConnectionManager(ioreactor, schemeRegistry);
+    }
+
+    @Override
+    public void startServer() throws Exception {
+        super.startServer();
+        int port = this.localServer.getServiceAddress().getPort();
+        this.target = new HttpHost("localhost", port, "https");
     }
 
     @Test
     public void testSingleGet() throws Exception {
-        this.httpclient.start();
         HttpGet httpget = new HttpGet("/random/2048");
         Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
         HttpResponse response = future.get();
@@ -151,8 +148,6 @@ public class TestHttpsAsync extends ServerTestBase {
         byte[] b1 = new byte[1024];
         Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
-
-        this.httpclient.start();
 
         HttpPost httppost = new HttpPost("/echo/stuff");
         httppost.setEntity(new NByteArrayEntity(b1));
@@ -177,7 +172,6 @@ public class TestHttpsAsync extends ServerTestBase {
 
         this.sessionManager.setDefaultMaxPerHost(reqCount);
         this.sessionManager.setTotalMax(100);
-        this.httpclient.start();
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
@@ -209,7 +203,6 @@ public class TestHttpsAsync extends ServerTestBase {
 
         this.sessionManager.setDefaultMaxPerHost(1);
         this.sessionManager.setTotalMax(100);
-        this.httpclient.start();
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
@@ -233,8 +226,6 @@ public class TestHttpsAsync extends ServerTestBase {
 
     @Test
     public void testRequestFailure() throws Exception {
-        this.httpclient.start();
-
         HttpGet httpget = new HttpGet("/random/2048");
         BasicHttpAsyncRequestProducer requestProducer = new BasicHttpAsyncRequestProducer(this.target, httpget) ;
         BasicHttpAsyncResponseConsumer responseConsumer = new BasicHttpAsyncResponseConsumer() {
