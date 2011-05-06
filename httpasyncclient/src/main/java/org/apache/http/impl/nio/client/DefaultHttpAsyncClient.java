@@ -27,8 +27,14 @@
 package org.apache.http.impl.nio.client;
 
 import org.apache.http.HttpVersion;
+import org.apache.http.client.protocol.RequestAddCookies;
+import org.apache.http.client.protocol.RequestAuthCache;
 import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.protocol.RequestDefaultHeaders;
+import org.apache.http.client.protocol.RequestProxyAuthentication;
+import org.apache.http.client.protocol.RequestTargetAuthentication;
+import org.apache.http.client.protocol.ResponseAuthCache;
+import org.apache.http.client.protocol.ResponseProcessCookies;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.reactor.IOReactorException;
@@ -99,6 +105,14 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         httpproc.addInterceptor(new RequestClientConnControl());
         httpproc.addInterceptor(new RequestUserAgent());
         httpproc.addInterceptor(new RequestExpectContinue());
+        // HTTP state management interceptors
+        httpproc.addInterceptor(new RequestAddCookies());
+        httpproc.addInterceptor(new ResponseProcessCookies());
+        // HTTP authentication interceptors
+        httpproc.addInterceptor(new RequestAuthCache());
+        httpproc.addInterceptor(new ResponseAuthCache());
+        httpproc.addInterceptor(new RequestTargetAuthentication());
+        httpproc.addInterceptor(new RequestProxyAuthentication());
         return httpproc;
     }
 

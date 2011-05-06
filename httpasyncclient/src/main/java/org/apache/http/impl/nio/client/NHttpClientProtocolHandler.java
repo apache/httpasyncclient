@@ -245,20 +245,26 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 // 1xx intermediate response
                 if (statusCode == HttpStatus.SC_CONTINUE
                         && httpexchange.getRequestState() == MessageState.ACK) {
-                    continueRequest(conn, httpexchange);
+                    int timeout = httpexchange.getTimeout();
+                    conn.setSocketTimeout(timeout);
+                    conn.requestOutput();
                     httpexchange.setRequestState(MessageState.BODY_STREAM);
                 }
                 return;
             } else {
                 httpexchange.setResponse(response);
                 if (httpexchange.getRequestState() == MessageState.ACK) {
-                    cancelRequest(conn, httpexchange);
+                    int timeout = httpexchange.getTimeout();
+                    conn.setSocketTimeout(timeout);
+                    conn.resetOutput();
                     httpexchange.setRequestState(MessageState.COMPLETED);
                 } else if (httpexchange.getRequestState() == MessageState.BODY_STREAM) {
                     // Early response
-                    cancelRequest(conn, httpexchange);
-                    httpexchange.invalidate();
+                    int timeout = httpexchange.getTimeout();
+                    conn.setSocketTimeout(timeout);
                     conn.suspendOutput();
+                    conn.resetOutput();
+                    httpexchange.invalidate();
                 }
             }
             handler.responseReceived(response);
@@ -289,7 +295,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         }
         try {
             if (httpexchange.getRequestState() == MessageState.ACK) {
-                continueRequest(conn, httpexchange);
+                int timeout = httpexchange.getTimeout();
+                conn.setSocketTimeout(timeout);
+                conn.requestOutput();
                 httpexchange.setRequestState(MessageState.BODY_STREAM);
             } else {
                 if (conn.getStatus() == NHttpConnection.ACTIVE) {
@@ -319,23 +327,6 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
     private HttpAsyncExchangeHandler<?> getHandler(final HttpContext context) {
         return (HttpAsyncExchangeHandler<?>) context.getAttribute(
                 DefaultAsyncRequestDirector.HTTP_EXCHANGE_HANDLER);
-    }
-
-    private void continueRequest(
-            final NHttpClientConnection conn,
-            final HttpExchange httpexchange) {
-        int timeout = httpexchange.getTimeout();
-        conn.setSocketTimeout(timeout);
-        conn.requestOutput();
-    }
-
-    private void cancelRequest(
-            final NHttpClientConnection conn,
-            final HttpExchange httpexchange) throws IOException {
-        int timeout = httpexchange.getTimeout();
-        conn.setSocketTimeout(timeout);
-        conn.resetOutput();
-        httpexchange.resetOutput();
     }
 
     private void processResponse(

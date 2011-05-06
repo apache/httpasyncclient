@@ -40,16 +40,37 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
+import org.apache.http.auth.AuthSchemeRegistry;
+import org.apache.http.client.AuthenticationHandler;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.params.AuthPolicy;
+import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoutePlanner;
+import org.apache.http.cookie.CookieSpecRegistry;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.auth.BasicSchemeFactory;
+import org.apache.http.impl.auth.DigestSchemeFactory;
+import org.apache.http.impl.auth.NTLMSchemeFactory;
+import org.apache.http.impl.auth.NegotiateSchemeFactory;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.http.impl.client.DefaultProxyAuthenticationHandler;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
+import org.apache.http.impl.cookie.BestMatchSpecFactory;
+import org.apache.http.impl.cookie.BrowserCompatSpecFactory;
+import org.apache.http.impl.cookie.IgnoreSpecFactory;
+import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
+import org.apache.http.impl.cookie.RFC2109SpecFactory;
+import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
@@ -66,6 +87,7 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.BasicHttpProcessor;
+import org.apache.http.protocol.DefaultedHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
@@ -82,6 +104,12 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private ConnectionReuseStrategy reuseStrategy;
     private ConnectionKeepAliveStrategy keepAliveStrategy;
     private RedirectStrategy redirectStrategy;
+    private CookieSpecRegistry supportedCookieSpecs;
+    private CookieStore cookieStore;
+    private AuthSchemeRegistry supportedAuthSchemes;
+    private AuthenticationHandler targetAuthHandler;
+    private AuthenticationHandler proxyAuthHandler;
+    private CredentialsProvider credsProvider;
     private HttpRoutePlanner routePlanner;
     private HttpParams params;
 
@@ -117,6 +145,18 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         context.setAttribute(
                 ClientContext.SCHEME_REGISTRY,
                 getConnectionManager().getSchemeRegistry());
+        context.setAttribute(
+                ClientContext.AUTHSCHEME_REGISTRY,
+                getAuthSchemes());
+        context.setAttribute(
+                ClientContext.COOKIESPEC_REGISTRY,
+                getCookieSpecs());
+        context.setAttribute(
+                ClientContext.COOKIE_STORE,
+                getCookieStore());
+        context.setAttribute(
+                ClientContext.CREDS_PROVIDER,
+                getCredentialsProvider());
         return context;
     }
 
@@ -126,6 +166,62 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     protected ConnectionKeepAliveStrategy createConnectionKeepAliveStrategy() {
         return new DefaultConnectionKeepAliveStrategy();
+    }
+
+    protected AuthSchemeRegistry createAuthSchemeRegistry() {
+        AuthSchemeRegistry registry = new AuthSchemeRegistry();
+        registry.register(
+                AuthPolicy.BASIC,
+                new BasicSchemeFactory());
+        registry.register(
+                AuthPolicy.DIGEST,
+                new DigestSchemeFactory());
+        registry.register(
+                AuthPolicy.NTLM,
+                new NTLMSchemeFactory());
+        registry.register(
+                AuthPolicy.SPNEGO,
+                new NegotiateSchemeFactory());
+        return registry;
+    }
+
+    protected CookieSpecRegistry createCookieSpecRegistry() {
+        CookieSpecRegistry registry = new CookieSpecRegistry();
+        registry.register(
+                CookiePolicy.BEST_MATCH,
+                new BestMatchSpecFactory());
+        registry.register(
+                CookiePolicy.BROWSER_COMPATIBILITY,
+                new BrowserCompatSpecFactory());
+        registry.register(
+                CookiePolicy.NETSCAPE,
+                new NetscapeDraftSpecFactory());
+        registry.register(
+                CookiePolicy.RFC_2109,
+                new RFC2109SpecFactory());
+        registry.register(
+                CookiePolicy.RFC_2965,
+                new RFC2965SpecFactory());
+        registry.register(
+                CookiePolicy.IGNORE_COOKIES,
+                new IgnoreSpecFactory());
+        return registry;
+    }
+
+    protected AuthenticationHandler createTargetAuthenticationHandler() {
+        return new DefaultTargetAuthenticationHandler();
+    }
+
+    protected AuthenticationHandler createProxyAuthenticationHandler() {
+        return new DefaultProxyAuthenticationHandler();
+    }
+
+    protected CookieStore createCookieStore() {
+        return new BasicCookieStore();
+    }
+
+    protected CredentialsProvider createCredentialsProvider() {
+        return new BasicCredentialsProvider();
     }
 
     protected HttpRoutePlanner createHttpRoutePlanner() {
@@ -174,6 +270,74 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     public synchronized void setRedirectStrategy(final RedirectStrategy redirectStrategy) {
         this.redirectStrategy = redirectStrategy;
+    }
+
+    public synchronized final AuthSchemeRegistry getAuthSchemes() {
+        if (this.supportedAuthSchemes == null) {
+            this.supportedAuthSchemes = createAuthSchemeRegistry();
+        }
+        return this.supportedAuthSchemes;
+    }
+
+    public synchronized void setAuthSchemes(final AuthSchemeRegistry authSchemeRegistry) {
+        this.supportedAuthSchemes = authSchemeRegistry;
+    }
+
+    public synchronized final CookieSpecRegistry getCookieSpecs() {
+        if (this.supportedCookieSpecs == null) {
+            this.supportedCookieSpecs = createCookieSpecRegistry();
+        }
+        return this.supportedCookieSpecs;
+    }
+
+    public synchronized void setCookieSpecs(final CookieSpecRegistry cookieSpecRegistry) {
+        this.supportedCookieSpecs = cookieSpecRegistry;
+    }
+
+    public synchronized final AuthenticationHandler getTargetAuthenticationHandler() {
+        if (this.targetAuthHandler == null) {
+            this.targetAuthHandler = createTargetAuthenticationHandler();
+        }
+        return this.targetAuthHandler;
+    }
+
+    public synchronized void setTargetAuthenticationHandler(
+            final AuthenticationHandler targetAuthHandler) {
+        this.targetAuthHandler = targetAuthHandler;
+    }
+
+    public synchronized final AuthenticationHandler getProxyAuthenticationHandler() {
+        if (this.proxyAuthHandler == null) {
+            this.proxyAuthHandler = createProxyAuthenticationHandler();
+        }
+        return this.proxyAuthHandler;
+    }
+
+    public synchronized void setProxyAuthenticationHandler(
+            final AuthenticationHandler proxyAuthHandler) {
+        this.proxyAuthHandler = proxyAuthHandler;
+    }
+
+    public synchronized final CookieStore getCookieStore() {
+        if (this.cookieStore == null) {
+            this.cookieStore = createCookieStore();
+        }
+        return this.cookieStore;
+    }
+
+    public synchronized void setCookieStore(final CookieStore cookieStore) {
+        this.cookieStore = cookieStore;
+    }
+
+    public synchronized final CredentialsProvider getCredentialsProvider() {
+        if (this.credsProvider == null) {
+            this.credsProvider = createCredentialsProvider();
+        }
+        return this.credsProvider;
+    }
+
+    public synchronized void setCredentialsProvider(final CredentialsProvider credsProvider) {
+        this.credsProvider = credsProvider;
     }
 
     public synchronized final HttpRoutePlanner getRoutePlanner() {
@@ -325,11 +489,18 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
         DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
+            HttpContext defaultContext = createHttpContext();
+            HttpContext execContext;
+            if (context == null) {
+                execContext = defaultContext;
+            } else {
+                execContext = new DefaultedHttpContext(context, defaultContext);
+            }
             httpexchange = new DefaultAsyncRequestDirector<T>(
                     this.log,
                     requestProducer,
                     responseConsumer,
-                    context,
+                    execContext,
                     resultCallback,
                     this.connmgr,
                     getProtocolProcessor(),
@@ -337,6 +508,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     getConnectionReuseStrategy(),
                     getConnectionKeepAliveStrategy(),
                     getRedirectStrategy(),
+                    getTargetAuthenticationHandler(),
+                    getProxyAuthenticationHandler(),
                     getParams());
         }
         this.queue.add(httpexchange);
