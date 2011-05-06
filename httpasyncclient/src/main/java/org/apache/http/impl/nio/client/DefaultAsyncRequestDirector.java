@@ -54,6 +54,7 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.auth.MalformedChallengeException;
 import org.apache.http.client.AuthenticationHandler;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -123,6 +124,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private ManagedClientConnection managedConn;
     private int redirectCount;
     private ByteBuffer tmpbuf;
+    private boolean requestContentProduced;
 
     public DefaultAsyncRequestDirector(
             final Log log,
@@ -168,6 +170,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             wrapper.setParams(this.params);
             HttpRoute route = determineRoute(target, wrapper, this.localContext);
             this.mainRequest = new RoutedRequest(wrapper, route);
+            this.requestContentProduced = false;
             requestConnection();
         } catch (Exception ex) {
             failed(ex);
@@ -238,11 +241,19 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Request submitted: " + this.currentRequest.getRequestLine());
         }
+        this.currentRequest.incrementExecCount();
+        if (this.currentRequest.getExecCount() > 1
+                && !this.requestProducer.isRepeatable()
+                && this.requestContentProduced) {
+            throw new NonRepeatableRequestException("Cannot retry request " +
+                "with a non-repeatable request entity.");
+        }
         return this.currentRequest;
     }
 
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+        this.requestContentProduced = true;
         this.requestProducer.produceContent(encoder, ioctrl);
         if (encoder.isCompleted()) {
             this.requestProducer.resetRequest();

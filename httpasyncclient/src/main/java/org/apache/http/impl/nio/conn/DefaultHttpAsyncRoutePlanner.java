@@ -35,7 +35,6 @@ import org.apache.http.HttpRequest;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
-import org.apache.http.params.HttpProtocolParamBean;
 import org.apache.http.protocol.HttpContext;
 
 import org.apache.http.conn.routing.HttpRoute;

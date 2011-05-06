@@ -63,7 +63,6 @@ import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestClientAuthentication extends AsyncHttpTestBase {
@@ -271,7 +270,7 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
     }
 
-    @Test(expected=ExecutionException.class) @Ignore
+    @Test(expected=ExecutionException.class)
     public void testBasicAuthenticationFailureWithNonRepeatableEntityExpectContinueOff() throws Exception {
         TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
