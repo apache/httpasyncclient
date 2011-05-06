@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -63,7 +62,6 @@ import org.apache.http.protocol.ResponseConnControl;
 import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
-import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -191,10 +189,8 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
         HttpGet httpget = new HttpGet("/");
         Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
         HttpResponse response = future.get();
-        HttpEntity entity = response.getEntity();
+        Assert.assertNotNull(response);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(entity);
-        EntityUtils.consume(entity);
         AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
@@ -209,10 +205,8 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
         HttpGet httpget = new HttpGet("/");
         Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
         HttpResponse response = future.get();
-        HttpEntity entity = response.getEntity();
+        Assert.assertNotNull(response);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(entity);
-        EntityUtils.consume(entity);
         AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
@@ -227,10 +221,8 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
         HttpGet httpget = new HttpGet("/");
         Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
         HttpResponse response = future.get();
-        HttpEntity entity = response.getEntity();
+        Assert.assertNotNull(response);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(entity);
-        EntityUtils.consume(entity);
         AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
@@ -261,7 +253,7 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
 
         HttpPut httpput = new HttpPut("/");
 
-        NByteArrayEntity requestEntity = new NByteArrayEntity(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }) {
+        NByteArrayEntity entity = new NByteArrayEntity(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }) {
 
             @Override
             public boolean isRepeatable() {
@@ -270,15 +262,13 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
 
         };
 
-        httpput.setEntity(requestEntity);
+        httpput.setEntity(entity);
         httpput.getParams().setBooleanParameter(CoreProtocolPNames.USE_EXPECT_CONTINUE, true);
 
         Future<HttpResponse> future = this.httpclient.execute(this.target, httpput, null);
         HttpResponse response = future.get();
         Assert.assertNotNull(response);
-        HttpEntity responseEntity = response.getEntity();
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(responseEntity);
     }
 
     @Test(expected=ExecutionException.class) @Ignore
@@ -326,9 +316,7 @@ public class TestClientAuthentication extends AsyncHttpTestBase {
         Future<HttpResponse> future = this.httpclient.execute(this.target, httppost, null);
         HttpResponse response = future.get();
         Assert.assertNotNull(response);
-        HttpEntity entity = response.getEntity();
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(entity);
         AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
