@@ -287,7 +287,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
                 this.managedConn.tunnelTarget(this.params);
             } else {
-                this.finalResponse = response;
+                this.followup = handleConnectResponse();
+                if (this.followup == null) {
+                    this.finalResponse = response;
+                }
             }
         } else {
             this.followup = handleResponse();
@@ -569,10 +572,51 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     }
 
     private RoutedRequest handleResponse() throws HttpException {
-        HttpRoute route = this.mainRequest.getRoute();
-        RequestWrapper request = this.mainRequest.getRequest();
-        if (HttpClientParams.isRedirecting(this.params) && this.redirectStrategy.isRedirected(
+        RoutedRequest followup = null;
+        if (HttpClientParams.isRedirecting(this.params)) {
+            followup = handleRedirect();
+            if (followup != null) {
+                return followup;
+            }
+        }
+        if (HttpClientParams.isAuthenticating(this.params)) {
+            CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
+                    ClientContext.CREDS_PROVIDER);
+            if (credsProvider != null) {
+                followup = handleTargetChallenge(credsProvider);
+                if (followup != null) {
+                    return followup;
+                }
+                followup = handleProxyChallenge(credsProvider);
+                if (followup != null) {
+                    return followup;
+                }
+            }
+        }
+        return null;
+    }
+
+    private RoutedRequest handleConnectResponse() throws HttpException {
+        RoutedRequest followup = null;
+        if (HttpClientParams.isAuthenticating(this.params)) {
+            CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
+                    ClientContext.CREDS_PROVIDER);
+            if (credsProvider != null) {
+                followup = handleProxyChallenge(credsProvider);
+                if (followup != null) {
+                    return followup;
+                }
+            }
+        }
+        return null;
+    }
+
+    private RoutedRequest handleRedirect() throws HttpException {
+        if (this.redirectStrategy.isRedirected(
                 this.currentRequest, this.currentResponse, this.localContext)) {
+
+            HttpRoute route = this.mainRequest.getRoute();
+            RequestWrapper request = this.mainRequest.getRequest();
 
             int maxRedirects = this.params.getIntParameter(ClientPNames.MAX_REDIRECTS, 100);
             if (this.redirectCount >= maxRedirects) {
@@ -615,75 +659,79 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             }
             return new RoutedRequest(newRequest, newRoute);
         }
+        return null;
+    }
 
-        CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
-                ClientContext.CREDS_PROVIDER);
+    private RoutedRequest handleTargetChallenge(
+            final CredentialsProvider credsProvider) throws HttpException {
+        if (this.targetAuthHandler.isAuthenticationRequested(this.currentResponse, this.localContext)) {
+            HttpRoute route = this.mainRequest.getRoute();
 
-        if (credsProvider != null && HttpClientParams.isAuthenticating(params)) {
-
-            if (this.targetAuthHandler.isAuthenticationRequested(this.currentResponse, this.localContext)) {
-
-                HttpHost target = (HttpHost) this.localContext.getAttribute(
-                        ExecutionContext.HTTP_TARGET_HOST);
-                if (target == null) {
-                    target = route.getTargetHost();
-                }
-
-                this.log.debug("Target requested authentication");
-                Map<String, Header> challenges = this.targetAuthHandler.getChallenges(
-                        this.currentResponse, this.localContext);
-                try {
-                    processChallenges(challenges,
-                            this.targetAuthState, this.targetAuthHandler,
-                            this.currentResponse, this.localContext);
-                } catch (AuthenticationException ex) {
-                    if (this.log.isWarnEnabled()) {
-                        this.log.warn("Authentication error: " +  ex.getMessage());
-                        return null;
-                    }
-                }
-                updateAuthState(this.targetAuthState, target, credsProvider);
-
-                if (this.targetAuthState.getCredentials() != null) {
-                    // Re-try the same request via the same route
-                    return this.mainRequest;
-                } else {
-                    return null;
-                }
-            } else {
-                // Reset target auth scope
-                this.targetAuthState.setAuthScope(null);
+            HttpHost target = (HttpHost) this.localContext.getAttribute(
+                    ExecutionContext.HTTP_TARGET_HOST);
+            if (target == null) {
+                target = route.getTargetHost();
             }
 
-            if (this.proxyAuthHandler.isAuthenticationRequested(this.currentResponse, this.localContext)) {
-
-                HttpHost proxy = route.getProxyHost();
-
-                this.log.debug("Proxy requested authentication");
-                Map<String, Header> challenges = this.proxyAuthHandler.getChallenges(
+            this.log.debug("Target requested authentication");
+            Map<String, Header> challenges = this.targetAuthHandler.getChallenges(
+                    this.currentResponse, this.localContext);
+            try {
+                processChallenges(challenges,
+                        this.targetAuthState, this.targetAuthHandler,
                         this.currentResponse, this.localContext);
-                try {
-                    processChallenges(challenges,
-                            this.proxyAuthState, this.proxyAuthHandler,
-                            this.currentResponse, this.localContext);
-                } catch (AuthenticationException ex) {
-                    if (this.log.isWarnEnabled()) {
-                        this.log.warn("Authentication error: " +  ex.getMessage());
-                        return null;
-                    }
-                }
-                updateAuthState(this.proxyAuthState, proxy, credsProvider);
-
-                if (this.proxyAuthState.getCredentials() != null) {
-                    // Re-try the same request via the same route
-                    return this.mainRequest;
-                } else {
+            } catch (AuthenticationException ex) {
+                if (this.log.isWarnEnabled()) {
+                    this.log.warn("Authentication error: " +  ex.getMessage());
                     return null;
                 }
-            } else {
-                // Reset proxy auth scope
-                this.proxyAuthState.setAuthScope(null);
             }
+            updateAuthState(this.targetAuthState, target, credsProvider);
+
+            if (this.targetAuthState.getCredentials() != null) {
+                // Re-try the same request via the same route
+                return this.mainRequest;
+            } else {
+                return null;
+            }
+        } else {
+            // Reset target auth scope
+            this.targetAuthState.setAuthScope(null);
+        }
+        return null;
+    }
+
+    private RoutedRequest handleProxyChallenge(
+            final CredentialsProvider credsProvider) throws HttpException {
+        if (this.proxyAuthHandler.isAuthenticationRequested(this.currentResponse, this.localContext)) {
+            HttpRoute route = this.mainRequest.getRoute();
+
+            HttpHost proxy = route.getProxyHost();
+
+            this.log.debug("Proxy requested authentication");
+            Map<String, Header> challenges = this.proxyAuthHandler.getChallenges(
+                    this.currentResponse, this.localContext);
+            try {
+                processChallenges(challenges,
+                        this.proxyAuthState, this.proxyAuthHandler,
+                        this.currentResponse, this.localContext);
+            } catch (AuthenticationException ex) {
+                if (this.log.isWarnEnabled()) {
+                    this.log.warn("Authentication error: " +  ex.getMessage());
+                    return null;
+                }
+            }
+            updateAuthState(this.proxyAuthState, proxy, credsProvider);
+
+            if (this.proxyAuthState.getCredentials() != null) {
+                // Re-try the same request via the same route
+                return this.mainRequest;
+            } else {
+                return null;
+            }
+        } else {
+            // Reset proxy auth scope
+            this.proxyAuthState.setAuthScope(null);
         }
         return null;
     }
