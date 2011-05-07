@@ -125,6 +125,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private int redirectCount;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
+    private int execCount;
 
     public DefaultAsyncRequestDirector(
             final Log log,
@@ -238,15 +239,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.localContext.setAttribute(ClientContext.PROXY_AUTH_STATE, this.proxyAuthState);
 
         this.httppocessor.process(this.currentRequest, this.localContext);
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Request submitted: " + this.currentRequest.getRequestLine());
-        }
         this.currentRequest.incrementExecCount();
         if (this.currentRequest.getExecCount() > 1
                 && !this.requestProducer.isRepeatable()
                 && this.requestContentProduced) {
             throw new NonRepeatableRequestException("Cannot retry request " +
                 "with a non-repeatable request entity.");
+        }
+        this.execCount++;
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("Attempt " + this.execCount + " to execute request");
         }
         return this.currentRequest;
     }
@@ -371,6 +373,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                     this.log.debug("Connection can be kept alive " + s);
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
+            } else {
+                releaseConnection();
             }
 
             if (this.finalResponse != null) {

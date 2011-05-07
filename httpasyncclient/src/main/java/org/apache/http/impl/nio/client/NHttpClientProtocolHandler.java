@@ -346,6 +346,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             conn.resetInput();
         } else {
             if (!handler.keepAlive(response)) {
+                this.log.debug("Connection cannot be kept alive");
                 conn.close();
             }
         }

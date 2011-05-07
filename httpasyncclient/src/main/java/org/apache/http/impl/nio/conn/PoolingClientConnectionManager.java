@@ -96,13 +96,15 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
     }
 
     public void shutdown(long waitMs) throws IOException {
-        this.log.debug("Connection manager shut down");
+        this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(waitMs);
+        this.log.debug("Connection manager shut down");
     }
 
     public void shutdown() throws IOException {
-        this.log.debug("Connection manager shut down");
+        this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(2000);
+        this.log.debug("Connection manager shut down");
     }
 
     public Future<ManagedClientConnection> leaseConnection(
@@ -154,6 +156,9 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         ClientConnectionManager manager = adaptor.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
+        }
+        if (this.pool.isShutdown()) {
+            return;
         }
         HttpPoolEntry entry = adaptor.getEntry();
         if (this.log.isDebugEnabled()) {

@@ -99,6 +99,10 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.maxTotal = maxTotal;
     }
 
+    public boolean isShutdown() {
+        return this.isShutDown;
+    }
+
     public void shutdown(long waitMs) throws IOException {
         if (this.isShutDown) {
             return ;
