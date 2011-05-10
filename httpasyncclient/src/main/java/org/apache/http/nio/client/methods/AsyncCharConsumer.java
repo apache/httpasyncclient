@@ -48,7 +48,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
     private final int bufSize;
     private String charsetName;
     private Charset charset;
-    private CharsetDecoder decoder;
+    private CharsetDecoder chardecoder;
     private ByteBuffer bbuf;
     private CharBuffer cbuf;
 
@@ -86,7 +86,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
             } catch (UnsupportedCharsetException ex) {
                 throw new UnsupportedEncodingException(this.charsetName);
             }
-            this.decoder = this.charset.newDecoder();
+            this.chardecoder = this.charset.newDecoder();
             this.bbuf = ByteBuffer.allocate(this.bufSize);
             this.cbuf = CharBuffer.allocate(this.bufSize);
         }
@@ -96,21 +96,33 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
                 break;
             }
             this.bbuf.flip();
-            CoderResult result = this.decoder.decode(this.bbuf, this.cbuf, decoder.isCompleted());
-            if (result.isError()) {
-                result.throwException();
+            boolean completed = decoder.isCompleted();
+            CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
+            handleDecodingResult(result, ioctrl);
+            this.bbuf.compact();
+            if (completed) {
+                result = this.chardecoder.flush(this.cbuf);
+                handleDecodingResult(result, ioctrl);
             }
-            this.cbuf.flip();
-            onCharReceived(this.cbuf, ioctrl);
-            this.cbuf.clear();
-            this.bbuf.clear();
         }
+    }
+
+    private void handleDecodingResult(
+            final CoderResult result, final IOControl ioctrl) throws IOException {
+        if (result.isError()) {
+            result.throwException();
+        }
+        this.cbuf.flip();
+        if (this.cbuf.hasRemaining()) {
+            onCharReceived(this.cbuf, ioctrl);
+        }
+        this.cbuf.clear();
     }
 
     @Override
     void releaseResources() {
         this.charset = null;
-        this.decoder = null;
+        this.chardecoder = null;
         this.bbuf = null;
         this.cbuf = null;
         super.releaseResources();
