@@ -64,7 +64,7 @@ public class DefaultClientConnection
         super(iosession, responseFactory, allocator, params);
         this.log = LogFactory.getLog(iosession.getClass());
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(iosession, this.log, this.wirelog);
+            this.session = new LoggingIOSession(iosession, this.log, this.wirelog, "http-outgoing");
         }
         if (iosession instanceof SSLIOSession) {
             this.ssliosession = (SSLIOSession) iosession;
@@ -76,7 +76,8 @@ public class DefaultClientConnection
     public void upgrade(final IOSession iosession) {
         this.session.setBufferStatus(null);
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(iosession, this.headerlog, this.wirelog);
+            this.session = new LoggingIOSession(iosession, this.headerlog, this.wirelog,
+                    iosession instanceof SSLIOSession ? "https-outgoing" : "http-outgoing");
         } else {
             this.session = iosession;
         }

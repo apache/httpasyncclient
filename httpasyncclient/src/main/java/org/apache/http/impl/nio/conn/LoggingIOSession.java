@@ -38,7 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionBufferStatus;
 
-class LoggingIOSession implements IOSession {
+public class LoggingIOSession implements IOSession {
 
     private static AtomicLong COUNT = new AtomicLong(0);
 
@@ -48,7 +48,7 @@ class LoggingIOSession implements IOSession {
     private final ByteChannel channel;
     private final String id;
 
-    public LoggingIOSession(final IOSession session, final Log log, final Log wirelog) {
+    public LoggingIOSession(final IOSession session, final Log log, final Log wirelog, final String id) {
         super();
         if (session == null) {
             throw new IllegalArgumentException("I/O session may not be null");
@@ -57,7 +57,7 @@ class LoggingIOSession implements IOSession {
         this.wirelog = new Wire(wirelog);
         this.session = session;
         this.channel = new LoggingByteChannel();
-        this.id = Long.toString(COUNT.incrementAndGet());
+        this.id = id + "-" + COUNT.incrementAndGet();
     }
 
     public ByteChannel channel() {
