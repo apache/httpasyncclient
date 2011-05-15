@@ -269,6 +269,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             }
             handler.responseReceived(response);
             if (!canResponseHaveBody(request, response)) {
+                conn.resetInput();
                 processResponse(conn, httpexchange, handler);
             }
         } catch (IOException ex) {
