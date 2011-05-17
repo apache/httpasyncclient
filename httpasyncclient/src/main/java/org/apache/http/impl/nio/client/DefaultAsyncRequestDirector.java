@@ -378,6 +378,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
                 releaseConnection();
+                invalidateAuthIfSuccessful(this.proxyAuthState);
+                invalidateAuthIfSuccessful(this.targetAuthState);
             }
 
             if (this.finalResponse != null) {
@@ -805,6 +807,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
         authState.setAuthScope(authScope);
         authState.setCredentials(creds);
+    }
+
+    private void invalidateAuthIfSuccessful(final AuthState authState) {
+        AuthScheme authscheme = authState.getAuthScheme();
+        if (authscheme != null
+                && authscheme.isConnectionBased()
+                && authscheme.isComplete()
+                && authState.getCredentials() != null) {
+            authState.invalidate();
+        }
     }
 
 }
