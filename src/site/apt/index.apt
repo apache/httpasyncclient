@@ -71,8 +71,6 @@ HttpAsyncClient Overview
 
     * Source code is freely available under the Apache License.
 
-{Features - Planned}
-
     * Basic, Digest, NTLMv1, NTLMv2, NTLM2 Session, SNPNEGO/Kerberos authentication schemes.
 
     * Plug-in mechanism for custom authentication schemes.
@@ -91,8 +89,6 @@ HttpAsyncClient Overview
 
     * {{{http://www.ietf.org/rfc/rfc2616.txt}RFC 2616}} Hypertext Transfer Protocol -- HTTP/1.1
     
-{Standards Compliance - Planned}
-
     * {{{http://www.ietf.org/rfc/rfc2617.txt}RFC 2617}} HTTP Authentication: Basic and Digest Access 
       Authentication
 

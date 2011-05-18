@@ -47,3 +47,9 @@ HttpAsyncClient Examples
     
     This example demonstrates a fully asynchronous execution of multiple HTTP exchanges where the 
     result of an individual operation is reported using a callback interface.
+
+    * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/ZeroCopyHttpExchange.java}Zero copy 
+      file upload / download}}
+    
+    This example demonstrates how HttpAsyncClient can be used to upload or download files without creating an intermediate
+    content buffer in memory (zero copy file transfer).
