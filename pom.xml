@@ -72,13 +72,56 @@
     <maven.compile.target>1.5</maven.compile.target>
     <maven.compile.optimize>true</maven.compile.optimize>
     <maven.compile.deprecation>true</maven.compile.deprecation>
-    <httpcore.version>4.1</httpcore.version>
+    <httpcore.version>4.1.1</httpcore.version>
     <httpclient.version>4.1.1</httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <commons-io.version>2.0.1</commons-io.version>
     <junit.version>4.8.1</junit.version>
     <mockito.version>1.8.5</mockito.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${httpcore.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore-nio</artifactId>
+        <version>${httpcore.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${httpclient.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>${commons-logging.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <modules>
     <module>httpasyncclient</module>
