@@ -26,13 +26,10 @@
  */
 package org.apache.http.localserver;
 
-import java.util.List;
-
 import org.apache.http.HttpHost;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
-import org.apache.http.impl.nio.reactor.ExceptionEvent;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
@@ -102,15 +99,6 @@ public abstract class AsyncHttpTestBase {
             this.httpclient.shutdown();
             if (this.ioreactor.getStatus() != IOReactorStatus.SHUT_DOWN) {
                 System.err.println("I/O reactor failed to shut down cleanly");
-            } else {
-                List<ExceptionEvent> exs = this.ioreactor.getAuditLog();
-                if (exs != null && !exs.isEmpty()) {
-                    System.err.println("I/O reactor terminated abnormally");
-                    for (ExceptionEvent ex: exs) {
-                        System.err.println("-------------------------");
-                        ex.getCause().printStackTrace();
-                    }
-                }
             }
             this.httpclient = null;
         }
