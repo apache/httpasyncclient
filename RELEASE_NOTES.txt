@@ -1,4 +1,21 @@
-Changes since 4.0 Alpha 1
+Release 4.0 Alpha 2
+-------------------
+
+The second ALPHA release of HttpAsyncClient 4.0 comes with a number of important improvements and
+enhancements. As of this version HttpAsyncClient fully supports HTTP state management (cookies) 
+and HTTP authentication (basic, digest, NTLM, spnego/kerberos). Connection management classes have 
+been thoroughly reworked and improved. This version also improves support for zero copy file 
+upload / download operations.
+
+The HttpAsyncClient 4.0 API is still considered experimental and is expected to change 
+in the course of the ALPHA development phase.
+
+Please note that currently HttpAsyncClient DOES NOT support
+
+* Stateful HTTP connections
+
+
+Changelog:
 
 * [HTTPASYNC-3]: Fixed incorrect handling of expired I/O sessions by SessionPool.
   Contributed by Oleg Kalnichevski <olegk at apache.org>

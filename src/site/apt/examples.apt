@@ -51,5 +51,5 @@ HttpAsyncClient Examples
     * {{{./httpasyncclient/examples/org/apache/http/examples/nio/client/ZeroCopyHttpExchange.java}Zero copy 
       file upload / download}}
     
-    This example demonstrates how HttpAsyncClient can be used to upload or download files without creating an intermediate
-    content buffer in memory (zero copy file transfer).
+    This example demonstrates how HttpAsyncClient can be used to upload or download files without 
+    creating an intermediate content buffer in memory (zero copy file transfer).
