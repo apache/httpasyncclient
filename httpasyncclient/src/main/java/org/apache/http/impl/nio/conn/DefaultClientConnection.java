@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.conn;
 
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -54,6 +55,9 @@ public class DefaultClientConnection
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
     private final Log log;
 
+    private static final AtomicLong COUNT = new AtomicLong();
+
+    private String id;
     private SSLIOSession ssliosession;
 
     public DefaultClientConnection(
@@ -62,9 +66,10 @@ public class DefaultClientConnection
             final ByteBufferAllocator allocator,
             final HttpParams params) {
         super(iosession, responseFactory, allocator, params);
+        this.id = "http-outgoing-" + COUNT.incrementAndGet();
         this.log = LogFactory.getLog(iosession.getClass());
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(iosession, this.log, this.wirelog, "http-outgoing");
+            this.session = new LoggingIOSession(iosession, this.id, this.log, this.wirelog);
         }
         if (iosession instanceof SSLIOSession) {
             this.ssliosession = (SSLIOSession) iosession;
@@ -76,8 +81,8 @@ public class DefaultClientConnection
     public void upgrade(final IOSession iosession) {
         this.session.setBufferStatus(null);
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(iosession, this.headerlog, this.wirelog,
-                    iosession instanceof SSLIOSession ? "https-outgoing" : "http-outgoing");
+            this.log.debug(this.id + " Upgrade session " + iosession);
+            this.session = new LoggingIOSession(iosession, this.id, this.headerlog, this.wirelog);
         } else {
             this.session = iosession;
         }
@@ -110,6 +115,11 @@ public class DefaultClientConnection
                 super.createResponseParser(buffer, responseFactory, params));
     }
 
+    @Override
+    public String toString() {
+        return this.id;
+    }
+
     class LoggingNHttpMessageWriter implements NHttpMessageWriter<HttpRequest> {
 
         private final NHttpMessageWriter<HttpRequest> writer;
@@ -125,10 +135,10 @@ public class DefaultClientConnection
 
         public void write(final HttpRequest request) throws IOException, HttpException {
             if (request != null && headerlog.isDebugEnabled()) {
-                headerlog.debug(">> " + request.getRequestLine().toString());
+                headerlog.debug(id + " >> " + request.getRequestLine().toString());
                 Header[] headers = request.getAllHeaders();
                 for (int i = 0; i < headers.length; i++) {
-                    headerlog.debug(">> " + headers[i].toString());
+                    headerlog.debug(id + " >> " + headers[i].toString());
                 }
             }
             this.writer.write(request);
@@ -157,10 +167,10 @@ public class DefaultClientConnection
             HttpResponse response = this.parser.parse();
             if (headerlog.isDebugEnabled()) {
                 if (response != null && headerlog.isDebugEnabled()) {
-                    headerlog.debug("<< " + response.getStatusLine().toString());
+                    headerlog.debug(id + " << " + response.getStatusLine().toString());
                     Header[] headers = response.getAllHeaders();
                     for (int i = 0; i < headers.length; i++) {
-                        headerlog.debug("<< " + headers[i].toString());
+                        headerlog.debug(id + " << " + headers[i].toString());
                     }
                 }
             }
