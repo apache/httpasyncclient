@@ -377,6 +377,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
+                this.managedConn.markNonReusable();
                 releaseConnection();
                 invalidateAuthIfSuccessful(this.proxyAuthState);
                 invalidateAuthIfSuccessful(this.targetAuthState);

@@ -128,7 +128,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
     }
 
     public boolean isReusable() {
-        return this.reusable;
+        return this.reusable && this.conn != null && this.conn.isOpen();
     }
 
     public synchronized void markNonReusable() {

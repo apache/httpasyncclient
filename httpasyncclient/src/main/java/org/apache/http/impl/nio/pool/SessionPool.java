@@ -176,9 +176,6 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 pool.freeEntry(entry, reusable);
                 if (reusable) {
                     this.availableSessions.add(entry);
-                } else {
-                    IOSession iosession = entry.getIOSession();
-                    iosession.close();
                 }
                 processPendingRequests();
             }

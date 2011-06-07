@@ -117,7 +117,22 @@ public class DefaultClientConnection
 
     @Override
     public String toString() {
-        return this.id;
+        StringBuilder buf = new StringBuilder();
+        buf.append(this.id);
+        buf.append(" [");
+        switch (this.status) {
+        case ACTIVE:
+            buf.append("ACTIVE");
+            break;
+        case CLOSING:
+            buf.append("CLOSING");
+            break;
+        case CLOSED:
+            buf.append("CLOSED");
+            break;
+        }
+        buf.append("]");
+        return buf.toString();
     }
 
     class LoggingNHttpMessageWriter implements NHttpMessageWriter<HttpRequest> {
