@@ -194,6 +194,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
         }
         try {
             handler.consumeContent(decoder, conn);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug(conn + " Content decoder " + decoder);
+            }
             if (decoder.isCompleted()) {
                 processResponse(conn, httpexchange, handler);
             }
@@ -219,6 +222,9 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 return;
             }
             handler.produceContent(encoder, conn);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug(conn + " Content encoder " + encoder);
+            }
             if (encoder.isCompleted()) {
                 httpexchange.setRequestState(MessageState.COMPLETED);
             }
