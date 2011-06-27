@@ -319,8 +319,6 @@ public class TestSessionPool {
         pool.release(entry1, true);
         pool.release(entry2, true);
         pool.release(entry3, false);
-        Mockito.verify(iosession1, Mockito.never()).close();
-        Mockito.verify(iosession2, Mockito.times(1)).close();
 
         PoolStats totals = pool.getTotalStats();
         Assert.assertEquals(2, totals.getAvailable());
