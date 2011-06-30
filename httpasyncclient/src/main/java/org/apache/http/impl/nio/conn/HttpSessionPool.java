@@ -89,10 +89,10 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
     protected void closeEntry(final HttpPoolEntry entry) {
         HttpConnection conn = entry.getConnection();
         try {
-            conn.close();
+            conn.shutdown();
         } catch (IOException ex) {
             if (this.log.isDebugEnabled()) {
-                this.log.debug("I/O error closing connection", ex);
+                this.log.debug("I/O error shutting down connection", ex);
             }
         }
     }
