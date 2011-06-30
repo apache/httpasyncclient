@@ -33,7 +33,9 @@ import org.apache.commons.logging.Log;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.nio.pool.PoolEntry;
+import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.protocol.ExecutionContext;
 
 class HttpPoolEntry extends PoolEntry<HttpRoute> {
 
@@ -81,6 +83,11 @@ class HttpPoolEntry extends PoolEntry<HttpRoute> {
             this.log.debug("Connection " + this + " expired @ " + new Date(getExpiry()));
         }
         return expired;
+    }
+
+    public OperatedClientConnection getConnection() {
+        return (OperatedClientConnection) getIOSession().getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
     }
 
 }

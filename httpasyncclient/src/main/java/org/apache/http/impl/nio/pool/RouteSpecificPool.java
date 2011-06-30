@@ -37,22 +37,22 @@ import java.util.Set;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 
-class RouteSpecificPool<T, E extends PoolEntry<T>> {
+abstract class RouteSpecificPool<T, E extends PoolEntry<T>> {
 
     private final T route;
-    private final PoolEntryFactory<T, E> factory;
     private final Set<E> leasedSessions;
     private final LinkedList<E> availableSessions;
     private final Map<SessionRequest, PoolEntryCallback<T, E>> pendingSessions;
 
-    public RouteSpecificPool(final T route, final PoolEntryFactory<T, E> factory) {
+    RouteSpecificPool(final T route) {
         super();
         this.route = route;
-        this.factory = factory;
         this.leasedSessions = new HashSet<E>();
         this.availableSessions = new LinkedList<E>();
         this.pendingSessions = new HashMap<SessionRequest, PoolEntryCallback<T, E>>();
     }
+
+    protected abstract E createEntry(T route, IOSession session);
 
     public int getLeasedCount() {
         return this.leasedSessions.size();
@@ -139,7 +139,7 @@ class RouteSpecificPool<T, E extends PoolEntry<T>> {
     public E completed(final SessionRequest request) {
         PoolEntryCallback<T, E> callback = removeRequest(request);
         IOSession iosession = request.getSession();
-        E entry = this.factory.createEntry(this.route, iosession);
+        E entry = createEntry(this.route, iosession);
         this.leasedSessions.add(entry);
         callback.completed(entry);
         return entry;

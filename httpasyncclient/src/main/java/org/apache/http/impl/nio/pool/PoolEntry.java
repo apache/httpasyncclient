@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.nio.reactor.IOSession;
 
-public abstract class PoolEntry<T> {
+public class PoolEntry<T> {
 
     private static AtomicLong COUNTER = new AtomicLong();
 

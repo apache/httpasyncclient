@@ -26,15 +26,15 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
+import org.apache.http.HttpConnection;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.nio.pool.PoolEntryFactory;
-import org.apache.http.impl.nio.pool.RouteResolver;
 import org.apache.http.impl.nio.pool.SessionPool;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
@@ -43,63 +43,58 @@ import org.apache.http.nio.reactor.IOSession;
 
 class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
+    private final Log log;
+    private final SchemeRegistry schemeRegistry;
+    private final long connTimeToLive;
+    private final TimeUnit tunit;
+
     HttpSessionPool(
             final Log log,
             final ConnectingIOReactor ioreactor,
             final SchemeRegistry schemeRegistry,
-            long timeToLive, final TimeUnit tunit) {
-        super(ioreactor,
-                new InternalEntryFactory(log, timeToLive, tunit),
-                new InternalRouteResolver(schemeRegistry),
-                20, 50);
+            long connTimeToLive, final TimeUnit tunit) {
+        super(ioreactor, 20, 50);
+        this.log = log;
+        this.schemeRegistry = schemeRegistry;
+        this.connTimeToLive = connTimeToLive;
+        this.tunit = tunit;
     }
 
-    static class InternalRouteResolver implements RouteResolver<HttpRoute> {
-
-        private final SchemeRegistry schemeRegistry;
-
-        InternalRouteResolver(final SchemeRegistry schemeRegistry) {
-            super();
-            this.schemeRegistry = schemeRegistry;
-        }
-
-        public SocketAddress resolveLocalAddress(final HttpRoute route) {
-            return new InetSocketAddress(route.getLocalAddress(), 0);
-        }
-
-        public SocketAddress resolveRemoteAddress(final HttpRoute route) {
-            HttpHost firsthop = route.getProxyHost();
-            if (firsthop == null) {
-                firsthop = route.getTargetHost();
-            }
-            String hostname = firsthop.getHostName();
-            int port = firsthop.getPort();
-            if (port < 0) {
-                Scheme scheme = this.schemeRegistry.getScheme(firsthop);
-                port = scheme.resolvePort(port);
-            }
-            return new InetSocketAddress(hostname, port);
-        }
-
+    @Override
+    protected SocketAddress resolveLocalAddress(final HttpRoute route) {
+        return new InetSocketAddress(route.getLocalAddress(), 0);
     }
 
-    static class InternalEntryFactory implements PoolEntryFactory<HttpRoute, HttpPoolEntry> {
-
-        private final Log log;
-        private final long connTimeToLive;
-        private final TimeUnit tunit;
-
-        InternalEntryFactory(final Log log, final long connTimeToLive, final TimeUnit tunit) {
-            super();
-            this.log = log;
-            this.connTimeToLive = connTimeToLive;
-            this.tunit = tunit;
+    @Override
+    protected SocketAddress resolveRemoteAddress(final HttpRoute route) {
+        HttpHost firsthop = route.getProxyHost();
+        if (firsthop == null) {
+            firsthop = route.getTargetHost();
         }
-
-        public HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-            return new HttpPoolEntry(this.log, route, session, this.connTimeToLive, this.tunit);
+        String hostname = firsthop.getHostName();
+        int port = firsthop.getPort();
+        if (port < 0) {
+            Scheme scheme = this.schemeRegistry.getScheme(firsthop);
+            port = scheme.resolvePort(port);
         }
+        return new InetSocketAddress(hostname, port);
+    }
 
-    };
+    @Override
+    protected HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
+        return new HttpPoolEntry(this.log, route, session, this.connTimeToLive, this.tunit);
+    }
+
+    @Override
+    protected void closeEntry(final HttpPoolEntry entry) {
+        HttpConnection conn = entry.getConnection();
+        try {
+            conn.close();
+        } catch (IOException ex) {
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("I/O error closing connection", ex);
+            }
+        }
+    }
 
 }

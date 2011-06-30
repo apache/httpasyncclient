@@ -39,27 +39,15 @@ import org.mockito.Mockito;
 
 public class TestRouteSpecificPool {
 
-    static class LocalPoolEntry extends PoolEntry<String> {
-
-        public LocalPoolEntry(final String route, final IOSession iosession,
-                long timeToLive, final TimeUnit tunit) {
-            super(route, iosession, timeToLive, tunit);
-        }
-
-    }
-
-    static class LocalPoolEntryFactory implements PoolEntryFactory<String, PoolEntry<String>> {
-
-        public PoolEntry<String> createEntry(final String route, final IOSession session) {
-            return new LocalPoolEntry(route, session, 0L, TimeUnit.MILLISECONDS);
-        }
-
-    };
-
     static class LocalRoutePool extends RouteSpecificPool<String, PoolEntry<String>> {
 
         public LocalRoutePool() {
-            super("whatever", new LocalPoolEntryFactory());
+            super("whatever");
+        }
+
+        @Override
+        protected PoolEntry<String> createEntry(String route, IOSession session) {
+            return new PoolEntry<String>(route, session, 0L, TimeUnit.MILLISECONDS);
         }
 
     };
@@ -269,7 +257,7 @@ public class TestRouteSpecificPool {
     public void testReleaseInvalidEntry() throws Exception {
         LocalRoutePool pool = new LocalRoutePool();
         IOSession session = Mockito.mock(IOSession.class);
-        LocalPoolEntry entry = new LocalPoolEntry("whatever", session, 0L, TimeUnit.MILLISECONDS);
+        PoolEntry<String> entry = new PoolEntry<String>("whatever", session, 0L, TimeUnit.MILLISECONDS);
         pool.freeEntry(entry, true);
     }
 

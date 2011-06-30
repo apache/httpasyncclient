@@ -78,10 +78,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = true;
         this.expiry = -1;
         this.tunit = TimeUnit.MILLISECONDS;
-
-        IOSession iosession = entry.getIOSession();
-        this.conn = (OperatedClientConnection) iosession.getAttribute(
-                ExecutionContext.HTTP_CONNECTION);
+        this.conn = entry.getConnection();
     }
 
     protected ClientConnectionManager getManager() {

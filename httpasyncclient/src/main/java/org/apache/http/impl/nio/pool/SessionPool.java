@@ -27,6 +27,7 @@
 package org.apache.http.impl.nio.pool;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,13 +48,11 @@ import org.apache.http.nio.reactor.SessionRequestCallback;
 public abstract class SessionPool<T, E extends PoolEntry<T>> {
 
     private final ConnectingIOReactor ioreactor;
-    private final PoolEntryFactory<T, E> factory;
     private final SessionRequestCallback sessionRequestCallback;
-    private final RouteResolver<T> routeResolver;
     private final Map<T, RouteSpecificPool<T, E>> routeToPool;
     private final LinkedList<LeaseRequest<T, E>> leasingRequests;
     private final Set<SessionRequest> pendingSessions;
-    private final Set<PoolEntry<T>> leasedSessions;
+    private final Set<E> leasedSessions;
     private final LinkedList<E> availableSessions;
     private final Map<T, Integer> maxPerRoute;
     private final Lock lock;
@@ -64,19 +63,11 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
 
     public SessionPool(
             final ConnectingIOReactor ioreactor,
-            final PoolEntryFactory<T, E> factory,
-            final RouteResolver<T> routeResolver,
             int defaultMaxPerRoute,
             int maxTotal) {
         super();
         if (ioreactor == null) {
             throw new IllegalArgumentException("I/O reactor may not be null");
-        }
-        if (factory == null) {
-            throw new IllegalArgumentException("Pool entry factory may not be null");
-        }
-        if (routeResolver == null) {
-            throw new IllegalArgumentException("Route resolver may not be null");
         }
         if (defaultMaxPerRoute <= 0) {
             throw new IllegalArgumentException("Max per route value may not be negative or zero");
@@ -85,19 +76,25 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
             throw new IllegalArgumentException("Max total value may not be negative or zero");
         }
         this.ioreactor = ioreactor;
-        this.factory = factory;
         this.sessionRequestCallback = new InternalSessionRequestCallback();
-        this.routeResolver = routeResolver;
         this.routeToPool = new HashMap<T, RouteSpecificPool<T, E>>();
         this.leasingRequests = new LinkedList<LeaseRequest<T, E>>();
         this.pendingSessions = new HashSet<SessionRequest>();
-        this.leasedSessions = new HashSet<PoolEntry<T>>();
+        this.leasedSessions = new HashSet<E>();
         this.availableSessions = new LinkedList<E>();
         this.maxPerRoute = new HashMap<T, Integer>();
         this.lock = new ReentrantLock();
         this.defaultMaxPerRoute = defaultMaxPerRoute;
         this.maxTotal = maxTotal;
     }
+
+    protected abstract SocketAddress resolveRemoteAddress(T route);
+
+    protected abstract SocketAddress resolveLocalAddress(T route);
+
+    protected abstract E createEntry(T route, IOSession session);
+
+    protected abstract void closeEntry(E entry);
 
     public boolean isShutdown() {
         return this.isShutDown;
@@ -110,11 +107,19 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         this.isShutDown = true;
         this.lock.lock();
         try {
+            for (SessionRequest sessionRequest: this.pendingSessions) {
+                sessionRequest.cancel();
+            }
+            for (E entry: this.availableSessions) {
+                closeEntry(entry);
+            }
+            for (E entry: this.leasedSessions) {
+                closeEntry(entry);
+            }
             for (RouteSpecificPool<T, E> pool: this.routeToPool.values()) {
                 pool.shutdown();
             }
             this.routeToPool.clear();
-
             this.leasedSessions.clear();
             this.pendingSessions.clear();
             this.availableSessions.clear();
@@ -128,7 +133,14 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
     private RouteSpecificPool<T, E> getPool(final T route) {
         RouteSpecificPool<T, E> pool = this.routeToPool.get(route);
         if (pool == null) {
-            pool = new RouteSpecificPool<T, E>(route, this.factory);
+            pool = new RouteSpecificPool<T, E>(route) {
+
+                @Override
+                protected E createEntry(final T route, final IOSession session) {
+                    return SessionPool.this.createEntry(route, session);
+                }
+
+            };
             this.routeToPool.put(route, pool);
         }
         return pool;
@@ -176,6 +188,8 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 pool.freeEntry(entry, reusable);
                 if (reusable) {
                     this.availableSessions.add(entry);
+                } else {
+                    closeEntry(entry);
                 }
                 processPendingRequests();
             }
@@ -201,11 +215,8 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 if (entry == null) {
                     break;
                 }
-                IOSession iosession = entry.getIOSession();
                 if (entry.isExpired(System.currentTimeMillis())) {
-                    iosession.close();
-                }
-                if (iosession.isClosed()) {
+                    closeEntry(entry);
                     this.availableSessions.remove(entry);
                     pool.freeEntry(entry, false);
                 } else {
@@ -231,8 +242,8 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
                 }
                 it.remove();
                 SessionRequest sessionRequest = this.ioreactor.connect(
-                        this.routeResolver.resolveRemoteAddress(route),
-                        this.routeResolver.resolveLocalAddress(route),
+                        resolveRemoteAddress(route),
+                        resolveLocalAddress(route),
                         route,
                         this.sessionRequestCallback);
                 sessionRequest.setConnectTimeout(timeout);
@@ -245,8 +256,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
     private void dropLastUsed() {
         if (!this.availableSessions.isEmpty()) {
             E entry = this.availableSessions.removeFirst();
-            IOSession iosession = entry.getIOSession();
-            iosession.close();
+            closeEntry(entry);
             RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
             pool.remove(entry);
         }
@@ -262,7 +272,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
         try {
             this.pendingSessions.remove(request);
             RouteSpecificPool<T, E> pool = getPool(route);
-            PoolEntry<T> entry = pool.completed(request);
+            E entry = pool.completed(request);
             this.leasedSessions.add(entry);
         } finally {
             this.lock.unlock();
@@ -410,8 +420,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
             while (it.hasNext()) {
                 E entry = it.next();
                 if (entry.getUpdated() <= deadline) {
-                    IOSession iosession = entry.getIOSession();
-                    iosession.close();
+                    closeEntry(entry);
                     RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
                     pool.remove(entry);
                     it.remove();
@@ -431,8 +440,7 @@ public abstract class SessionPool<T, E extends PoolEntry<T>> {
             while (it.hasNext()) {
                 E entry = it.next();
                 if (entry.isExpired(now)) {
-                    IOSession iosession = entry.getIOSession();
-                    iosession.close();
+                    closeEntry(entry);
                     RouteSpecificPool<T, E> pool = getPool(entry.getRoute());
                     pool.remove(entry);
                     it.remove();

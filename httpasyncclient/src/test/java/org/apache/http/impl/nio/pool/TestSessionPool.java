@@ -43,48 +43,32 @@ import org.mockito.Mockito;
 
 public class TestSessionPool {
 
-    static class LocalPoolEntry extends PoolEntry<String> {
-
-        public LocalPoolEntry(final String route, final IOSession iosession,
-                long timeToLive, final TimeUnit tunit) {
-            super(route, iosession, timeToLive, tunit);
-        }
-
-    }
-
-    static class LocalPoolEntryFactory implements PoolEntryFactory<String, PoolEntry<String>> {
-
-        public PoolEntry<String> createEntry(final String route, final IOSession session) {
-            return new LocalPoolEntry(route, session, 0L, TimeUnit.MILLISECONDS);
-        }
-
-    };
-
-    static class LocalRouteResolver implements RouteResolver<String> {
-
-        public SocketAddress resolveRemoteAddress(final String route) {
-            return InetSocketAddress.createUnresolved(route, 80);
-        }
-
-        public SocketAddress resolveLocalAddress(final String route) {
-            return InetSocketAddress.createUnresolved(route, 80);
-        }
-
-    };
-
     static class LocalSessionPool extends SessionPool<String, PoolEntry<String>> {
 
         public LocalSessionPool(
-                final ConnectingIOReactor ioreactor,
-                final PoolEntryFactory<String, PoolEntry<String>> factory,
-                final RouteResolver<String> routeResolver,
-                int defaultMaxPerRoute, int maxTotal) {
-            super(ioreactor, factory, routeResolver, defaultMaxPerRoute, maxTotal);
+                final ConnectingIOReactor ioreactor, int defaultMaxPerRoute, int maxTotal) {
+            super(ioreactor, defaultMaxPerRoute, maxTotal);
         }
 
-        public LocalSessionPool(
-                final ConnectingIOReactor ioreactor, int defaultMaxPerRoute, int maxTotal) {
-            super(ioreactor, new LocalPoolEntryFactory(), new LocalRouteResolver(), defaultMaxPerRoute, maxTotal);
+        @Override
+        protected SocketAddress resolveRemoteAddress(final String route) {
+            return InetSocketAddress.createUnresolved(route, 80);
+        }
+
+        @Override
+        protected SocketAddress resolveLocalAddress(final String route) {
+            return InetSocketAddress.createUnresolved(route, 80);
+        }
+
+        @Override
+        protected PoolEntry<String> createEntry(final String route, final IOSession session) {
+            return new PoolEntry<String>(route, session, 0L, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        protected void closeEntry(final PoolEntry<String> entry) {
+            IOSession session = entry.getIOSession();
+            session.close();
         }
 
     }
@@ -118,27 +102,17 @@ public class TestSessionPool {
     public void testInvalidConstruction() throws Exception {
         ConnectingIOReactor ioreactor = Mockito.mock(ConnectingIOReactor.class);
         try {
-            new LocalSessionPool(null, new LocalPoolEntryFactory(), new LocalRouteResolver(), 1, 1);
+            new LocalSessionPool(null, 1, 1);
             Assert.fail("IllegalArgumentException should have been thrown");
         } catch (IllegalArgumentException expected) {
         }
         try {
-            new LocalSessionPool(ioreactor, null, new LocalRouteResolver(), 1, 1);
+            new LocalSessionPool(ioreactor, -1, 1);
             Assert.fail("IllegalArgumentException should have been thrown");
         } catch (IllegalArgumentException expected) {
         }
         try {
-            new LocalSessionPool(ioreactor, new LocalPoolEntryFactory(), null, 1, 1);
-            Assert.fail("IllegalArgumentException should have been thrown");
-        } catch (IllegalArgumentException expected) {
-        }
-        try {
-            new LocalSessionPool(ioreactor, new LocalPoolEntryFactory(), new LocalRouteResolver(), -1, 1);
-            Assert.fail("IllegalArgumentException should have been thrown");
-        } catch (IllegalArgumentException expected) {
-        }
-        try {
-            new LocalSessionPool(ioreactor, new LocalPoolEntryFactory(), new LocalRouteResolver(), 1, -1);
+            new LocalSessionPool(ioreactor, 1, -1);
             Assert.fail("IllegalArgumentException should have been thrown");
         } catch (IllegalArgumentException expected) {
         }
@@ -319,6 +293,8 @@ public class TestSessionPool {
         pool.release(entry1, true);
         pool.release(entry2, true);
         pool.release(entry3, false);
+        Mockito.verify(iosession1, Mockito.never()).close();
+        Mockito.verify(iosession2, Mockito.times(1)).close();
 
         PoolStats totals = pool.getTotalStats();
         Assert.assertEquals(2, totals.getAvailable());
@@ -351,7 +327,7 @@ public class TestSessionPool {
     public void testReleaseUnknownEntry() throws Exception {
         ConnectingIOReactor ioreactor = Mockito.mock(ConnectingIOReactor.class);
         LocalSessionPool pool = new LocalSessionPool(ioreactor, 2, 2);
-        pool.release(new LocalPoolEntry(
+        pool.release(new PoolEntry<String>(
                 "somehost", Mockito.mock(IOSession.class), 1000, TimeUnit.SECONDS), true);
     }
 
@@ -857,7 +833,8 @@ public class TestSessionPool {
         } catch (IllegalStateException expected) {
         }
         // Ignored if shut down
-        pool.release(new LocalPoolEntry("somehost", Mockito.mock(IOSession.class), 1000, TimeUnit.SECONDS), true);
+        pool.release(new PoolEntry<String>(
+                "somehost", Mockito.mock(IOSession.class), 1000, TimeUnit.SECONDS), true);
         pool.requestCompleted(Mockito.mock(SessionRequest.class));
         pool.requestFailed(Mockito.mock(SessionRequest.class));
         pool.requestCancelled(Mockito.mock(SessionRequest.class));
