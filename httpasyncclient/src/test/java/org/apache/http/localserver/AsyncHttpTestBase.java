@@ -86,14 +86,6 @@ public abstract class AsyncHttpTestBase {
     }
 
     @After
-    public void stopServer() throws Exception {
-        if (this.localServer != null) {
-            this.localServer.stop();
-            this.localServer = null;
-        }
-    }
-
-    @After
     public void stopClient() throws Exception {
         if (this.httpclient != null) {
             this.httpclient.shutdown();
@@ -101,6 +93,14 @@ public abstract class AsyncHttpTestBase {
                 System.err.println("I/O reactor failed to shut down cleanly");
             }
             this.httpclient = null;
+        }
+    }
+
+    @After
+    public void stopServer() throws Exception {
+        if (this.localServer != null) {
+            this.localServer.stop();
+            this.localServer = null;
         }
     }
 
