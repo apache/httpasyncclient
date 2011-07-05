@@ -28,6 +28,7 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.net.ProtocolException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -251,8 +252,11 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode < HttpStatus.SC_OK) {
                 // 1xx intermediate response
-                if (statusCode == HttpStatus.SC_CONTINUE
-                        && httpexchange.getRequestState() == MessageState.ACK) {
+                if (statusCode != HttpStatus.SC_CONTINUE) {
+                    throw new ProtocolException(
+                            "Unexpected response: " + response.getStatusLine());
+                }
+                if (httpexchange.getRequestState() == MessageState.ACK) {
                     int timeout = httpexchange.getTimeout();
                     conn.setSocketTimeout(timeout);
                     conn.requestOutput();
