@@ -29,6 +29,7 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.net.SocketTimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -313,6 +314,7 @@ class NHttpClientProtocolHandler implements NHttpClientHandler {
                 conn.requestOutput();
                 httpexchange.setRequestState(MessageState.BODY_STREAM);
             } else {
+                handler.failed(new SocketTimeoutException());
                 if (conn.getStatus() == NHttpConnection.ACTIVE) {
                     conn.close();
                     if (conn.getStatus() == NHttpConnection.CLOSING) {
