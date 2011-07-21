@@ -32,6 +32,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPost;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createPost(URI, String, String, String)}
+ *  or {@link HttpAsyncMethods#createPost(URI, byte[], String)}
+ */
+@Deprecated
 public class HttpAsyncPost extends BaseHttpAsyncEntityRequestProducer {
 
     public HttpAsyncPost(final URI requestURI, final byte[] content, final String contentType) {

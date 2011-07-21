@@ -24,19 +24,18 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.client;
+package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.methods.AbstractHttpAsyncResponseConsumer;
 import org.apache.http.nio.entity.BufferingNHttpEntity;
 import org.apache.http.nio.entity.ConsumingNHttpEntity;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 
-class BasicHttpAsyncResponseConsumer extends AbstractHttpAsyncResponseConsumer<HttpResponse> {
+public class BasicHttpAsyncResponseConsumer extends AbstractHttpAsyncResponseConsumer<HttpResponse> {
 
     private volatile HttpResponse response;
     private volatile ConsumingNHttpEntity consumer;

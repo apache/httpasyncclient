@@ -31,6 +31,10 @@ import java.net.URI;
 import org.apache.http.client.methods.HttpTrace;
 import org.apache.http.client.methods.HttpUriRequest;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createTrace(URI)}
+ */
+@Deprecated
 public class HttpAsyncTrace extends BaseHttpAsyncRequestProducer {
 
     public HttpAsyncTrace(final URI requestURI) {

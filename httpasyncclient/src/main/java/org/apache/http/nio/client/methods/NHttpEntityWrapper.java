@@ -25,7 +25,7 @@
  *
  */
 
-package org.apache.http.impl.nio.client;
+package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
 import java.io.InputStream;

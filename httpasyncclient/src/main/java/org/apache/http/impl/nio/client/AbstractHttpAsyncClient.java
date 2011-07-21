@@ -78,6 +78,7 @@ import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
+import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.concurrent.BasicFuture;
 import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
@@ -528,8 +529,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             final HttpHost target, final HttpRequest request, final HttpContext context,
             final FutureCallback<HttpResponse> callback) {
         return execute(
-                new BasicHttpAsyncRequestProducer(target, request),
-                new BasicHttpAsyncResponseConsumer(),
+                HttpAsyncMethods.create(target, request),
+                HttpAsyncMethods.createConsumer(),
                 context, callback);
     }
 

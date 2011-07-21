@@ -32,6 +32,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPut;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createPut(URI, String, String, String)}
+ *  or {@link HttpAsyncMethods#createPut(URI, byte[], String)}
+ */
+@Deprecated
 public class HttpAsyncPut extends BaseHttpAsyncEntityRequestProducer {
 
     public HttpAsyncPut(final URI requestURI, final byte[] content, final String contentType) {

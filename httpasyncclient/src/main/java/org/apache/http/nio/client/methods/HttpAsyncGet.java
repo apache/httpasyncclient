@@ -31,6 +31,10 @@ import java.net.URI;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createGet(URI)}
+ */
+@Deprecated
 public class HttpAsyncGet extends BaseHttpAsyncRequestProducer {
 
     public HttpAsyncGet(final URI requestURI) {

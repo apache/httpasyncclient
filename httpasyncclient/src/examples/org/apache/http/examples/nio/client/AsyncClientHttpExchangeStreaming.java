@@ -35,7 +35,7 @@ import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.AsyncCharConsumer;
-import org.apache.http.nio.client.methods.HttpAsyncGet;
+import org.apache.http.nio.client.methods.HttpAsyncMethods;
 
 public class AsyncClientHttpExchangeStreaming {
 
@@ -44,7 +44,7 @@ public class AsyncClientHttpExchangeStreaming {
         httpclient.start();
         try {
             Future<Boolean> future = httpclient.execute(
-                    new HttpAsyncGet("http://localhost:8080/"),
+                    HttpAsyncMethods.createGet("http://localhost:8080/"),
                     new MyResponseConsumer(), null);
             Boolean result = future.get();
             if (result != null && result.booleanValue()) {

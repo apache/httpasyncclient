@@ -45,6 +45,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.entity.ProducingNHttpEntity;
 import org.apache.http.protocol.HTTP;
 
+@Deprecated
 abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestProducer, Closeable {
 
     private final URI requestURI;

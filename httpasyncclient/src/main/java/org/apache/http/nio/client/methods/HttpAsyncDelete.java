@@ -31,6 +31,10 @@ import java.net.URI;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpUriRequest;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createDelete(URI)}
+ */
+@Deprecated
 public class HttpAsyncDelete extends BaseHttpAsyncRequestProducer {
 
     public HttpAsyncDelete(final URI requestURI) {

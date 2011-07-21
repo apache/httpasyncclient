@@ -37,6 +37,7 @@ import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 
+@Deprecated
 abstract class BaseHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
 
     private final URI requestURI;

@@ -31,6 +31,10 @@ import java.net.URI;
 import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.client.methods.HttpUriRequest;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createOptions(URI)}
+ */
+@Deprecated
 public class HttpAsyncOptions extends BaseHttpAsyncRequestProducer {
 
     public HttpAsyncOptions(final URI requestURI) {

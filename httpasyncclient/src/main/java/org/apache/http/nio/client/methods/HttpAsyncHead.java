@@ -31,6 +31,10 @@ import java.net.URI;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 
+/**
+ * @deprecated use {@link HttpAsyncMethods#createHead(URI)}
+ */
+@Deprecated
 public class HttpAsyncHead extends BaseHttpAsyncRequestProducer {
 
     public HttpAsyncHead(final URI requestURI) {
