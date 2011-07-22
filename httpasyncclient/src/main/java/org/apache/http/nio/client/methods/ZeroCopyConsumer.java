@@ -32,10 +32,12 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentDecoderChannel;
 import org.apache.http.nio.FileContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.protocol.HTTP;
 
 public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
 
@@ -87,6 +89,9 @@ public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsu
 
     @Override
     protected T buildResult() throws Exception {
+        FileEntity entity = new FileEntity(this.file, null);
+        entity.setContentType(this.response.getFirstHeader(HTTP.CONTENT_TYPE));
+        this.response.setEntity(entity);
         return process(this.response, this.file);
     }
 

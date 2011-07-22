@@ -26,6 +26,7 @@
  */
 package org.apache.http.nio.client.methods;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 
@@ -189,8 +190,47 @@ public final class HttpAsyncMethods {
         return createPut(URI.create(requestURI), content, contentType);
     }
 
+    public static HttpAsyncRequestProducer createZeroCopyPost(
+            final URI requestURI,
+            final File content,
+            final String contentType) {
+        return new ZeroCopyPost(requestURI, content, contentType);
+    }
+
+    public static HttpAsyncRequestProducer createZeroCopyPost(
+            final String requestURI,
+            final File content,
+            final String contentType) {
+        return new ZeroCopyPost(URI.create(requestURI), content, contentType);
+    }
+
+    public static HttpAsyncRequestProducer createZeroCopyPut(
+            final URI requestURI,
+            final File content,
+            final String contentType) {
+        return new ZeroCopyPut(requestURI, content, contentType);
+    }
+
+    public static HttpAsyncRequestProducer createZeroCopyPut(
+            final String requestURI,
+            final File content,
+            final String contentType) {
+        return new ZeroCopyPut(URI.create(requestURI), content, contentType);
+    }
+
     public static HttpAsyncResponseConsumer<HttpResponse> createConsumer() {
         return new BasicHttpAsyncResponseConsumer();
+    }
+
+    public static HttpAsyncResponseConsumer<HttpResponse> createZeroCopyConsumer(final File file) {
+        return new ZeroCopyConsumer<HttpResponse>(file) {
+
+            @Override
+            protected HttpResponse process(final HttpResponse response, final File file) throws Exception {
+                return response;
+            }
+
+        };
     }
 
 }
