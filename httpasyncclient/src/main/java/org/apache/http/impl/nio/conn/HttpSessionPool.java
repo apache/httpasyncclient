@@ -30,18 +30,22 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.http.HttpConnection;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.nio.pool.SessionPool;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.pool.AbstractNIOConnPool;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.protocol.ExecutionContext;
 
-class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
+class HttpSessionPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPoolEntry> {
+
+    private static AtomicLong COUNTER = new AtomicLong();
 
     private final Log log;
     private final SchemeRegistry schemeRegistry;
@@ -82,12 +86,15 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
 
     @Override
     protected HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-        return new HttpPoolEntry(this.log, route, session, this.connTimeToLive, this.tunit);
+        String id = Long.toString(COUNTER.getAndIncrement());
+        return new HttpPoolEntry(this.log, id, route, session, this.connTimeToLive, this.tunit);
     }
 
     @Override
     protected void closeEntry(final HttpPoolEntry entry) {
-        HttpConnection conn = entry.getConnection();
+        IOSession session = entry.getConnection();
+        HttpConnection conn = (HttpConnection) session.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
         try {
             conn.shutdown();
         } catch (IOException ex) {
@@ -95,6 +102,11 @@ class HttpSessionPool extends SessionPool<HttpRoute, HttpPoolEntry> {
                 this.log.debug("I/O error shutting down connection", ex);
             }
         }
+    }
+
+    @Override
+    protected IOSession createConnection(final HttpRoute route, final IOSession session) {
+        return session;
     }
 
 }

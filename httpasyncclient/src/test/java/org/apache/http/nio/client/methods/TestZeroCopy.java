@@ -46,12 +46,12 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.localserver.AsyncHttpTestBase;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -108,7 +108,7 @@ public class TestZeroCopy extends AsyncHttpTestBase {
         private final boolean forceChunking;
 
         protected TestZeroCopyPost(final String requestURI, final boolean forceChunking) {
-            super(URI.create(requestURI), TEST_FILE, "text/plain");
+            super(URI.create(requestURI), TEST_FILE, ContentType.create("text/plain", null));
             this.forceChunking = forceChunking;
         }
 
@@ -166,8 +166,8 @@ public class TestZeroCopy extends AsyncHttpTestBase {
 
             InputStream instream = requestEntity.getContent();
             try {
-                LineIterator it = IOUtils.lineIterator(instream,
-                        EntityUtils.getContentCharSet(requestEntity));
+                ContentType contentType = ContentType.getOrDefault(requestEntity);
+                LineIterator it = IOUtils.lineIterator(instream, contentType.getCharset());
                 int count = 0;
                 while (it.hasNext()) {
                     String line = it.next();
@@ -183,7 +183,8 @@ public class TestZeroCopy extends AsyncHttpTestBase {
                 instream.close();
             }
             if (ok) {
-                FileEntity responseEntity = new FileEntity(TEST_FILE, "text/plian");
+                FileEntity responseEntity = new FileEntity(TEST_FILE,
+                        ContentType.create("text/plian", null));
                 if (this.forceChunking) {
                     responseEntity.setChunked(true);
                 }

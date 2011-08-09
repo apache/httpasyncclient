@@ -41,11 +41,11 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpTrace;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.entity.ContentType;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.protocol.HTTP;
 
 public final class HttpAsyncMethods {
 
@@ -110,16 +110,9 @@ public final class HttpAsyncMethods {
     public static HttpAsyncRequestProducer createPost(
             final URI requestURI,
             final String content,
-            String mimeType, String charset) throws UnsupportedEncodingException {
+            final ContentType contentType) throws UnsupportedEncodingException {
         HttpPost httppost = new HttpPost(requestURI);
-        if (mimeType == null) {
-            mimeType = HTTP.PLAIN_TEXT_TYPE;
-        }
-        if (charset == null) {
-            charset = HTTP.DEFAULT_CONTENT_CHARSET;
-        }
-        NStringEntity entity = new NStringEntity(content, charset);
-        entity.setContentType(mimeType + HTTP.CHARSET_PARAM + charset);
+        NStringEntity entity = new NStringEntity(content, contentType);
         httppost.setEntity(entity);
         HttpHost target = URIUtils.extractHost(requestURI);
         return new HttpAsyncRequestProducerImpl(target, httppost, entity);
@@ -128,39 +121,33 @@ public final class HttpAsyncMethods {
     public static HttpAsyncRequestProducer createPost(
             final String requestURI,
             final String content,
-            String mimeType, String charset) throws UnsupportedEncodingException {
-        return createPost(URI.create(requestURI), content, mimeType, charset);
+            final ContentType contentType) throws UnsupportedEncodingException {
+        return createPost(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createPost(
             final URI requestURI,
-            final byte[] content, final String contentType) {
+            final byte[] content,
+            final ContentType contentType) {
         HttpPost httppost = new HttpPost(requestURI);
-        NByteArrayEntity entity = new NByteArrayEntity(content);
-        entity.setContentType(contentType);
+        NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
         HttpHost target = URIUtils.extractHost(requestURI);
         return new HttpAsyncRequestProducerImpl(target, httppost, entity);
     }
 
     public static HttpAsyncRequestProducer createPost(
             final String requestURI,
-            final byte[] content, final String contentType) {
+            final byte[] content,
+            final ContentType contentType) {
         return createPost(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createPut(
             final URI requestURI,
             final String content,
-            String mimeType, String charset) throws UnsupportedEncodingException {
+            final ContentType contentType) throws UnsupportedEncodingException {
         HttpPut httpput = new HttpPut(requestURI);
-        if (mimeType == null) {
-            mimeType = HTTP.PLAIN_TEXT_TYPE;
-        }
-        if (charset == null) {
-            charset = HTTP.DEFAULT_CONTENT_CHARSET;
-        }
-        NStringEntity entity = new NStringEntity(content, charset);
-        entity.setContentType(mimeType + HTTP.CHARSET_PARAM + charset);
+        NStringEntity entity = new NStringEntity(content, contentType);
         httpput.setEntity(entity);
         HttpHost target = URIUtils.extractHost(requestURI);
         return new HttpAsyncRequestProducerImpl(target, httpput, entity);
@@ -169,52 +156,52 @@ public final class HttpAsyncMethods {
     public static HttpAsyncRequestProducer createPut(
             final String requestURI,
             final String content,
-            String mimeType, String charset) throws UnsupportedEncodingException {
-        return createPut(URI.create(requestURI), content, mimeType, charset);
+            final ContentType contentType) throws UnsupportedEncodingException {
+        return createPut(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createPut(
             final URI requestURI,
             final byte[] content,
-            final String contentType) {
+            final ContentType contentType) {
         HttpPut httpput = new HttpPut(requestURI);
-        NByteArrayEntity entity = new NByteArrayEntity(content);
-        entity.setContentType(contentType);
+        NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
         HttpHost target = URIUtils.extractHost(requestURI);
         return new HttpAsyncRequestProducerImpl(target, httpput, entity);
     }
 
     public static HttpAsyncRequestProducer createPut(
             final String requestURI,
-            final byte[] content, final String contentType) {
+            final byte[] content,
+            final ContentType contentType) {
         return createPut(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final URI requestURI,
             final File content,
-            final String contentType) {
+            final ContentType contentType) {
         return new ZeroCopyPost(requestURI, content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final String requestURI,
             final File content,
-            final String contentType) {
+            final ContentType contentType) {
         return new ZeroCopyPost(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final URI requestURI,
             final File content,
-            final String contentType) {
+            final ContentType contentType) {
         return new ZeroCopyPut(requestURI, content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final String requestURI,
             final File content,
-            final String contentType) {
+            final ContentType contentType) {
         return new ZeroCopyPut(URI.create(requestURI), content, contentType);
     }
 

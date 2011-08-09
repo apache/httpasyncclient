@@ -30,9 +30,9 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.concurrent.FutureCallback;
 
 public class AsyncClientHttpExchangeFutureCallback {
 

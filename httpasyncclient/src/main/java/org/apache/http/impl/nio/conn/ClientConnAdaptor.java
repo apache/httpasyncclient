@@ -78,7 +78,9 @@ class ClientConnAdaptor implements ManagedClientConnection {
         this.reusable = true;
         this.expiry = -1;
         this.tunit = TimeUnit.MILLISECONDS;
-        this.conn = entry.getConnection();
+        IOSession session = entry.getConnection();
+        this.conn = (OperatedClientConnection) session.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
     }
 
     protected ClientConnectionManager getManager() {
@@ -345,7 +347,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
         HttpHost target = route.getTargetHost();
         HttpHost proxy = route.getProxyHost();
-        IOSession iosession = this.entry.getIOSession();
+        IOSession iosession = this.entry.getConnection();
 
         if (proxy == null) {
             Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
@@ -358,7 +360,11 @@ class ClientConnAdaptor implements ManagedClientConnection {
         }
 
         OperatedClientConnection conn = new DefaultClientConnection(
-                iosession, createHttpResponseFactory(), createByteBufferAllocator(), params);
+                "http-outgoing-" + this.entry.getId(),
+                iosession,
+                createHttpResponseFactory(),
+                createByteBufferAllocator(),
+                params);
         iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
 
         this.conn = conn;
@@ -413,7 +419,7 @@ class ClientConnAdaptor implements ManagedClientConnection {
             throw new IllegalStateException(scheme.getName() +
                     " scheme does not provider support for protocol layering");
         }
-        IOSession iosession = this.entry.getIOSession();
+        IOSession iosession = this.entry.getConnection();
         SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
         ssliosession.bind(SSLMode.CLIENT, params);
 

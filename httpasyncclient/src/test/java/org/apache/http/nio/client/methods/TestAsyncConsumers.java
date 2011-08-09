@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
+import org.apache.http.entity.ContentType;
 import org.apache.http.localserver.AsyncHttpTestBase;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
@@ -146,7 +147,8 @@ public class TestAsyncConsumers extends AsyncHttpTestBase {
 
         for (int i = 0; i < 5; i++) {
             HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
-                    this.target.toURI() + "/echo/stuff", s, "text/plain", HTTP.ASCII);
+                    this.target.toURI() + "/echo/stuff", s,
+                    ContentType.create("text/plain", HTTP.ASCII));
             AsyncCharConsumer<String> consumer = new BufferingCharConsumer();
             Future<String> future = this.httpclient.execute(httppost, consumer, null);
             String result = future.get();
@@ -165,7 +167,8 @@ public class TestAsyncConsumers extends AsyncHttpTestBase {
 
         for (int i = 0; i < 5; i++) {
             HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
-                    this.target.toURI() + "/echo/stuff", s, "text/plain", HTTP.ASCII);
+                    this.target.toURI() + "/echo/stuff", s,
+                    ContentType.create("text/plain", HTTP.ASCII));
             AsyncCharConsumer<String> consumer = new BufferingCharConsumer(512);
             Future<String> future = this.httpclient.execute(httppost, consumer, null);
             String result = future.get();
@@ -183,7 +186,8 @@ public class TestAsyncConsumers extends AsyncHttpTestBase {
         String s = sb.toString();
 
         HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
-                this.target.toURI() + "/echo/stuff", s, "text/plain", HTTP.ASCII);
+                this.target.toURI() + "/echo/stuff", s,
+                ContentType.create("text/plain", HTTP.ASCII));
         AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
         Future<String> future = this.httpclient.execute(httppost, consumer, null);
         String result = future.get();
@@ -197,7 +201,8 @@ public class TestAsyncConsumers extends AsyncHttpTestBase {
     @Test
     public void testResourceReleaseOnException() throws Exception {
         HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
-                this.target.toURI() + "/echo/stuff", "stuff", "text/plain", HTTP.ASCII);
+                this.target.toURI() + "/echo/stuff", "stuff",
+                ContentType.create("text/plain", HTTP.ASCII));
         AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
         Mockito.doThrow(new IOException("Kaboom")).when(consumer).consumeContent(
                 Mockito.any(ContentDecoder.class), Mockito.any(IOControl.class));
@@ -220,7 +225,8 @@ public class TestAsyncConsumers extends AsyncHttpTestBase {
     @Test
     public void testResourceReleaseOnBuildFailure() throws Exception {
         HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
-                this.target.toURI() + "/echo/stuff", "stuff", "text/plain", HTTP.ASCII);
+                this.target.toURI() + "/echo/stuff", "stuff",
+                ContentType.create("text/plain", HTTP.ASCII));
         AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
         Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult();
 

@@ -40,6 +40,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.ContentEncoderChannel;
 import org.apache.http.nio.FileContentEncoder;
@@ -50,13 +51,13 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer, 
 
     private final URI requestURI;
     private final File file;
-    private final String contentType;
+    private final ContentType contentType;
 
     private FileChannel fileChannel;
     private long idx = -1;
 
     protected BaseZeroCopyRequestProducer(
-            final URI requestURI, final File file, final String contentType) {
+            final URI requestURI, final File file, final ContentType contentType) {
         super();
         if (requestURI == null) {
             throw new IllegalArgumentException("Request URI may not be null");
@@ -75,7 +76,9 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer, 
         BasicHttpEntity entity = new BasicHttpEntity();
         entity.setChunked(false);
         entity.setContentLength(this.file.length());
-        entity.setContentType(this.contentType);
+        if (this.contentType != null) {
+            entity.setContentType(this.contentType.toString());
+        }
         return createRequest(this.requestURI, entity);
     }
 

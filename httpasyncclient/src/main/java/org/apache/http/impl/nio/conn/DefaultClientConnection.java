@@ -28,7 +28,6 @@ package org.apache.http.impl.nio.conn;
 
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,18 +54,17 @@ public class DefaultClientConnection
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
     private final Log log;
 
-    private static final AtomicLong COUNT = new AtomicLong();
-
     private String id;
     private SSLIOSession ssliosession;
 
     public DefaultClientConnection(
+            final String id,
             final IOSession iosession,
             final HttpResponseFactory responseFactory,
             final ByteBufferAllocator allocator,
             final HttpParams params) {
         super(iosession, responseFactory, allocator, params);
-        this.id = "http-outgoing-" + COUNT.incrementAndGet();
+        this.id = id;
         this.log = LogFactory.getLog(iosession.getClass());
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
             this.session = new LoggingIOSession(iosession, this.id, this.log, this.wirelog);

@@ -86,8 +86,8 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
         int reqCount = 20;
 
-        this.sessionManager.setDefaultMaxPerHost(reqCount);
-        this.sessionManager.setTotalMax(100);
+        this.sessionManager.setDefaultMaxPerRoute(reqCount);
+        this.sessionManager.setMaxTotal(100);
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
@@ -117,8 +117,8 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
         int reqCount = 20;
 
-        this.sessionManager.setDefaultMaxPerHost(1);
-        this.sessionManager.setTotalMax(100);
+        this.sessionManager.setDefaultMaxPerRoute(1);
+        this.sessionManager.setMaxTotal(100);
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 

@@ -32,7 +32,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.nio.concurrent.FutureCallback;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;

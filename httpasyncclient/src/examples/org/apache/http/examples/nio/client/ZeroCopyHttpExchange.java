@@ -32,6 +32,7 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.ZeroCopyConsumer;
@@ -45,7 +46,8 @@ public class ZeroCopyHttpExchange {
         try {
             File upload = new File(args[0]);
             File download = new File(args[1]);
-            ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload, "text/plain");
+            ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload,
+                    ContentType.create("text/plain", null));
             ZeroCopyConsumer<File> consumer = new ZeroCopyConsumer<File>(download) {
 
                 @Override
