@@ -422,7 +422,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.log.debug("HTTP exchange cancelled");
         try {
             this.responseConsumer.cancel();
-            this.resultCallback.cancelled(this);
+
+            T result = this.responseConsumer.getResult();
+            Exception ex = this.responseConsumer.getException();
+            if (ex != null) {
+                this.resultCallback.failed(ex, this);
+            } else if (result != null) {
+                this.resultCallback.completed(result, this);
+            } else {
+                this.resultCallback.cancelled(this);
+            }
         } catch (RuntimeException runex) {
             this.resultCallback.failed(runex, this);
             throw runex;
