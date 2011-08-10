@@ -43,7 +43,7 @@ import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.ExecutionContext;
 
-class HttpSessionPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPoolEntry> {
+class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPoolEntry> {
 
     private static AtomicLong COUNTER = new AtomicLong();
 
@@ -52,7 +52,7 @@ class HttpSessionPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
     private final long connTimeToLive;
     private final TimeUnit tunit;
 
-    HttpSessionPool(
+    HttpNIOConnPool(
             final Log log,
             final ConnectingIOReactor ioreactor,
             final SchemeRegistry schemeRegistry,

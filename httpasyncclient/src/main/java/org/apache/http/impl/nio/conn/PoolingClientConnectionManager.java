@@ -50,7 +50,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
     private final Log log = LogFactory.getLog(getClass());
 
     private final ConnectingIOReactor ioreactor;
-    private final HttpSessionPool pool;
+    private final HttpNIOConnPool pool;
     private final SchemeRegistry schemeRegistry;
 
     public PoolingClientConnectionManager(
@@ -68,7 +68,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
             throw new IllegalArgumentException("Time unit may not be null");
         }
         this.ioreactor = ioreactor;
-        this.pool = new HttpSessionPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
+        this.pool = new HttpNIOConnPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
     }
 
