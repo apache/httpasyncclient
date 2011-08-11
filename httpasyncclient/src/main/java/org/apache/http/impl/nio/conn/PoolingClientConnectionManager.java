@@ -176,14 +176,14 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
         if (conn == null) {
             throw new IllegalArgumentException("HTTP connection may not be null");
         }
-        if (!(conn instanceof ClientConnAdaptor)) {
+        if (!(conn instanceof ManagedClientConnectionImpl)) {
             throw new IllegalArgumentException("Connection class mismatch, " +
                  "connection not obtained from this manager");
         }
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        ClientConnAdaptor managedConn = (ClientConnAdaptor) conn;
+        ManagedClientConnectionImpl managedConn = (ManagedClientConnectionImpl) conn;
         ClientConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
@@ -287,7 +287,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
             if (log.isDebugEnabled()) {
                 log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
             }
-            ManagedClientConnection conn = new ClientConnAdaptor(
+            ManagedClientConnection conn = new ManagedClientConnectionImpl(
                     PoolingClientConnectionManager.this,
                     entry);
             if (!this.future.completed(conn)) {

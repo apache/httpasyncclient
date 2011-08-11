@@ -56,14 +56,14 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
-class ClientConnAdaptor implements ManagedClientConnection {
+class ManagedClientConnectionImpl implements ManagedClientConnection {
 
     private final ClientConnectionManager manager;
     private volatile HttpPoolEntry poolEntry;
     private volatile boolean reusable;
     private volatile long duration;
 
-    public ClientConnAdaptor(
+    public ManagedClientConnectionImpl(
             final ClientConnectionManager manager,
             final HttpPoolEntry poolEntry) {
         super();
