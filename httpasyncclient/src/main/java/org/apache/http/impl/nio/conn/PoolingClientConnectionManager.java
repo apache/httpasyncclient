@@ -183,31 +183,46 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        ClientConnAdaptor adaptor = (ClientConnAdaptor) conn;
-        ClientConnectionManager manager = adaptor.getManager();
+        ClientConnAdaptor managedConn = (ClientConnAdaptor) conn;
+        ClientConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
         }
         if (this.pool.isShutdown()) {
             return;
         }
-        HttpPoolEntry entry = adaptor.getEntry();
-        boolean reusable = adaptor.isReusable();
-        if (reusable) {
-            entry.updateExpiry(keepalive, tunit);
-            if (this.log.isDebugEnabled()) {
-                String s;
-                if (keepalive > 0) {
-                    s = "for " + keepalive + " " + tunit;
-                } else {
-                    s = "indefinitely";
-                }
-                this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
+
+        synchronized (managedConn) {
+            HttpPoolEntry entry = managedConn.detach();
+            if (entry == null) {
+                return;
             }
-        }
-        this.pool.release(entry, reusable);
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("Connection released: " + format(entry) + formatStats(entry.getRoute()));
+            try {
+                if (managedConn.isOpen() && !managedConn.isMarkedReusable()) {
+                    try {
+                        managedConn.shutdown();
+                    } catch (IOException iox) {
+                        if (this.log.isDebugEnabled()) {
+                            this.log.debug("I/O exception shutting down released connection", iox);
+                        }
+                    }
+                }
+                entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                if (this.log.isDebugEnabled()) {
+                    String s;
+                    if (keepalive > 0) {
+                        s = "for " + keepalive + " " + tunit;
+                    } else {
+                        s = "indefinitely";
+                    }
+                    this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
+                }
+            } finally {
+                this.pool.release(entry, managedConn.isMarkedReusable());
+            }
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("Connection released: " + format(entry) + formatStats(entry.getRoute()));
+            }
         }
     }
 

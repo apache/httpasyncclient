@@ -35,7 +35,6 @@ import javax.net.ssl.SSLSession;
 import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpInetConnection;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseFactory;
@@ -45,7 +44,6 @@ import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.conn.ConnectionShutdownException;
 import org.apache.http.impl.nio.reactor.SSLIOSession;
 import org.apache.http.impl.nio.reactor.SSLMode;
-import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.OperatedClientConnection;
@@ -61,271 +59,228 @@ import org.apache.http.protocol.HttpContext;
 class ClientConnAdaptor implements ManagedClientConnection {
 
     private final ClientConnectionManager manager;
-    private HttpPoolEntry entry;
-    private OperatedClientConnection conn;
-    private volatile boolean released;
+    private volatile HttpPoolEntry poolEntry;
     private volatile boolean reusable;
-    private long expiry;
-    private TimeUnit tunit;
+    private volatile long duration;
 
     public ClientConnAdaptor(
             final ClientConnectionManager manager,
-            final HttpPoolEntry entry) {
+            final HttpPoolEntry poolEntry) {
         super();
         this.manager = manager;
-        this.entry = entry;
-        this.released = false;
+        this.poolEntry = poolEntry;
         this.reusable = true;
-        this.expiry = -1;
-        this.tunit = TimeUnit.MILLISECONDS;
-        IOSession session = entry.getConnection();
-        this.conn = (OperatedClientConnection) session.getAttribute(
-                ExecutionContext.HTTP_CONNECTION);
+        this.duration = Long.MAX_VALUE;
     }
 
-    protected ClientConnectionManager getManager() {
+    HttpPoolEntry getPoolEntry() {
+        return this.poolEntry;
+    }
+
+    HttpPoolEntry detach() {
+        HttpPoolEntry local = this.poolEntry;
+        this.poolEntry = null;
+        return local;
+    }
+
+    public ClientConnectionManager getManager() {
         return this.manager;
     }
 
-    protected HttpPoolEntry getEntry() {
-        return this.entry;
-    }
-
-    public synchronized void releaseConnection() {
-        if (this.released) {
-            return;
-        }
-        this.released = true;
-        this.manager.releaseConnection(this, this.expiry, this.tunit);
-        this.entry = null;
-        this.conn = null;
-    }
-
-    public synchronized void abortConnection() {
-        if (this.released) {
-            return;
-        }
-        this.released = true;
-        this.reusable = false;
-        this.manager.releaseConnection(this, this.expiry, this.tunit);
-        this.entry = null;
-        this.conn = null;
-    }
-
-    public synchronized Object getState() {
-        if (this.released) {
+    private OperatedClientConnection getConnection() {
+        HttpPoolEntry local = this.poolEntry;
+        if (local == null) {
             return null;
         }
-        return this.entry.getState();
+        IOSession session = local.getConnection();
+        return (OperatedClientConnection) session.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
     }
 
-    public synchronized void setState(final Object state) {
-        if (this.released) {
-            return;
-        }
-        this.entry.setState(state);
-    }
-
-    public boolean isReusable() {
-        return this.reusable && this.conn != null && this.conn.isOpen();
-    }
-
-    public synchronized void markNonReusable() {
-        if (this.released) {
-            return;
-        }
-        this.reusable = false;
-    }
-
-    public synchronized void markReusable() {
-        if (this.released) {
-            return;
-        }
-        this.reusable = true;
-    }
-
-    public synchronized void shutdown() throws IOException {
-        if (this.released) {
-            return;
-        }
-        this.conn.shutdown();
-        this.reusable = false;
-    }
-
-    public synchronized void close() throws IOException {
-        if (this.released) {
-            return;
-        }
-        this.conn.close();
-        this.reusable = false;
-        releaseConnection();
-    }
-
-    private void assertValid() {
-        if (this.released) {
+    private OperatedClientConnection ensureConnection() {
+        HttpPoolEntry local = this.poolEntry;
+        if (local == null) {
             throw new ConnectionShutdownException();
         }
+        IOSession session = local.getConnection();
+        return (OperatedClientConnection) session.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
     }
 
-    private OperatedClientConnection getWrappedConnection() {
-        OperatedClientConnection conn = this.conn;
-        if (conn == null) {
+    private HttpPoolEntry ensurePoolEntry() {
+        HttpPoolEntry local = this.poolEntry;
+        if (local == null) {
             throw new ConnectionShutdownException();
         }
-        return conn;
+        return local;
     }
 
-    public synchronized boolean isOpen() {
-        return !this.released && this.conn != null && this.conn.isOpen();
+    public void close() throws IOException {
+        OperatedClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.close();
+        }
+    }
+
+    public void shutdown() throws IOException {
+        OperatedClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.shutdown();
+        }
+    }
+
+    public boolean isOpen() {
+        OperatedClientConnection conn = getConnection();
+        if (conn != null) {
+            return conn.isOpen();
+        } else {
+            return false;
+        }
     }
 
     public boolean isStale() {
         return isOpen();
     }
 
-    public HttpRoute getRoute() {
-        assertValid();
-        return this.entry.getEffectiveRoute();
-    }
-
-    public SSLSession getSSLSession() {
-        return null;
-    }
-
-    public boolean isSecure() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        return conn.getSSLIOSession() != null;
-    }
-
-    public InetAddress getLocalAddress() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        if (conn instanceof HttpInetConnection) {
-            return ((HttpInetConnection) conn).getLocalAddress();
-        } else {
-            return null;
-        }
-    }
-
-    public int getLocalPort() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        if (conn instanceof HttpInetConnection) {
-            return ((HttpInetConnection) conn).getLocalPort();
-        } else {
-            return -1;
-        }
-    }
-
-    public InetAddress getRemoteAddress() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        if (conn instanceof HttpInetConnection) {
-            return ((HttpInetConnection) conn).getRemoteAddress();
-        } else {
-            return null;
-        }
-    }
-
-    public int getRemotePort() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        if (conn instanceof HttpInetConnection) {
-            return ((HttpInetConnection) conn).getRemotePort();
-        } else {
-            return -1;
-        }
-    }
-
-    public synchronized HttpConnectionMetrics getMetrics() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        return conn.getMetrics();
-    }
-
-    public synchronized int getSocketTimeout() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        return conn.getSocketTimeout();
-    }
-
-    public synchronized void setSocketTimeout(int timeout) {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public void setSocketTimeout(int timeout) {
+        OperatedClientConnection conn = ensureConnection();
         conn.setSocketTimeout(timeout);
     }
 
-    public synchronized int getStatus() {
-        return this.conn == null || !this.conn.isOpen() ?
-                NHttpConnection.CLOSED : NHttpConnection.ACTIVE;
+    public int getSocketTimeout() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getSocketTimeout();
     }
 
-    public synchronized HttpContext getContext() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        return conn.getContext();
+    public HttpConnectionMetrics getMetrics() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getMetrics();
     }
 
-    public synchronized HttpRequest getHttpRequest() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public InetAddress getLocalAddress() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getLocalAddress();
+    }
+
+    public int getLocalPort() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getLocalPort();
+    }
+
+    public InetAddress getRemoteAddress() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getRemoteAddress();
+    }
+
+    public int getRemotePort() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getRemotePort();
+    }
+
+    public int getStatus() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getStatus();
+    }
+
+    public HttpRequest getHttpRequest() {
+        OperatedClientConnection conn = ensureConnection();
         return conn.getHttpRequest();
     }
 
-    public synchronized HttpResponse getHttpResponse() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public HttpResponse getHttpResponse() {
+        OperatedClientConnection conn = ensureConnection();
         return conn.getHttpResponse();
     }
 
-    public synchronized void requestInput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public HttpContext getContext() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getContext();
+    }
+
+    public void requestInput() {
+        OperatedClientConnection conn = ensureConnection();
         conn.requestInput();
     }
 
-    public synchronized void requestOutput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        conn.requestOutput();
-    }
-
-    public synchronized void suspendInput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public void suspendInput() {
+        OperatedClientConnection conn = ensureConnection();
         conn.suspendInput();
     }
 
-    public synchronized void suspendOutput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public void requestOutput() {
+        OperatedClientConnection conn = ensureConnection();
+        conn.requestOutput();
+    }
+
+    public void suspendOutput() {
+        OperatedClientConnection conn = ensureConnection();
         conn.suspendOutput();
     }
 
-    public synchronized boolean isRequestSubmitted() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public void submitRequest(final HttpRequest request) throws IOException, HttpException {
+        OperatedClientConnection conn = ensureConnection();
+        conn.submitRequest(request);
+    }
+
+    public boolean isRequestSubmitted() {
+        OperatedClientConnection conn = ensureConnection();
         return conn.isRequestSubmitted();
     }
 
-    public synchronized void resetInput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        conn.resetInput();
-    }
-
-    public synchronized void resetOutput() {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
+    public void resetOutput() {
+        OperatedClientConnection conn = ensureConnection();
         conn.resetOutput();
     }
 
-    public synchronized void submitRequest(
-            final HttpRequest request) throws IOException, HttpException {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        conn.submitRequest(request);
+    public void resetInput() {
+        OperatedClientConnection conn = ensureConnection();
+        conn.resetInput();
+    }
+
+    public boolean isSecure() {
+        OperatedClientConnection conn = ensureConnection();
+        return conn.getSSLIOSession() != null;
+    }
+
+    public HttpRoute getRoute() {
+        HttpPoolEntry entry = ensurePoolEntry();
+        return entry.getEffectiveRoute();
+    }
+
+    public SSLSession getSSLSession() {
+        OperatedClientConnection conn = ensureConnection();
+        SSLIOSession iosession = conn.getSSLIOSession();
+        return iosession != null ? iosession.getSSLSession() : null;
+    }
+
+    public Object getState() {
+        HttpPoolEntry entry = ensurePoolEntry();
+        return entry.getState();
+    }
+
+    public void setState(final Object state) {
+        HttpPoolEntry entry = ensurePoolEntry();
+        entry.setState(state);
+    }
+
+    public void markReusable() {
+        this.reusable = true;
+    }
+
+    public void unmarkReusable() {
+        this.reusable = false;
+    }
+
+    public boolean isMarkedReusable() {
+        return this.reusable;
+    }
+
+    public void setIdleDuration(long duration, TimeUnit unit) {
+        if(duration > 0) {
+            this.duration = unit.toMillis(duration);
+        } else {
+            this.duration = -1;
+        }
     }
 
     protected ByteBufferAllocator createByteBufferAllocator() {
@@ -339,15 +294,15 @@ class ClientConnAdaptor implements ManagedClientConnection {
     public synchronized void open(
             final HttpRoute route,
             final HttpContext context, final HttpParams params) throws IOException {
-        assertValid();
-        RouteTracker tracker = this.entry.getTracker();
+        HttpPoolEntry entry = ensurePoolEntry();
+        RouteTracker tracker = entry.getTracker();
         if (tracker.isConnected()) {
             throw new IllegalStateException("Connection already open");
         }
 
         HttpHost target = route.getTargetHost();
         HttpHost proxy = route.getProxyHost();
-        IOSession iosession = this.entry.getConnection();
+        IOSession iosession = entry.getConnection();
 
         if (proxy == null) {
             Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
@@ -360,14 +315,13 @@ class ClientConnAdaptor implements ManagedClientConnection {
         }
 
         OperatedClientConnection conn = new DefaultClientConnection(
-                "http-outgoing-" + this.entry.getId(),
+                "http-outgoing-" + entry.getId(),
                 iosession,
                 createHttpResponseFactory(),
                 createByteBufferAllocator(),
                 params);
         iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
 
-        this.conn = conn;
         if (proxy == null) {
             tracker.connectTarget(conn.getSSLIOSession() != null);
         } else {
@@ -377,8 +331,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
     public synchronized void tunnelProxy(
             final HttpHost next, final HttpParams params) throws IOException {
-        assertValid();
-        RouteTracker tracker = this.entry.getTracker();
+        HttpPoolEntry entry = ensurePoolEntry();
+        RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -387,8 +341,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
     public synchronized void tunnelTarget(
             final HttpParams params) throws IOException {
-        assertValid();
-        RouteTracker tracker = this.entry.getTracker();
+        HttpPoolEntry entry = ensurePoolEntry();
+        RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -400,9 +354,8 @@ class ClientConnAdaptor implements ManagedClientConnection {
 
     public synchronized void layerProtocol(
             final HttpContext context, final HttpParams params) throws IOException {
-        assertValid();
-        OperatedClientConnection conn = getWrappedConnection();
-        RouteTracker tracker = this.entry.getTracker();
+        HttpPoolEntry entry = ensurePoolEntry();
+        RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -419,40 +372,38 @@ class ClientConnAdaptor implements ManagedClientConnection {
             throw new IllegalStateException(scheme.getName() +
                     " scheme does not provider support for protocol layering");
         }
-        IOSession iosession = this.entry.getConnection();
+        IOSession iosession = entry.getConnection();
         SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
         ssliosession.bind(SSLMode.CLIENT, params);
 
+        OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
         conn.upgrade(ssliosession);
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
-    public synchronized void setIdleDuration(final long duration, final TimeUnit tunit) {
-        if (tunit == null) {
-            throw new IllegalArgumentException("Time unit may not be null");
+    public synchronized void releaseConnection() {
+        if (this.poolEntry == null) {
+            return;
         }
-        this.expiry = duration;
-        this.tunit = tunit;
+        this.manager.releaseConnection(this, this.duration, TimeUnit.MILLISECONDS);
+        this.poolEntry = null;
     }
 
-    @Override
-    public synchronized String toString() {
-        HttpRoute route = this.entry.getPlannedRoute();
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("HTTP connection: ");
-        if (route.getLocalAddress() != null) {
-            buffer.append(route.getLocalAddress());
-            buffer.append("->");
+    public synchronized void abortConnection() {
+        if (this.poolEntry == null) {
+            return;
         }
-        for (int i = 0; i < route.getHopCount(); i++) {
-            buffer.append(route.getHopTarget(i));
-            buffer.append("->");
+        this.reusable = false;
+        IOSession iosession = this.poolEntry.getConnection();
+        OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
+                ExecutionContext.HTTP_CONNECTION);
+        try {
+            conn.shutdown();
+        } catch (IOException ignore) {
         }
-        buffer.append(route.getTargetHost());
-        if (this.released) {
-            buffer.append(" (released)");
-        }
-        return buffer.toString();
+        this.manager.releaseConnection(this, this.duration, TimeUnit.MILLISECONDS);
+        this.poolEntry = null;
     }
 
 }
