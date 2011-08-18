@@ -29,8 +29,8 @@ package org.apache.http.nio.conn;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.IOReactor;
 

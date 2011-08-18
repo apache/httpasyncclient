@@ -32,48 +32,19 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
-import org.apache.http.impl.nio.pool.PoolEntry;
-import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.pool.PoolEntry;
 
-class HttpPoolEntry extends PoolEntry<HttpRoute> {
+class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
 
     private final Log log;
     private final RouteTracker tracker;
 
-    HttpPoolEntry(final Log log, final HttpRoute route, final IOSession session,
+    HttpPoolEntry(final Log log, final String id, final HttpRoute route, final IOSession session,
             final long timeToLive, final TimeUnit tunit) {
-        super(route, session, timeToLive, tunit);
+        super(id, route, session, timeToLive, tunit);
         this.log = log;
         this.tracker = new RouteTracker(route);
-    }
-
-    @Override
-    public IOSession getIOSession() {
-        return super.getIOSession();
-    }
-
-    public HttpRoute getPlannedRoute() {
-        return super.getRoute();
-    }
-
-    @Override
-    public Object getState() {
-        return super.getState();
-    }
-
-    @Override
-    public void setState(final Object state) {
-        super.setState(state);
-    }
-
-    protected RouteTracker getTracker() {
-        return this.tracker;
-    }
-
-    public HttpRoute getEffectiveRoute() {
-        return this.tracker.toRoute();
     }
 
     @Override
@@ -85,9 +56,16 @@ class HttpPoolEntry extends PoolEntry<HttpRoute> {
         return expired;
     }
 
-    public OperatedClientConnection getConnection() {
-        return (OperatedClientConnection) getIOSession().getAttribute(
-                ExecutionContext.HTTP_CONNECTION);
+    HttpRoute getPlannedRoute() {
+        return super.getRoute();
+    }
+
+    RouteTracker getTracker() {
+        return this.tracker;
+    }
+
+    HttpRoute getEffectiveRoute() {
+        return this.tracker.toRoute();
     }
 
 }

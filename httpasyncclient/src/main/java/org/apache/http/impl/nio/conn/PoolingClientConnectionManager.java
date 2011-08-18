@@ -32,25 +32,25 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.concurrent.BasicFuture;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.nio.pool.PoolEntryCallback;
-import org.apache.http.nio.concurrent.BasicFuture;
-import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.ClientConnectionManager;
-import org.apache.http.nio.conn.PoolStats;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
+import org.apache.http.pool.ConnPoolControl;
+import org.apache.http.pool.PoolStats;
 
-public class PoolingClientConnectionManager implements ClientConnectionManager {
+public class PoolingClientConnectionManager implements ClientConnectionManager, ConnPoolControl<HttpRoute> {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private final ConnectingIOReactor ioreactor;
-    private final HttpSessionPool pool;
+    private final HttpNIOConnPool pool;
     private final SchemeRegistry schemeRegistry;
 
     public PoolingClientConnectionManager(
@@ -68,7 +68,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             throw new IllegalArgumentException("Time unit may not be null");
         }
         this.ioreactor = ioreactor;
-        this.pool = new HttpSessionPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
+        this.pool = new HttpNIOConnPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
     }
 
@@ -81,6 +81,15 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
     public PoolingClientConnectionManager(
             final ConnectingIOReactor ioreactor) throws IOReactorException {
         this(ioreactor, SchemeRegistryFactory.createDefault());
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            shutdown();
+        } finally {
+            super.finalize();
+        }
     }
 
     public SchemeRegistry getSchemeRegistry() {
@@ -107,10 +116,42 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         this.log.debug("Connection manager shut down");
     }
 
+    private String format(final HttpRoute route, final Object state) {
+        StringBuilder buf = new StringBuilder();
+        buf.append("[route: ").append(route).append("]");
+        if (state != null) {
+            buf.append("[state: ").append(state).append("]");
+        }
+        return buf.toString();
+    }
+
+    private String formatStats(final HttpRoute route) {
+        StringBuilder buf = new StringBuilder();
+        PoolStats totals = this.pool.getTotalStats();
+        PoolStats stats = this.pool.getStats(route);
+        buf.append("[total kept alive: ").append(totals.getAvailable()).append("; ");
+        buf.append("route allocated: ").append(stats.getLeased() + stats.getAvailable());
+        buf.append(" of ").append(stats.getMax()).append("; ");
+        buf.append("total allocated: ").append(totals.getLeased() + totals.getAvailable());
+        buf.append(" of ").append(totals.getMax()).append("]");
+        return buf.toString();
+    }
+
+    private String format(final HttpPoolEntry entry) {
+        StringBuilder buf = new StringBuilder();
+        buf.append("[id: ").append(entry.getId()).append("]");
+        buf.append("[route: ").append(entry.getRoute()).append("]");
+        Object state = entry.getState();
+        if (state != null) {
+            buf.append("[state: ").append(state).append("]");
+        }
+        return buf.toString();
+    }
+
     public Future<ManagedClientConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
-            final long timeout,
+            final long connectTimeout,
             final TimeUnit tunit,
             final FutureCallback<ManagedClientConnection> callback) {
         if (route == null) {
@@ -120,70 +161,69 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
             throw new IllegalArgumentException("Time unit may not be null");
         }
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Connection request: route[" + route + "][state: " + state + "]");
-            PoolStats totals = this.pool.getTotalStats();
-            PoolStats stats = this.pool.getStats(route);
-            this.log.debug("Total: " + totals);
-            this.log.debug("Route [" + route + "]: " + stats);
+            this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
         BasicFuture<ManagedClientConnection> future = new BasicFuture<ManagedClientConnection>(
                 callback);
-        this.pool.lease(route, state, timeout, tunit, new InternalPoolEntryCallback(future));
-        if (this.log.isDebugEnabled()) {
-            if (!future.isDone()) {
-                this.log.debug("Connection could not be allocated immediately: " +
-                        "route[" + route + "][state: " + state + "]");
-            }
-        }
+        this.pool.lease(route, state, connectTimeout, tunit, new InternalPoolEntryCallback(future));
         return future;
     }
 
     public void releaseConnection(
             final ManagedClientConnection conn,
-            final long validDuration,
+            final long keepalive,
             final TimeUnit tunit) {
         if (conn == null) {
             throw new IllegalArgumentException("HTTP connection may not be null");
         }
-        if (!(conn instanceof ClientConnAdaptor)) {
+        if (!(conn instanceof ManagedClientConnectionImpl)) {
             throw new IllegalArgumentException("Connection class mismatch, " +
                  "connection not obtained from this manager");
         }
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        ClientConnAdaptor adaptor = (ClientConnAdaptor) conn;
-        ClientConnectionManager manager = adaptor.getManager();
+        ManagedClientConnectionImpl managedConn = (ManagedClientConnectionImpl) conn;
+        ClientConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
         }
         if (this.pool.isShutdown()) {
             return;
         }
-        HttpPoolEntry entry = adaptor.getEntry();
-        if (this.log.isDebugEnabled()) {
-            HttpRoute route = entry.getPlannedRoute();
-            this.log.debug("Releasing connection: " + entry);
-            PoolStats totals = this.pool.getTotalStats();
-            PoolStats stats = this.pool.getStats(route);
-            this.log.debug("Total: " + totals);
-            this.log.debug("Route [" + route + "]: " + stats);
-        }
 
-        boolean reusable = adaptor.isReusable();
-        if (reusable) {
-            entry.updateExpiry(validDuration, tunit);
-            if (this.log.isDebugEnabled()) {
-                String s;
-                if (validDuration > 0) {
-                    s = "for " + validDuration + " " + tunit;
-                } else {
-                    s = "indefinitely";
+        synchronized (managedConn) {
+            HttpPoolEntry entry = managedConn.detach();
+            if (entry == null) {
+                return;
+            }
+            try {
+                if (managedConn.isOpen() && !managedConn.isMarkedReusable()) {
+                    try {
+                        managedConn.shutdown();
+                    } catch (IOException iox) {
+                        if (this.log.isDebugEnabled()) {
+                            this.log.debug("I/O exception shutting down released connection", iox);
+                        }
+                    }
                 }
-                this.log.debug("Pooling connection: " + entry + "; keep alive " + s);
+                entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                if (this.log.isDebugEnabled()) {
+                    String s;
+                    if (keepalive > 0) {
+                        s = "for " + keepalive + " " + tunit;
+                    } else {
+                        s = "indefinitely";
+                    }
+                    this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
+                }
+            } finally {
+                this.pool.release(entry, managedConn.isMarkedReusable());
+            }
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("Connection released: " + format(entry) + formatStats(entry.getRoute()));
             }
         }
-        this.pool.release(entry, reusable);
     }
 
     public PoolStats getTotalStats() {
@@ -194,16 +234,31 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         return this.pool.getStats(route);
     }
 
+    @Deprecated
     public void setTotalMax(int max) {
-        this.pool.setTotalMax(max);
+        this.pool.setMaxTotal(max);
     }
 
+    public void setMaxTotal(int max) {
+        this.pool.setMaxTotal(max);
+    }
+
+    @Deprecated
     public void setDefaultMaxPerHost(int max) {
-        this.pool.setDefaultMaxPerHost(max);
+        this.pool.setDefaultMaxPerRoute(max);
     }
 
+    public void setDefaultMaxPerRoute(int max) {
+        this.pool.setDefaultMaxPerRoute(max);
+    }
+
+    @Deprecated
     public void setMaxPerHost(final HttpRoute route, int max) {
-        this.pool.setMaxPerHost(route, max);
+        this.pool.setMaxPerRoute(route, max);
+    }
+
+    public void setMaxPerRoute(final HttpRoute route, int max) {
+        this.pool.setMaxPerRoute(route, max);
     }
 
     public void closeIdleConnections(long idleTimeout, final TimeUnit tunit) {
@@ -218,7 +273,7 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
         this.pool.closeExpired();
     }
 
-    class InternalPoolEntryCallback implements PoolEntryCallback<HttpRoute, HttpPoolEntry> {
+    class InternalPoolEntryCallback implements FutureCallback<HttpPoolEntry> {
 
         private final BasicFuture<ManagedClientConnection> future;
 
@@ -230,9 +285,9 @@ public class PoolingClientConnectionManager implements ClientConnectionManager {
 
         public void completed(final HttpPoolEntry entry) {
             if (log.isDebugEnabled()) {
-                log.debug("Connection allocated: " + entry);
+                log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
             }
-            ManagedClientConnection conn = new ClientConnAdaptor(
+            ManagedClientConnection conn = new ManagedClientConnectionImpl(
                     PoolingClientConnectionManager.this,
                     entry);
             if (!this.future.completed(conn)) {

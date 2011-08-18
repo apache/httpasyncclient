@@ -32,14 +32,15 @@ import java.net.URI;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 
 public class ZeroCopyPost extends BaseZeroCopyRequestProducer {
 
-    public ZeroCopyPost(final URI requestURI, final File content, final String contentType) {
+    public ZeroCopyPost(final URI requestURI, final File content, final ContentType contentType) {
         super(requestURI, content, contentType);
     }
 
-    public ZeroCopyPost(final String requestURI, final File content, final String contentType) {
+    public ZeroCopyPost(final String requestURI, final File content, final ContentType contentType) {
         super(URI.create(requestURI), content, contentType);
     }
 

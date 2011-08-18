@@ -46,9 +46,9 @@ public interface ManagedClientConnection
 
     void markReusable();
 
-    void markNonReusable();
+    void unmarkReusable();
 
-    boolean isReusable();
+    boolean isMarkedReusable();
 
     void open(HttpRoute route, HttpContext context, HttpParams params) throws IOException;
 

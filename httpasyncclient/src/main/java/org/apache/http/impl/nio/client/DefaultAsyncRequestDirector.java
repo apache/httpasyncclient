@@ -62,6 +62,7 @@ import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.BasicRouteDirector;
 import org.apache.http.conn.routing.HttpRoute;
@@ -78,7 +79,6 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.client.HttpAsyncResponseConsumer;
-import org.apache.http.nio.concurrent.FutureCallback;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.scheme.Scheme;
@@ -377,7 +377,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
-                this.managedConn.markNonReusable();
+                this.managedConn.unmarkReusable();
                 releaseConnection();
                 invalidateAuthIfSuccessful(this.proxyAuthState);
                 invalidateAuthIfSuccessful(this.targetAuthState);

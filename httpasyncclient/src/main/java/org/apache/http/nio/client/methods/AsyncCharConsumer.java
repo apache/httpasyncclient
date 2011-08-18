@@ -38,15 +38,15 @@ import java.nio.charset.UnsupportedCharsetException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
+import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
 
 public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
 
     private final int bufSize;
-    private String charsetName;
+    private ContentType contentType;
     private Charset charset;
     private CharsetDecoder chardecoder;
     private ByteBuffer bbuf;
@@ -68,12 +68,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
     public synchronized void responseReceived(
             final HttpResponse response) throws IOException, HttpException {
         HttpEntity entity = response.getEntity();
-        if (entity != null) {
-            this.charsetName = EntityUtils.getContentCharSet(entity);
-        }
-        if (this.charsetName == null) {
-            this.charsetName = HTTP.DEFAULT_CONTENT_CHARSET;
-        }
+        this.contentType = ContentType.getOrDefault(entity);
         super.responseReceived(response);
     }
 
@@ -82,9 +77,13 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         if (this.charset == null) {
             try {
-                this.charset = Charset.forName(this.charsetName);
+                String cs = this.contentType.getCharset();
+                if (cs == null) {
+                    cs = HTTP.DEFAULT_CONTENT_CHARSET;
+                }
+                this.charset = Charset.forName(cs);
             } catch (UnsupportedCharsetException ex) {
-                throw new UnsupportedEncodingException(this.charsetName);
+                throw new UnsupportedEncodingException(this.contentType.getCharset());
             }
             this.chardecoder = this.charset.newDecoder();
             this.bbuf = ByteBuffer.allocate(this.bufSize);

@@ -28,8 +28,8 @@ package org.apache.http.impl.nio.client;
 
 import java.util.Queue;
 
+import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
-import org.apache.http.nio.concurrent.BasicFuture;
 
 class DefaultResultCallback<T> implements ResultCallback<T> {
 
