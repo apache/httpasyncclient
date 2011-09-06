@@ -363,6 +363,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     public synchronized void responseCompleted() {
         this.log.debug("Response fully read");
         try {
+            if (this.resultCallback.isDone()) {
+                return;
+            }
             if (this.managedConn.isOpen()) {
                 long duration = this.keepaliveStrategy.getKeepAliveDuration(
                         this.currentResponse, this.localContext);
