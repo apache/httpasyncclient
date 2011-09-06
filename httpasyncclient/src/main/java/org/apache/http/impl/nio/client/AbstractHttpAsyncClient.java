@@ -76,6 +76,7 @@ import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncExchangeHandler;
 import org.apache.http.nio.client.HttpAsyncRequestProducer;
@@ -116,25 +117,18 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     private volatile boolean terminated;
 
-    protected AbstractHttpAsyncClient(
-            final ClientConnectionManager connmgr,
-            final HttpParams params) {
+    protected AbstractHttpAsyncClient(final ClientConnectionManager connmgr) {
         super();
         this.connmgr = connmgr;
         this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
-        this.params = params;
     }
 
-    protected AbstractHttpAsyncClient(HttpParams params) throws IOReactorException {
+    protected AbstractHttpAsyncClient(final IOReactorConfig config) throws IOReactorException {
         super();
-        if (params == null) {
-            params = createHttpParams();
-        }
-        DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(2, params);
+        DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
         this.connmgr = new PoolingClientConnectionManager(defaultioreactor);
         this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
-        this.params = params;
     }
 
     protected abstract HttpParams createHttpParams();
@@ -234,6 +228,10 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             this.params = createHttpParams();
         }
         return this.params;
+    }
+
+    public synchronized void setParams(final HttpParams params) {
+        this.params = params;
     }
 
     public synchronized ClientConnectionManager getConnectionManager() {

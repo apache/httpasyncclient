@@ -33,11 +33,18 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
+import org.apache.http.params.CoreConnectionPNames;
 
 public class AsyncClientHttpExchangeFutureCallback {
 
     public static void main(String[] args) throws Exception {
         HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
+        httpclient.getParams()
+            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 3000)
+            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 3000)
+            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
+            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true);
+
         httpclient.start();
         try {
             HttpGet[] requests = new HttpGet[] {
@@ -56,11 +63,12 @@ public class AsyncClientHttpExchangeFutureCallback {
 
                     public void failed(final Exception ex) {
                         latch.countDown();
-                        ex.printStackTrace();
+                        System.out.println(request.getRequestLine() + "->" + ex);
                     }
 
                     public void cancelled() {
                         latch.countDown();
+                        System.out.println(request.getRequestLine() + " cancelled");
                     }
 
                 });

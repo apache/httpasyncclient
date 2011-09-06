@@ -35,7 +35,6 @@ import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.params.BasicHttpParams;
 import org.junit.After;
 import org.junit.Before;
 
@@ -54,7 +53,7 @@ public abstract class AsyncHttpTestBase {
     }
 
     protected DefaultConnectingIOReactor createIOReactor() throws Exception {
-        return new DefaultConnectingIOReactor(2, new BasicHttpParams());
+        return new DefaultConnectingIOReactor();
     }
 
     protected PoolingClientConnectionManager createConnectionManager(
