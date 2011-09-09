@@ -261,6 +261,18 @@ public class PoolingClientConnectionManager implements ClientConnectionManager, 
         this.pool.setMaxPerRoute(route, max);
     }
 
+    public int getMaxTotal() {
+        return this.pool.getMaxTotal();
+    }
+
+    public int getDefaultMaxPerRoute() {
+        return this.pool.getDefaultMaxPerRoute();
+    }
+
+    public int getMaxPerRoute(final HttpRoute route) {
+        return this.pool.getMaxPerRoute(route);
+    }
+
     public void closeIdleConnections(long idleTimeout, final TimeUnit tunit) {
         if (log.isDebugEnabled()) {
             log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);

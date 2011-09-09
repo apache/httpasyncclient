@@ -24,19 +24,18 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.impl.nio.conn;
 
-import org.apache.http.HttpInetConnection;
-import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.NHttpClientIOTarget;
+import java.io.IOException;
+
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.reactor.ssl.SSLIOSession;
 
-public interface OperatedClientConnection
-    extends NHttpClientConnection, HttpInetConnection, NHttpClientIOTarget {
+class HttpNIOConnPoolFactory implements NIOConnFactory<HttpRoute, IOSession> {
 
-    void upgrade(IOSession iosession);
-
-    SSLIOSession getSSLIOSession();
+    public IOSession create(final HttpRoute route, final IOSession session) throws IOException {
+        return session;
+    }
 
 }

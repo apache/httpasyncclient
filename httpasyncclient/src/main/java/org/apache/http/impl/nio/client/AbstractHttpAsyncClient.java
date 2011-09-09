@@ -73,6 +73,7 @@ import org.apache.http.impl.cookie.IgnoreSpecFactory;
 import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
 import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
+import org.apache.http.impl.nio.DefaultClientIODispatch;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
@@ -436,7 +437,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private void doExecute() {
         NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler();
         try {
-            IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
+            IOEventDispatch ioEventDispatch = new DefaultClientIODispatch(handler, getParams());
             this.connmgr.execute(ioEventDispatch);
         } catch (Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);

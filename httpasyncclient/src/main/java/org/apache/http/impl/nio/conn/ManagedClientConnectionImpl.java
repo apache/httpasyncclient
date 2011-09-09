@@ -42,14 +42,13 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.conn.ConnectionShutdownException;
-import org.apache.http.impl.nio.reactor.SSLIOSession;
-import org.apache.http.impl.nio.reactor.SSLMode;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 import org.apache.http.params.HttpParams;
@@ -308,9 +307,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
             Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
             LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
-                SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
-                ssliosession.bind(SSLMode.CLIENT, params);
-                iosession = ssliosession;
+                iosession = layeringStrategy.layer(iosession);
             }
         }
 
@@ -373,12 +370,9 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
                     " scheme does not provider support for protocol layering");
         }
         IOSession iosession = entry.getConnection();
-        SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
-        ssliosession.bind(SSLMode.CLIENT, params);
-
         OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
                 ExecutionContext.HTTP_CONNECTION);
-        conn.upgrade(ssliosession);
+        conn.upgrade((SSLIOSession) layeringStrategy.layer(iosession));
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
