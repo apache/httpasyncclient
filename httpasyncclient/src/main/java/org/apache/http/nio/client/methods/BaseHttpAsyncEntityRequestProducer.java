@@ -26,7 +26,6 @@
  */
 package org.apache.http.nio.client.methods;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -39,14 +38,15 @@ import org.apache.http.HttpRequest;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.entity.ProducingNHttpEntity;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
 
 @Deprecated
-abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestProducer, Closeable {
+abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestProducer {
 
     private final URI requestURI;
     private final ProducingNHttpEntity producer;
@@ -101,6 +101,9 @@ abstract class BaseHttpAsyncEntityRequestProducer implements HttpAsyncRequestPro
         if (encoder.isCompleted()) {
             this.producer.finish();
         }
+    }
+
+    public void requestCompleted(final HttpContext context) {
     }
 
     public synchronized boolean isRepeatable() {

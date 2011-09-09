@@ -76,12 +76,12 @@ import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
@@ -89,7 +89,7 @@ import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
-class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
+class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T> {
 
     public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
 
@@ -160,6 +160,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.targetAuthState = new AuthState();
         this.proxyAuthState = new AuthState();
         this.clientParams = clientParams;
+    }
+
+    public synchronized void close() throws IOException {
+        releaseResources();
     }
 
     public synchronized void start() {
@@ -262,6 +266,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
+    public void requestCompleted(final HttpContext context) {
+        this.requestProducer.requestCompleted(context);
+    }
+
     public boolean isRepeatable() {
         return this.requestProducer.isRepeatable();
     }
@@ -356,11 +364,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    public synchronized boolean keepAlive(final HttpResponse response) {
-        return this.reuseStrategy.keepAlive(response, this.localContext);
-    }
-
-    public synchronized void responseCompleted() {
+    public synchronized void responseCompleted(final HttpContext context) {
         this.log.debug("Response fully read");
         try {
             if (this.resultCallback.isDone()) {
@@ -387,7 +391,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             }
 
             if (this.finalResponse != null) {
-                this.responseConsumer.responseCompleted();
+                this.responseConsumer.responseCompleted(this.localContext);
                 this.log.debug("Response processed");
                 T result = this.responseConsumer.getResult();
                 Exception ex = this.responseConsumer.getException();
@@ -830,6 +834,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 && authState.getCredentials() != null) {
             authState.invalidate();
         }
+    }
+
+    public HttpContext getContext() {
+        return this.localContext;
+    }
+
+    public ConnectionReuseStrategy getConnectionReuseStrategy() {
+        return this.reuseStrategy;
     }
 
 }

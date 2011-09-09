@@ -31,8 +31,9 @@ import java.nio.ByteBuffer;
 
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 
-public abstract class AsyncByteConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
+public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final int bufSize;
     private ByteBuffer bbuf;
@@ -67,9 +68,8 @@ public abstract class AsyncByteConsumer<T> extends AbstractHttpAsyncResponseCons
     }
 
     @Override
-    void releaseResources() {
+    protected void releaseResources() {
         this.bbuf = null;
-        super.releaseResources();
     }
 
 }

@@ -52,13 +52,13 @@ import org.apache.http.localserver.AsyncHttpTestBase;
 import org.apache.http.localserver.LocalTestServer;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.methods.BasicHttpAsyncResponseConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.conn.scheme.SchemeRegistry;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.nio.entity.NByteArrayEntity;
+import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
@@ -231,7 +231,7 @@ public class TestHttpsAsync extends AsyncHttpTestBase {
     public void testRequestFailure() throws Exception {
         HttpGet httpget = new HttpGet("/random/2048");
         HttpAsyncRequestProducer requestProducer = HttpAsyncMethods.create(this.target, httpget) ;
-        BasicHttpAsyncResponseConsumer responseConsumer = new BasicHttpAsyncResponseConsumer() {
+        BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
 
             @Override
             public void consumeContent(final ContentDecoder decoder, final IOControl ioctrl)

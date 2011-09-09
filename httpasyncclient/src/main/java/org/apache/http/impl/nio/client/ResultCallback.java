@@ -26,15 +26,15 @@
  */
 package org.apache.http.impl.nio.client;
 
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 
 interface ResultCallback<T> {
 
-    void completed(T result, HttpAsyncExchangeHandler<T> handler);
+    void completed(T result, HttpAsyncClientExchangeHandler<T> handler);
 
-    void failed(Exception ex, HttpAsyncExchangeHandler<T> handler);
+    void failed(Exception ex, HttpAsyncClientExchangeHandler<T> handler);
 
-    void cancelled(HttpAsyncExchangeHandler<T> handler);
+    void cancelled(HttpAsyncClientExchangeHandler<T> handler);
 
     boolean isDone();
 

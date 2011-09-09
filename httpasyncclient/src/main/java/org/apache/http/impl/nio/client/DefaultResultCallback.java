@@ -29,31 +29,31 @@ package org.apache.http.impl.nio.client;
 import java.util.Queue;
 
 import org.apache.http.concurrent.BasicFuture;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 
 class DefaultResultCallback<T> implements ResultCallback<T> {
 
     private final BasicFuture<T> future;
-    private final Queue<HttpAsyncExchangeHandler<?>> queue;
+    private final Queue<HttpAsyncClientExchangeHandler<?>> queue;
 
     DefaultResultCallback(
-            final BasicFuture<T> future, final Queue<HttpAsyncExchangeHandler<?>> queue) {
+            final BasicFuture<T> future, final Queue<HttpAsyncClientExchangeHandler<?>> queue) {
         super();
         this.future = future;
         this.queue = queue;
     }
 
-    public void completed(final T result, final HttpAsyncExchangeHandler<T> handler) {
+    public void completed(final T result, final HttpAsyncClientExchangeHandler<T> handler) {
         this.future.completed(result);
         this.queue.remove(handler);
     }
 
-    public void failed(final Exception ex, final HttpAsyncExchangeHandler<T> handler) {
+    public void failed(final Exception ex, final HttpAsyncClientExchangeHandler<T> handler) {
         this.future.failed(ex);
         this.queue.remove(handler);
     }
 
-    public void cancelled(final HttpAsyncExchangeHandler<T> handler) {
+    public void cancelled(final HttpAsyncClientExchangeHandler<T> handler) {
         this.future.cancel(true);
         this.queue.remove(handler);
     }

@@ -37,9 +37,10 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentDecoderChannel;
 import org.apache.http.nio.FileContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.protocol.HTTP;
 
-public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
+public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final File file;
 
@@ -96,7 +97,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsu
     }
 
     @Override
-    protected void onCleanup() {
+    protected void releaseResources() {
         if (this.fileChannel != null) {
             try {
                 this.fileChannel.close();

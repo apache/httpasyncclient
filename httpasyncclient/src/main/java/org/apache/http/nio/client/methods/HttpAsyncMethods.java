@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -42,10 +43,13 @@ import org.apache.http.client.methods.HttpTrace;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.nio.entity.ProducingNHttpEntity;
+import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
+import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 
 public final class HttpAsyncMethods {
 
@@ -56,7 +60,7 @@ public final class HttpAsyncMethods {
         if (request == null) {
             throw new IllegalArgumentException("HTTP request may not be null");
         }
-        return new HttpAsyncRequestProducerImpl(target, request);
+        return new RequestProducerImpl(target, request);
     }
 
     public static HttpAsyncRequestProducer create(final HttpUriRequest request) {
@@ -64,7 +68,7 @@ public final class HttpAsyncMethods {
             throw new IllegalArgumentException("HTTP request may not be null");
         }
         HttpHost target = URIUtils.extractHost(request.getURI());
-        return new HttpAsyncRequestProducerImpl(target, request);
+        return new RequestProducerImpl(target, request);
     }
 
     public static HttpAsyncRequestProducer createGet(final URI requestURI) {
@@ -115,7 +119,7 @@ public final class HttpAsyncMethods {
         NStringEntity entity = new NStringEntity(content, contentType);
         httppost.setEntity(entity);
         HttpHost target = URIUtils.extractHost(requestURI);
-        return new HttpAsyncRequestProducerImpl(target, httppost, entity);
+        return new RequestProducerImpl(target, httppost, entity);
     }
 
     public static HttpAsyncRequestProducer createPost(
@@ -132,7 +136,7 @@ public final class HttpAsyncMethods {
         HttpPost httppost = new HttpPost(requestURI);
         NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
         HttpHost target = URIUtils.extractHost(requestURI);
-        return new HttpAsyncRequestProducerImpl(target, httppost, entity);
+        return new RequestProducerImpl(target, httppost, entity);
     }
 
     public static HttpAsyncRequestProducer createPost(
@@ -150,7 +154,7 @@ public final class HttpAsyncMethods {
         NStringEntity entity = new NStringEntity(content, contentType);
         httpput.setEntity(entity);
         HttpHost target = URIUtils.extractHost(requestURI);
-        return new HttpAsyncRequestProducerImpl(target, httpput, entity);
+        return new RequestProducerImpl(target, httpput, entity);
     }
 
     public static HttpAsyncRequestProducer createPut(
@@ -167,7 +171,7 @@ public final class HttpAsyncMethods {
         HttpPut httpput = new HttpPut(requestURI);
         NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
         HttpHost target = URIUtils.extractHost(requestURI);
-        return new HttpAsyncRequestProducerImpl(target, httpput, entity);
+        return new RequestProducerImpl(target, httpput, entity);
     }
 
     public static HttpAsyncRequestProducer createPut(
@@ -206,7 +210,7 @@ public final class HttpAsyncMethods {
     }
 
     public static HttpAsyncResponseConsumer<HttpResponse> createConsumer() {
-        return new BasicHttpAsyncResponseConsumer();
+        return new BasicAsyncResponseConsumer();
     }
 
     public static HttpAsyncResponseConsumer<HttpResponse> createZeroCopyConsumer(final File file) {
@@ -218,6 +222,21 @@ public final class HttpAsyncMethods {
             }
 
         };
+    }
+
+    static class RequestProducerImpl extends BasicAsyncRequestProducer {
+
+        protected RequestProducerImpl(
+                final HttpHost target,
+                final HttpEntityEnclosingRequest request,
+                final ProducingNHttpEntity producer) {
+            super(target, request, producer);
+        }
+
+        public RequestProducerImpl(final HttpHost target, final HttpRequest request) {
+            super(target, request);
+        }
+
     }
 
 }

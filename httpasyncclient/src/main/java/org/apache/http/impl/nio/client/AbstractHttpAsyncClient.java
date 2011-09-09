@@ -79,11 +79,11 @@ import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
@@ -99,7 +99,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());;
     private final ClientConnectionManager connmgr;
-    private final Queue<HttpAsyncExchangeHandler<?>> queue;
+    private final Queue<HttpAsyncClientExchangeHandler<?>> queue;
 
     private Thread reactorThread;
     private BasicHttpProcessor mutableProcessor;
@@ -121,7 +121,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     protected AbstractHttpAsyncClient(final ClientConnectionManager connmgr) {
         super();
         this.connmgr = connmgr;
-        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncClientExchangeHandler<?>>();
     }
 
     protected AbstractHttpAsyncClient(final IOReactorConfig config) throws IOReactorException {
@@ -129,7 +129,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
         this.connmgr = new PoolingClientConnectionManager(defaultioreactor);
-        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncClientExchangeHandler<?>>();
     }
 
     protected abstract HttpParams createHttpParams();
@@ -444,8 +444,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         } finally {
             this.terminated = true;
             while (!this.queue.isEmpty()) {
-                HttpAsyncResponseConsumer<?> responseConsumer = this.queue.remove();
-                responseConsumer.cancel();
+                HttpAsyncClientExchangeHandler<?> exchangeHandler = this.queue.remove();
+                exchangeHandler.cancel();
             }
         }
     }

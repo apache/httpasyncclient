@@ -26,7 +26,6 @@
  */
 package org.apache.http.nio.client.methods;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -45,9 +44,10 @@ import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.ContentEncoderChannel;
 import org.apache.http.nio.FileContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.protocol.HttpContext;
 
-abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer, Closeable {
+abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
     private final URI requestURI;
     private final File file;
@@ -110,6 +110,9 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer, 
             this.fileChannel.close();
             this.fileChannel = null;
         }
+    }
+
+    public void requestCompleted(final HttpContext context) {
     }
 
     public synchronized boolean isRepeatable() {
