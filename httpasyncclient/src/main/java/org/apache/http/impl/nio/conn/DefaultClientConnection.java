@@ -43,7 +43,6 @@ import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionInputBuffer;
 import org.apache.http.nio.reactor.SessionOutputBuffer;
-import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.params.HttpParams;
 
@@ -55,7 +54,6 @@ public class DefaultClientConnection
     private final Log log;
 
     private String id;
-    private SSLIOSession ssliosession;
 
     public DefaultClientConnection(
             final String id,
@@ -69,11 +67,6 @@ public class DefaultClientConnection
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
             this.session = new LoggingIOSession(iosession, this.id, this.log, this.wirelog);
         }
-        if (iosession instanceof SSLIOSession) {
-            this.ssliosession = (SSLIOSession) iosession;
-        } else {
-            this.ssliosession = null;
-        }
     }
 
     public void upgrade(final IOSession iosession) {
@@ -85,15 +78,10 @@ public class DefaultClientConnection
             this.session = iosession;
         }
         this.session.setBufferStatus(this);
-        if (iosession instanceof SSLIOSession) {
-            this.ssliosession = (SSLIOSession) iosession;
-        } else {
-            this.ssliosession = null;
-        }
     }
 
-    public SSLIOSession getSSLIOSession() {
-        return this.ssliosession;
+    public IOSession getIOSession() {
+        return this.session;
     }
 
     @Override

@@ -238,7 +238,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
 
     public boolean isSecure() {
         OperatedClientConnection conn = ensureConnection();
-        return conn.getSSLIOSession() != null;
+        return conn.getIOSession() instanceof SSLIOSession;
     }
 
     public HttpRoute getRoute() {
@@ -248,8 +248,12 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
 
     public SSLSession getSSLSession() {
         OperatedClientConnection conn = ensureConnection();
-        SSLIOSession iosession = conn.getSSLIOSession();
-        return iosession != null ? iosession.getSSLSession() : null;
+        IOSession iosession = conn.getIOSession();
+        if (iosession instanceof SSLIOSession) {
+            return ((SSLIOSession) iosession).getSSLSession();
+        } else {
+            return null;
+        }
     }
 
     public Object getState() {
@@ -320,7 +324,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
         iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
 
         if (proxy == null) {
-            tracker.connectTarget(conn.getSSLIOSession() != null);
+            tracker.connectTarget(conn.getIOSession() instanceof SSLIOSession);
         } else {
             tracker.connectProxy(proxy, false);
         }

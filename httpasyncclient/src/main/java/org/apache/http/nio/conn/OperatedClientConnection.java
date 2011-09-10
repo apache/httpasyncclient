@@ -30,13 +30,12 @@ import org.apache.http.HttpInetConnection;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.NHttpClientIOTarget;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.reactor.ssl.SSLIOSession;
 
 public interface OperatedClientConnection
     extends NHttpClientConnection, HttpInetConnection, NHttpClientIOTarget {
 
     void upgrade(IOSession iosession);
 
-    SSLIOSession getSSLIOSession();
+    IOSession getIOSession();
 
 }
