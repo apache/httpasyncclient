@@ -80,6 +80,7 @@ import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncClientProtocolHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.params.HttpConnectionParams;
@@ -90,8 +91,6 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
 class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T> {
-
-    public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
 
     private final Log log;
 
@@ -327,7 +326,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private void releaseConnection() {
         if (this.managedConn != null) {
             try {
-                this.managedConn.getContext().removeAttribute(HTTP_EXCHANGE_HANDLER);
+                this.managedConn.getContext().removeAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER);
                 this.managedConn.releaseConnection();
             } catch (IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
@@ -469,7 +468,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                 conn.open(route, this.localContext, this.params);
             }
             this.managedConn = conn;
-            this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
+            this.managedConn.getContext().setAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER, this);
             this.managedConn.requestOutput();
             this.routeEstablished = route.equals(conn.getRoute());
         } catch (IOException ex) {

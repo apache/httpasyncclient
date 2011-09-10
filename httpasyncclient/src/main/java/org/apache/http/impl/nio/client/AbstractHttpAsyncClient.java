@@ -435,7 +435,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     private void doExecute() {
-        NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler();
+        LoggingClientProtocolHandler handler = new LoggingClientProtocolHandler();
         try {
             IOEventDispatch ioEventDispatch = new DefaultClientIODispatch(handler, getParams());
             this.connmgr.execute(ioEventDispatch);
