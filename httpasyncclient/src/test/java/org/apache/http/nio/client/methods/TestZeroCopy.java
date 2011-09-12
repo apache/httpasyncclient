@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.concurrent.Future;
@@ -38,27 +39,85 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.FileEntity;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.localserver.AsyncHttpTestBase;
+import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.nio.NHttpConnectionFactory;
+import org.apache.http.nio.NHttpServerIOTarget;
+import org.apache.http.nio.entity.NFileEntity;
+import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
+import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.reactor.IOReactorStatus;
+import org.apache.http.nio.reactor.ListenerEndpoint;
+import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestZeroCopy extends AsyncHttpTestBase {
+public class TestZeroCopy extends HttpAsyncTestBase {
+
+    @Before
+    public void setUp() throws Exception {
+        initServer();
+        initClient();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        shutDownClient();
+        shutDownServer();
+    }
+
+    @Override
+    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+            final HttpParams params) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(params);
+    }
+
+    @Override
+    protected String getSchemeName() {
+        return "http";
+    }
+
+    private HttpHost start(
+            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
+        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
+                requestHandlerResolver,
+                expectationVerifier,
+                this.serverHttpProc,
+                new DefaultConnectionReuseStrategy(),
+                this.serverParams);
+        this.server.start(serviceHandler);
+        this.httpclient.start();
+
+        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        endpoint.waitFor();
+
+        Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
+        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        return target;
+    }
 
     private static final String[] TEXT = {
         "blah blah blah blah blah blah blah blah blah blah blah blah blah blah",
@@ -158,7 +217,7 @@ public class TestZeroCopy extends AsyncHttpTestBase {
                 requestEntity = ((HttpEntityEnclosingRequest) request).getEntity();
             }
             if (requestEntity == null) {
-                response.setEntity(new StringEntity("Empty content"));
+                response.setEntity(new NStringEntity("Empty content"));
                 return;
             }
 
@@ -183,24 +242,27 @@ public class TestZeroCopy extends AsyncHttpTestBase {
                 instream.close();
             }
             if (ok) {
-                FileEntity responseEntity = new FileEntity(TEST_FILE,
+                NFileEntity responseEntity = new NFileEntity(TEST_FILE,
                         ContentType.create("text/plian", null));
                 if (this.forceChunking) {
                     responseEntity.setChunked(true);
                 }
                 response.setEntity(responseEntity);
             } else {
-                response.setEntity(new StringEntity("Invalid content"));
+                response.setEntity(new NStringEntity("Invalid content"));
             }
         }
     }
 
     @Test
     public void testTwoWayZeroCopy() throws Exception {
-        this.localServer.register("/bounce", new TestHandler(false));
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new BufferingAsyncRequestHandler(new TestHandler(false)));
+        HttpHost target = start(registry, null);
+
         File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        TestZeroCopyPost httppost = new TestZeroCopyPost(this.target.toURI() + "/bounce", false);
+        TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", false);
         TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
         Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
         Integer status = future.get();
@@ -224,10 +286,12 @@ public class TestZeroCopy extends AsyncHttpTestBase {
 
     @Test
     public void testZeroCopyFallback() throws Exception {
-        this.localServer.register("/bounce", new TestHandler(true));
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new BufferingAsyncRequestHandler(new TestHandler(true)));
+        HttpHost target = start(registry, null);
         File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        TestZeroCopyPost httppost = new TestZeroCopyPost(this.target.toURI() + "/bounce", true);
+        TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", true);
         TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
         Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
         Integer status = future.get();

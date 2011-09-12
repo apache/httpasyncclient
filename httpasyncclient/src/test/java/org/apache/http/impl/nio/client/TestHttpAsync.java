@@ -27,33 +27,103 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.localserver.AsyncHttpTestBase;
+import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.localserver.EchoHandler;
+import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.nio.NHttpConnectionFactory;
+import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
+import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
+import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.reactor.IOReactorStatus;
+import org.apache.http.nio.reactor.ListenerEndpoint;
+import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class TestHttpAsync extends AsyncHttpTestBase {
+public class TestHttpAsync extends HttpAsyncTestBase {
+
+    @Before
+    public void setUp() throws Exception {
+        initServer();
+        initClient();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        shutDownClient();
+        shutDownServer();
+    }
+
+    @Override
+    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+            final HttpParams params) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(params);
+    }
+
+    @Override
+    protected String getSchemeName() {
+        return "http";
+    }
+
+    private HttpHost start(
+            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
+        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
+                requestHandlerResolver,
+                expectationVerifier,
+                this.serverHttpProc,
+                new DefaultConnectionReuseStrategy(),
+                this.serverParams);
+        this.server.start(serviceHandler);
+        this.httpclient.start();
+
+        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        endpoint.waitFor();
+
+        Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
+        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        return target;
+    }
+
+    private HttpHost start() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("/echo/*", new BufferingAsyncRequestHandler(new EchoHandler()));
+        registry.register("/random/*", new BufferingAsyncRequestHandler(new RandomHandler()));
+        return start(registry, null);
+    }
 
     @Test
     public void testSingleGet() throws Exception {
+        HttpHost target = start();
         HttpGet httpget = new HttpGet("/random/2048");
-        Future<HttpResponse> future = this.httpclient.execute(this.target, httpget, null);
+        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
         HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
@@ -61,6 +131,7 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
     @Test
     public void testSinglePost() throws Exception {
+        HttpHost target = start();
         byte[] b1 = new byte[1024];
         Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
@@ -68,7 +139,7 @@ public class TestHttpAsync extends AsyncHttpTestBase {
         HttpPost httppost = new HttpPost("/echo/stuff");
         httppost.setEntity(new NByteArrayEntity(b1));
 
-        Future<HttpResponse> future = this.httpclient.execute(this.target, httppost, null);
+        Future<HttpResponse> future = this.httpclient.execute(target, httppost, null);
         HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
@@ -80,21 +151,22 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
     @Test
     public void testMultiplePostsOverMultipleConnections() throws Exception {
+        HttpHost target = start();
         byte[] b1 = new byte[1024];
         Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
 
         int reqCount = 20;
 
-        this.sessionManager.setDefaultMaxPerRoute(reqCount);
-        this.sessionManager.setMaxTotal(100);
+        this.connMgr.setDefaultMaxPerRoute(reqCount);
+        this.connMgr.setMaxTotal(100);
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
             HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
-            queue.add(this.httpclient.execute(this.target, httppost, null));
+            queue.add(this.httpclient.execute(target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
@@ -111,21 +183,22 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
     @Test
     public void testMultiplePostsOverSingleConnection() throws Exception {
+        HttpHost target = start();
         byte[] b1 = new byte[1024];
         Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
 
         int reqCount = 20;
 
-        this.sessionManager.setDefaultMaxPerRoute(1);
-        this.sessionManager.setMaxTotal(100);
+        this.connMgr.setDefaultMaxPerRoute(1);
+        this.connMgr.setMaxTotal(100);
 
         Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
             HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
-            queue.add(this.httpclient.execute(this.target, httppost, null));
+            queue.add(this.httpclient.execute(target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
@@ -142,8 +215,9 @@ public class TestHttpAsync extends AsyncHttpTestBase {
 
     @Test
     public void testRequestFailure() throws Exception {
+        HttpHost target = start();
         HttpGet httpget = new HttpGet("/random/2048");
-        HttpAsyncRequestProducer requestProducer = HttpAsyncMethods.create(this.target, httpget) ;
+        HttpAsyncRequestProducer requestProducer = HttpAsyncMethods.create(target, httpget) ;
         BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
 
             @Override

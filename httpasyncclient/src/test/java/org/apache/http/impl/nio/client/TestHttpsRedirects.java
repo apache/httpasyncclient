@@ -24,41 +24,34 @@
  * <http://www.apache.org/>.
  *
  */
+package org.apache.http.impl.nio.client;
 
-package org.apache.http.localserver;
+import org.apache.http.SSLTestContexts;
+import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
+import org.apache.http.nio.NHttpConnectionFactory;
+import org.apache.http.nio.NHttpServerIOTarget;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
+import org.apache.http.params.HttpParams;
 
-import java.net.InetSocketAddress;
+public class TestHttpsRedirects extends TestRedirects {
 
-import org.apache.http.HttpHost;
-import org.junit.After;
-
-/**
- * Base class for tests using {@link LocalTestServer}. The server will not be started
- * per default.
- */
-public abstract class BasicServerTestBase {
-
-    /** The local server for testing. */
-    protected LocalTestServer localServer;
-
-    @After
-    public void tearDown() throws Exception {
-        if (localServer != null) {
-            localServer.stop();
-        }
+    @Override
+    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+            final HttpParams params) throws Exception {
+        return new SSLNHttpServerConnectionFactory(SSLTestContexts.createServerSSLContext(), null, params);
     }
 
-    /**
-     * Obtains the address of the local test server.
-     *
-     * @return  the test server host, with a scheme name of "http"
-     */
-    protected HttpHost getServerHttp() {
-        InetSocketAddress address = localServer.getServiceAddress();
-        return new HttpHost(
-                address.getHostName(),
-                address.getPort(),
-                "http");
+    @Override
+    protected String getSchemeName() {
+        return "https";
+    }
+
+    @Override
+    public void initClient() throws Exception {
+        super.initClient();
+        this.connMgr.getSchemeRegistry().register(new Scheme("https", 443,
+                new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext())));
     }
 
 }

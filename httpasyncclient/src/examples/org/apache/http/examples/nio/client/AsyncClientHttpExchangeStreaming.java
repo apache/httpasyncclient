@@ -73,7 +73,7 @@ public class AsyncClientHttpExchangeStreaming {
         }
 
         @Override
-        protected void onCleanup() {
+        protected void releaseResources() {
         }
 
         @Override

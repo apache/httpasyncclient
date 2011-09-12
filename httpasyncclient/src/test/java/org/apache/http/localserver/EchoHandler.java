@@ -35,21 +35,14 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
 import org.apache.http.MethodNotSupportedException;
-import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.util.EntityUtils;
 
-
-
 /**
  * A handler that echos the incoming request entity.
- *
- *
- *
- * <!-- empty lines to avoid 'svn diff' problems -->
  */
 public class EchoHandler
     implements HttpRequestHandler {
@@ -94,16 +87,11 @@ public class EchoHandler
             data = EntityUtils.toByteArray(entity);
         }
 
-        ByteArrayEntity bae = new ByteArrayEntity(data);
+        NByteArrayEntity bae = new NByteArrayEntity(data);
         if (entity != null) {
             bae.setContentType(entity.getContentType());
         }
-        entity = bae;
+        response.setEntity(bae);
+    }
 
-        response.setStatusCode(HttpStatus.SC_OK);
-        response.setEntity(entity);
-
-    } // handle
-
-
-} // class EchoHandler
+}
