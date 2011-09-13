@@ -47,6 +47,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.concurrent.Cancellable;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
@@ -204,7 +205,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             this.authTokenExtractor = new BasicAuthTokenExtractor();
         }
 
-        public void verify(
+        public Cancellable verify(
                 final HttpRequest request,
                 final HttpAsyncContinueTrigger trigger,
                 final HttpContext context) throws HttpException, IOException {
@@ -219,6 +220,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             } else {
                 trigger.continueRequest();
             }
+            return null;
         }
 
     }

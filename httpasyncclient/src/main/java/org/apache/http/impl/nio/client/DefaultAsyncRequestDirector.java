@@ -438,10 +438,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         }
     }
 
-    public synchronized void cancel() {
+    public synchronized boolean cancel() {
         this.log.debug("HTTP exchange cancelled");
         try {
-            this.responseConsumer.cancel();
+            boolean cancelled = this.responseConsumer.cancel();
 
             T result = this.responseConsumer.getResult();
             Exception ex = this.responseConsumer.getException();
@@ -452,6 +452,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             } else {
                 this.resultCallback.cancelled(this);
             }
+            return cancelled;
         } catch (RuntimeException runex) {
             this.resultCallback.failed(runex, this);
             throw runex;
