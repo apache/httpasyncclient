@@ -404,4 +404,13 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
         this.poolEntry = null;
     }
 
+    @Override
+    public synchronized String toString() {
+        if (this.poolEntry != null) {
+            return this.poolEntry.toString();
+        } else {
+            return "released";
+        }
+    }
+
 }

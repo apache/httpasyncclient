@@ -46,6 +46,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.AuthPolicy;
 import org.apache.http.client.params.CookiePolicy;
@@ -67,6 +68,7 @@ import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.DefaultProxyAuthenticationHandler;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
+import org.apache.http.impl.client.DefaultUserTokenHandler;
 import org.apache.http.impl.cookie.BestMatchSpecFactory;
 import org.apache.http.impl.cookie.BrowserCompatSpecFactory;
 import org.apache.http.impl.cookie.IgnoreSpecFactory;
@@ -114,6 +116,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private AuthenticationHandler proxyAuthHandler;
     private CredentialsProvider credsProvider;
     private HttpRoutePlanner routePlanner;
+    private UserTokenHandler userTokenHandler;
     private HttpParams params;
 
     private volatile boolean terminated;
@@ -222,6 +225,10 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     protected HttpRoutePlanner createHttpRoutePlanner() {
         return new DefaultHttpAsyncRoutePlanner(getConnectionManager().getSchemeRegistry());
+    }
+
+    protected UserTokenHandler createUserTokenHandler() {
+        return new DefaultUserTokenHandler();
     }
 
     public synchronized final HttpParams getParams() {
@@ -349,6 +356,18 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     public synchronized void setRoutePlanner(final HttpRoutePlanner routePlanner) {
         this.routePlanner = routePlanner;
+    }
+
+    public synchronized final UserTokenHandler getUserTokenHandler() {
+        if (this.userTokenHandler == null) {
+            this.userTokenHandler = createUserTokenHandler();
+        }
+        return this.userTokenHandler;
+    }
+
+
+    public synchronized void setUserTokenHandler(final UserTokenHandler userTokenHandler) {
+        this.userTokenHandler = userTokenHandler;
     }
 
     protected synchronized final BasicHttpProcessor getHttpProcessor() {
@@ -510,6 +529,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     getRedirectStrategy(),
                     getTargetAuthenticationHandler(),
                     getProxyAuthenticationHandler(),
+                    getUserTokenHandler(),
                     getParams());
         }
         this.queue.add(httpexchange);

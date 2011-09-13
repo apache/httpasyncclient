@@ -57,6 +57,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.HttpClientParams;
@@ -107,6 +108,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private final RedirectStrategy redirectStrategy;
     private final AuthenticationHandler targetAuthHandler;
     private final AuthenticationHandler proxyAuthHandler;
+    private final UserTokenHandler userTokenHandler;
     private final AuthState targetAuthState;
     private final AuthState proxyAuthState;
     private final HttpParams clientParams;
@@ -140,6 +142,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             final RedirectStrategy redirectStrategy,
             final AuthenticationHandler targetAuthHandler,
             final AuthenticationHandler proxyAuthHandler,
+            final UserTokenHandler userTokenHandler,
             final HttpParams clientParams) {
         super();
         this.log = log;
@@ -156,6 +159,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         this.routeDirector = new BasicRouteDirector();
         this.targetAuthHandler = targetAuthHandler;
         this.proxyAuthHandler = proxyAuthHandler;
+        this.userTokenHandler = userTokenHandler;
         this.targetAuthState = new AuthState();
         this.proxyAuthState = new AuthState();
         this.clientParams = clientParams;
@@ -304,6 +308,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             if (this.followup == null) {
                 this.finalResponse = response;
             }
+
+            Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
+            if (managedConn != null && userToken == null) {
+                userToken = userTokenHandler.getUserToken(this.localContext);
+                if (userToken != null) {
+                    this.localContext.setAttribute(ClientContext.USER_TOKEN, userToken);
+                    managedConn.setState(userToken);
+                }
+            }
         }
         if (this.finalResponse != null) {
             this.responseConsumer.responseReceived(response);
@@ -383,8 +396,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
-                this.managedConn.unmarkReusable();
-                releaseConnection();
                 invalidateAuthIfSuccessful(this.proxyAuthState);
                 invalidateAuthIfSuccessful(this.targetAuthState);
             }
@@ -392,6 +403,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             if (this.finalResponse != null) {
                 this.responseConsumer.responseCompleted(this.localContext);
                 this.log.debug("Response processed");
+                releaseConnection();
                 T result = this.responseConsumer.getResult();
                 Exception ex = this.responseConsumer.getException();
                 if (ex == null) {
@@ -399,7 +411,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                 } else {
                     this.resultCallback.failed(ex, this);
                 }
-                releaseConnection();
             } else {
                 if (this.followup != null) {
                     HttpRoute actualRoute = this.mainRequest.getRoute();
@@ -408,6 +419,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                         releaseConnection();
                     }
                     this.mainRequest = this.followup;
+                }
+                if (this.managedConn != null && !this.managedConn.isOpen()) {
+                    releaseConnection();
                 }
                 if (this.managedConn != null) {
                     this.managedConn.requestOutput();

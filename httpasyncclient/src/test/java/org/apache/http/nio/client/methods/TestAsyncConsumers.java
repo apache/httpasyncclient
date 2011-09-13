@@ -139,7 +139,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         }
 
         @Override
-        protected Long buildResult() throws Exception {
+        protected Long buildResult(final HttpContext context) throws Exception {
             return count.get();
         }
 
@@ -199,7 +199,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         }
 
         @Override
-        protected String buildResult() throws Exception {
+        protected String buildResult(final HttpContext context) throws Exception {
             return this.sb.toString();
         }
 
@@ -265,7 +265,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         String result = future.get();
         Assert.assertEquals(s, result);
         Mockito.verify(consumer).responseCompleted(Mockito.any(HttpContext.class));
-        Mockito.verify(consumer).buildResult();
+        Mockito.verify(consumer).buildResult(Mockito.any(HttpContext.class));
         Mockito.verify(consumer).releaseResources();
     }
 
@@ -300,7 +300,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
                 target.toURI() + "/echo/stuff", "stuff",
                 ContentType.create("text/plain", HTTP.ASCII));
         BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
-        Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult();
+        Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult(Mockito.any(HttpContext.class));
 
         Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {
