@@ -46,6 +46,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.AuthPolicy;
 import org.apache.http.client.params.CookiePolicy;
@@ -67,22 +68,24 @@ import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.DefaultProxyAuthenticationHandler;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
+import org.apache.http.impl.client.DefaultUserTokenHandler;
 import org.apache.http.impl.cookie.BestMatchSpecFactory;
 import org.apache.http.impl.cookie.BrowserCompatSpecFactory;
 import org.apache.http.impl.cookie.IgnoreSpecFactory;
 import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
 import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
+import org.apache.http.impl.nio.DefaultClientIODispatch;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
 import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
@@ -98,7 +101,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());;
     private final ClientConnectionManager connmgr;
-    private final Queue<HttpAsyncExchangeHandler<?>> queue;
+    private final Queue<HttpAsyncClientExchangeHandler<?>> queue;
 
     private Thread reactorThread;
     private BasicHttpProcessor mutableProcessor;
@@ -113,6 +116,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private AuthenticationHandler proxyAuthHandler;
     private CredentialsProvider credsProvider;
     private HttpRoutePlanner routePlanner;
+    private UserTokenHandler userTokenHandler;
     private HttpParams params;
 
     private volatile boolean terminated;
@@ -120,7 +124,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     protected AbstractHttpAsyncClient(final ClientConnectionManager connmgr) {
         super();
         this.connmgr = connmgr;
-        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncClientExchangeHandler<?>>();
     }
 
     protected AbstractHttpAsyncClient(final IOReactorConfig config) throws IOReactorException {
@@ -128,7 +132,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
         this.connmgr = new PoolingClientConnectionManager(defaultioreactor);
-        this.queue = new ConcurrentLinkedQueue<HttpAsyncExchangeHandler<?>>();
+        this.queue = new ConcurrentLinkedQueue<HttpAsyncClientExchangeHandler<?>>();
     }
 
     protected abstract HttpParams createHttpParams();
@@ -221,6 +225,10 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     protected HttpRoutePlanner createHttpRoutePlanner() {
         return new DefaultHttpAsyncRoutePlanner(getConnectionManager().getSchemeRegistry());
+    }
+
+    protected UserTokenHandler createUserTokenHandler() {
+        return new DefaultUserTokenHandler();
     }
 
     public synchronized final HttpParams getParams() {
@@ -350,6 +358,18 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.routePlanner = routePlanner;
     }
 
+    public synchronized final UserTokenHandler getUserTokenHandler() {
+        if (this.userTokenHandler == null) {
+            this.userTokenHandler = createUserTokenHandler();
+        }
+        return this.userTokenHandler;
+    }
+
+
+    public synchronized void setUserTokenHandler(final UserTokenHandler userTokenHandler) {
+        this.userTokenHandler = userTokenHandler;
+    }
+
     protected synchronized final BasicHttpProcessor getHttpProcessor() {
         if (this.mutableProcessor == null) {
             this.mutableProcessor = createHttpProcessor();
@@ -434,17 +454,17 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     private void doExecute() {
-        NHttpClientProtocolHandler handler = new NHttpClientProtocolHandler();
+        LoggingClientProtocolHandler handler = new LoggingClientProtocolHandler();
         try {
-            IOEventDispatch ioEventDispatch = new InternalClientEventDispatch(handler);
+            IOEventDispatch ioEventDispatch = new DefaultClientIODispatch(handler, getParams());
             this.connmgr.execute(ioEventDispatch);
         } catch (Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);
         } finally {
             this.terminated = true;
             while (!this.queue.isEmpty()) {
-                HttpAsyncResponseConsumer<?> responseConsumer = this.queue.remove();
-                responseConsumer.cancel();
+                HttpAsyncClientExchangeHandler<?> exchangeHandler = this.queue.remove();
+                exchangeHandler.cancel();
             }
         }
     }
@@ -509,6 +529,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     getRedirectStrategy(),
                     getTargetAuthenticationHandler(),
                     getProxyAuthenticationHandler(),
+                    getUserTokenHandler(),
                     getParams());
         }
         this.queue.add(httpexchange);

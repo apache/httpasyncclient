@@ -37,9 +37,11 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentDecoderChannel;
 import org.apache.http.nio.FileContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
 
-public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
+public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final File file;
 
@@ -88,7 +90,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsu
     protected abstract T process(final HttpResponse response, final File file) throws Exception;
 
     @Override
-    protected T buildResult() throws Exception {
+    protected T buildResult(final HttpContext context) throws Exception {
         FileEntity entity = new FileEntity(this.file);
         entity.setContentType(this.response.getFirstHeader(HTTP.CONTENT_TYPE));
         this.response.setEntity(entity);
@@ -96,7 +98,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractHttpAsyncResponseConsu
     }
 
     @Override
-    protected void onCleanup() {
+    protected void releaseResources() {
         if (this.fileChannel != null) {
             try {
                 this.fileChannel.close();

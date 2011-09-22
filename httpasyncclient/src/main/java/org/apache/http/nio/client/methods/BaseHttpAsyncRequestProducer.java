@@ -35,7 +35,8 @@ import org.apache.http.HttpRequest;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.protocol.HttpContext;
 
 @Deprecated
 abstract class BaseHttpAsyncRequestProducer implements HttpAsyncRequestProducer {
@@ -64,11 +65,17 @@ abstract class BaseHttpAsyncRequestProducer implements HttpAsyncRequestProducer 
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
     }
 
+    public void requestCompleted(final HttpContext context) {
+    }
+
     public boolean isRepeatable() {
         return true;
     }
 
     public void resetRequest() {
+    }
+
+    public void close() throws IOException {
     }
 
 }

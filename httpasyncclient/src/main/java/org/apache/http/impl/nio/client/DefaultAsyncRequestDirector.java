@@ -57,6 +57,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.HttpClientParams;
@@ -76,12 +77,13 @@ import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncExchangeHandler;
-import org.apache.http.nio.client.HttpAsyncRequestProducer;
-import org.apache.http.nio.client.HttpAsyncResponseConsumer;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
+import org.apache.http.nio.protocol.HttpAsyncClientProtocolHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
@@ -89,9 +91,7 @@ import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
-class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
-
-    public static final String HTTP_EXCHANGE_HANDLER = "http.nio.async-exchange-handler";
+class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T> {
 
     private final Log log;
 
@@ -108,6 +108,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private final RedirectStrategy redirectStrategy;
     private final AuthenticationHandler targetAuthHandler;
     private final AuthenticationHandler proxyAuthHandler;
+    private final UserTokenHandler userTokenHandler;
     private final AuthState targetAuthState;
     private final AuthState proxyAuthState;
     private final HttpParams clientParams;
@@ -141,6 +142,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             final RedirectStrategy redirectStrategy,
             final AuthenticationHandler targetAuthHandler,
             final AuthenticationHandler proxyAuthHandler,
+            final UserTokenHandler userTokenHandler,
             final HttpParams clientParams) {
         super();
         this.log = log;
@@ -157,9 +159,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         this.routeDirector = new BasicRouteDirector();
         this.targetAuthHandler = targetAuthHandler;
         this.proxyAuthHandler = proxyAuthHandler;
+        this.userTokenHandler = userTokenHandler;
         this.targetAuthState = new AuthState();
         this.proxyAuthState = new AuthState();
         this.clientParams = clientParams;
+    }
+
+    public synchronized void close() throws IOException {
+        releaseResources();
     }
 
     public synchronized void start() {
@@ -262,6 +269,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
+    public void requestCompleted(final HttpContext context) {
+        this.requestProducer.requestCompleted(context);
+    }
+
     public boolean isRepeatable() {
         return this.requestProducer.isRepeatable();
     }
@@ -297,6 +308,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             if (this.followup == null) {
                 this.finalResponse = response;
             }
+
+            Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
+            if (managedConn != null && userToken == null) {
+                userToken = userTokenHandler.getUserToken(this.localContext);
+                if (userToken != null) {
+                    this.localContext.setAttribute(ClientContext.USER_TOKEN, userToken);
+                    managedConn.setState(userToken);
+                }
+            }
         }
         if (this.finalResponse != null) {
             this.responseConsumer.responseReceived(response);
@@ -319,7 +339,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
     private void releaseConnection() {
         if (this.managedConn != null) {
             try {
-                this.managedConn.getContext().removeAttribute(HTTP_EXCHANGE_HANDLER);
+                this.managedConn.getContext().removeAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER);
                 this.managedConn.releaseConnection();
             } catch (IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
@@ -356,11 +376,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    public synchronized boolean keepAlive(final HttpResponse response) {
-        return this.reuseStrategy.keepAlive(response, this.localContext);
-    }
-
-    public synchronized void responseCompleted() {
+    public synchronized void responseCompleted(final HttpContext context) {
         this.log.debug("Response fully read");
         try {
             if (this.resultCallback.isDone()) {
@@ -380,15 +396,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
-                this.managedConn.unmarkReusable();
-                releaseConnection();
                 invalidateAuthIfSuccessful(this.proxyAuthState);
                 invalidateAuthIfSuccessful(this.targetAuthState);
             }
 
             if (this.finalResponse != null) {
-                this.responseConsumer.responseCompleted();
+                this.responseConsumer.responseCompleted(this.localContext);
                 this.log.debug("Response processed");
+                releaseConnection();
                 T result = this.responseConsumer.getResult();
                 Exception ex = this.responseConsumer.getException();
                 if (ex == null) {
@@ -396,7 +411,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 } else {
                     this.resultCallback.failed(ex, this);
                 }
-                releaseConnection();
             } else {
                 if (this.followup != null) {
                     HttpRoute actualRoute = this.mainRequest.getRoute();
@@ -405,6 +419,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                         releaseConnection();
                     }
                     this.mainRequest = this.followup;
+                }
+                if (this.managedConn != null && !this.managedConn.isOpen()) {
+                    releaseConnection();
                 }
                 if (this.managedConn != null) {
                     this.managedConn.requestOutput();
@@ -421,10 +438,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
         }
     }
 
-    public synchronized void cancel() {
+    public synchronized boolean cancel() {
         this.log.debug("HTTP exchange cancelled");
         try {
-            this.responseConsumer.cancel();
+            boolean cancelled = this.responseConsumer.cancel();
 
             T result = this.responseConsumer.getResult();
             Exception ex = this.responseConsumer.getException();
@@ -435,6 +452,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
             } else {
                 this.resultCallback.cancelled(this);
             }
+            return cancelled;
         } catch (RuntimeException runex) {
             this.resultCallback.failed(runex, this);
             throw runex;
@@ -465,7 +483,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 conn.open(route, this.localContext, this.params);
             }
             this.managedConn = conn;
-            this.managedConn.getContext().setAttribute(HTTP_EXCHANGE_HANDLER, this);
+            this.managedConn.getContext().setAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER, this);
             this.managedConn.requestOutput();
             this.routeEstablished = route.equals(conn.getRoute());
         } catch (IOException ex) {
@@ -830,6 +848,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncExchangeHandler<T> {
                 && authState.getCredentials() != null) {
             authState.invalidate();
         }
+    }
+
+    public HttpContext getContext() {
+        return this.localContext;
+    }
+
+    public ConnectionReuseStrategy getConnectionReuseStrategy() {
+        return this.reuseStrategy;
     }
 
 }

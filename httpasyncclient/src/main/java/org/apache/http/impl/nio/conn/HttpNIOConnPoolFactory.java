@@ -24,10 +24,18 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.client;
+package org.apache.http.impl.nio.conn;
 
-enum MessageState {
+import java.io.IOException;
 
-    READY, HEAD, ACK, BODY_STREAM, COMPLETED
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.pool.NIOConnFactory;
+import org.apache.http.nio.reactor.IOSession;
+
+class HttpNIOConnPoolFactory implements NIOConnFactory<HttpRoute, IOSession> {
+
+    public IOSession create(final HttpRoute route, final IOSession session) throws IOException {
+        return session;
+    }
 
 }

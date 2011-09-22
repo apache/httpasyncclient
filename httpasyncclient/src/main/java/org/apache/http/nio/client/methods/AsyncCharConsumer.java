@@ -41,9 +41,10 @@ import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.protocol.HTTP;
 
-public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseConsumer<T> {
+public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final int bufSize;
     private ContentType contentType;
@@ -119,12 +120,11 @@ public abstract class AsyncCharConsumer<T> extends AbstractHttpAsyncResponseCons
     }
 
     @Override
-    void releaseResources() {
+    protected void releaseResources() {
         this.charset = null;
         this.chardecoder = null;
         this.bbuf = null;
         this.cbuf = null;
-        super.releaseResources();
     }
 
 }

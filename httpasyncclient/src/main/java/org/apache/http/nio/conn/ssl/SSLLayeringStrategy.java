@@ -48,11 +48,11 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.impl.nio.reactor.SSLIOSession;
-import org.apache.http.impl.nio.reactor.SSLSetupHandler;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.params.HttpParams;
+import org.apache.http.nio.reactor.ssl.SSLIOSession;
+import org.apache.http.nio.reactor.ssl.SSLMode;
+import org.apache.http.nio.reactor.ssl.SSLSetupHandler;
 
 public class SSLLayeringStrategy implements LayeringStrategy {
 
@@ -187,7 +187,10 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     }
 
     public SSLIOSession layer(final IOSession iosession) {
-        return new SSLIOSession(iosession, this.sslContext, new InternalSSLSetupHandler());
+        SSLIOSession ssliosession = new SSLIOSession(iosession, SSLMode.CLIENT, this.sslContext,
+                new InternalSSLSetupHandler());
+        iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
+        return ssliosession;
     }
 
     protected void initializeEngine(final SSLEngine engine) {
@@ -196,8 +199,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     class InternalSSLSetupHandler implements SSLSetupHandler {
 
         public void initalize(
-                final SSLEngine sslengine,
-                final HttpParams params) throws SSLException {
+                final SSLEngine sslengine) throws SSLException {
             initializeEngine(sslengine);
         }
 

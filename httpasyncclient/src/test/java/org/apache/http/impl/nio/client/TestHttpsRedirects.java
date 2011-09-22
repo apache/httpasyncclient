@@ -24,15 +24,34 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.client;
+package org.apache.http.impl.nio.client;
 
-import org.apache.http.HttpResponse;
+import org.apache.http.SSLTestContexts;
+import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
+import org.apache.http.nio.NHttpConnectionFactory;
+import org.apache.http.nio.NHttpServerIOTarget;
+import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
+import org.apache.http.params.HttpParams;
 
-public interface HttpAsyncExchangeHandler<T>
-    extends HttpAsyncRequestProducer, HttpAsyncResponseConsumer<T> {
+public class TestHttpsRedirects extends TestRedirects {
 
-    boolean isDone();
+    @Override
+    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+            final HttpParams params) throws Exception {
+        return new SSLNHttpServerConnectionFactory(SSLTestContexts.createServerSSLContext(), null, params);
+    }
 
-    boolean keepAlive(HttpResponse response);
+    @Override
+    protected String getSchemeName() {
+        return "https";
+    }
+
+    @Override
+    public void initClient() throws Exception {
+        super.initClient();
+        this.connMgr.getSchemeRegistry().register(new Scheme("https", 443,
+                new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext())));
+    }
 
 }

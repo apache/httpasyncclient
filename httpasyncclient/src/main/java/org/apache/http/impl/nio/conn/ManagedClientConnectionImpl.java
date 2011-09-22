@@ -42,14 +42,13 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.conn.ConnectionShutdownException;
-import org.apache.http.impl.nio.reactor.SSLIOSession;
-import org.apache.http.impl.nio.reactor.SSLMode;
 import org.apache.http.nio.conn.ClientConnectionManager;
 import org.apache.http.nio.conn.ManagedClientConnection;
 import org.apache.http.nio.conn.OperatedClientConnection;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.scheme.Scheme;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 import org.apache.http.params.HttpParams;
@@ -239,7 +238,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
 
     public boolean isSecure() {
         OperatedClientConnection conn = ensureConnection();
-        return conn.getSSLIOSession() != null;
+        return conn.getIOSession() instanceof SSLIOSession;
     }
 
     public HttpRoute getRoute() {
@@ -249,8 +248,12 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
 
     public SSLSession getSSLSession() {
         OperatedClientConnection conn = ensureConnection();
-        SSLIOSession iosession = conn.getSSLIOSession();
-        return iosession != null ? iosession.getSSLSession() : null;
+        IOSession iosession = conn.getIOSession();
+        if (iosession instanceof SSLIOSession) {
+            return ((SSLIOSession) iosession).getSSLSession();
+        } else {
+            return null;
+        }
     }
 
     public Object getState() {
@@ -308,9 +311,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
             Scheme scheme = this.manager.getSchemeRegistry().getScheme(target);
             LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
-                SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
-                ssliosession.bind(SSLMode.CLIENT, params);
-                iosession = ssliosession;
+                iosession = layeringStrategy.layer(iosession);
             }
         }
 
@@ -323,7 +324,7 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
         iosession.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
 
         if (proxy == null) {
-            tracker.connectTarget(conn.getSSLIOSession() != null);
+            tracker.connectTarget(conn.getIOSession() instanceof SSLIOSession);
         } else {
             tracker.connectProxy(proxy, false);
         }
@@ -373,12 +374,9 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
                     " scheme does not provider support for protocol layering");
         }
         IOSession iosession = entry.getConnection();
-        SSLIOSession ssliosession = (SSLIOSession) layeringStrategy.layer(iosession);
-        ssliosession.bind(SSLMode.CLIENT, params);
-
         OperatedClientConnection conn = (OperatedClientConnection) iosession.getAttribute(
                 ExecutionContext.HTTP_CONNECTION);
-        conn.upgrade(ssliosession);
+        conn.upgrade((SSLIOSession) layeringStrategy.layer(iosession));
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
@@ -404,6 +402,15 @@ class ManagedClientConnectionImpl implements ManagedClientConnection {
         }
         this.manager.releaseConnection(this, this.duration, TimeUnit.MILLISECONDS);
         this.poolEntry = null;
+    }
+
+    @Override
+    public synchronized String toString() {
+        if (this.poolEntry != null) {
+            return this.poolEntry.toString();
+        } else {
+            return "released";
+        }
     }
 
 }
