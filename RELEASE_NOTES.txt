@@ -1,5 +1,16 @@
-Changes since 4.0 Alpha 2
+Release 4.0 Alpha 3
 -------------------
+
+The 4.0 ALPHA3 release largely completes the application programming interface and feature set 
+of HttpAsyncClient. While the API may still change in the course of the ALPHA development phase, 
+this is expected to be the last round of major API changes and the API is expected to be reasonably
+stable as of this release.
+
+We are kindly asking actual and prospective users of HttpAsyncClient to review its API, evaluate
+its functionality and give us feedback while the 4.0 API is still not final. If no major flaws 
+are discovered the 4.0 API is expected to be frozen with the next BETA release. 
+
+Changelog:
 
 * [HTTPASYNC-6]: Fixed NPE in the DefaultAsyncRequestDirector#responseCompleted method.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
