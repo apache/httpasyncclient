@@ -31,10 +31,11 @@ import java.net.URI;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 
 /**
- * @deprecated use {@link HttpAsyncMethods#createPost(URI, String, String, String)}
- *  or {@link HttpAsyncMethods#createPost(URI, byte[], String)}
+ * @deprecated use {@link HttpAsyncMethods#createPost(URI, String, ContentType)}
+ *  or {@link HttpAsyncMethods#createPost(URI, byte[], ContentType)}
  */
 @Deprecated
 public class HttpAsyncPost extends BaseHttpAsyncEntityRequestProducer {

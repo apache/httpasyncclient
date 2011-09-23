@@ -31,10 +31,11 @@ import java.net.URI;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.ContentType;
 
 /**
- * @deprecated use {@link HttpAsyncMethods#createPut(URI, String, String, String)}
- *  or {@link HttpAsyncMethods#createPut(URI, byte[], String)}
+ * @deprecated use {@link HttpAsyncMethods#createPut(URI, String, ContentType)}
+ *  or {@link HttpAsyncMethods#createPut(URI, byte[], ContentType)}
  */
 @Deprecated
 public class HttpAsyncPut extends BaseHttpAsyncEntityRequestProducer {
