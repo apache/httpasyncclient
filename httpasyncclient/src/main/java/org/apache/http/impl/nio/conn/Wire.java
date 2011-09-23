@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.commons.logging.Log;
 
-public class Wire {
+class Wire {
 
     private final Log log;
     private final String id;

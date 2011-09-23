@@ -37,7 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionBufferStatus;
 
-public class LoggingIOSession implements IOSession {
+class LoggingIOSession implements IOSession {
 
     private final IOSession session;
     private final ByteChannel channel;
