@@ -24,26 +24,27 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.impl.nio.conn;
 
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
+import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
-import org.apache.http.nio.reactor.IOReactor;
+/**
+ * @since 4.1
+ */
+@ThreadSafe
+public final class AsyncSchemeRegistryFactory {
 
-public interface ClientConnectionManager extends IOReactor {
-
-    SchemeRegistry getSchemeRegistry();
-
-    Future<ManagedClientConnection> leaseConnection(
-            HttpRoute route, Object state,
-            long connectTimeout, TimeUnit timeUnit,
-            FutureCallback<ManagedClientConnection> callback);
-
-    void releaseConnection(ManagedClientConnection session,
-            long validDuration, TimeUnit timeUnit);
+    public static AsyncSchemeRegistry createDefault() {
+        AsyncSchemeRegistry registry = new AsyncSchemeRegistry();
+        registry.register(
+                new AsyncScheme("http", 80, null));
+        registry.register(
+                new AsyncScheme("https", 443, SSLLayeringStrategy.getDefaultStrategy()));
+        return registry;
+    }
 
 }
+

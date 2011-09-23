@@ -34,21 +34,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.http.HttpHost;
 
 /**
- * A set of supported protocol {@link Scheme}s.
+ * A set of supported protocol {@link AsyncScheme}s.
  * Schemes are identified by lowercase names.
  *
  */
-public final class SchemeRegistry {
+public final class AsyncSchemeRegistry {
 
     /** The available schemes in this registry. */
-    private final Map<String, Scheme> registeredSchemes;
+    private final Map<String, AsyncScheme> registeredSchemes;
 
     /**
      * Creates a new, empty scheme registry.
      */
-    public SchemeRegistry() {
+    public AsyncSchemeRegistry() {
         super();
-        registeredSchemes = new ConcurrentHashMap<String, Scheme>();
+        registeredSchemes = new ConcurrentHashMap<String, AsyncScheme>();
     }
 
     /**
@@ -61,8 +61,8 @@ public final class SchemeRegistry {
      * @throws IllegalStateException
      *          if the scheme with the given name is not registered
      */
-    public final Scheme getScheme(String name) {
-        Scheme found = get(name);
+    public final AsyncScheme getScheme(String name) {
+        AsyncScheme found = get(name);
         if (found == null) {
             throw new IllegalStateException
                 ("Scheme '"+name+"' not registered.");
@@ -81,7 +81,7 @@ public final class SchemeRegistry {
      * @throws IllegalStateException
      *          if a scheme with the respective name is not registered
      */
-    public final Scheme getScheme(HttpHost host) {
+    public final AsyncScheme getScheme(HttpHost host) {
         if (host == null) {
             throw new IllegalArgumentException("Host must not be null.");
         }
@@ -96,13 +96,13 @@ public final class SchemeRegistry {
      * @return  the scheme, or
      *          <code>null</code> if there is none by this name
      */
-    public final Scheme get(String name) {
+    public final AsyncScheme get(String name) {
         if (name == null)
             throw new IllegalArgumentException("Name must not be null.");
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
-        Scheme found = registeredSchemes.get(name);
+        AsyncScheme found = registeredSchemes.get(name);
         return found;
     }
 
@@ -116,11 +116,11 @@ public final class SchemeRegistry {
      * @return  the scheme previously registered with that name, or
      *          <code>null</code> if none was registered
      */
-    public final Scheme register(Scheme sch) {
+    public final AsyncScheme register(AsyncScheme sch) {
         if (sch == null)
             throw new IllegalArgumentException("Scheme must not be null.");
 
-        Scheme old = registeredSchemes.put(sch.getName(), sch);
+        AsyncScheme old = registeredSchemes.put(sch.getName(), sch);
         return old;
     }
 
@@ -132,13 +132,13 @@ public final class SchemeRegistry {
      * @return  the unregistered scheme, or
      *          <code>null</code> if there was none
      */
-    public final Scheme unregister(String name) {
+    public final AsyncScheme unregister(String name) {
         if (name == null)
             throw new IllegalArgumentException("Name must not be null.");
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
-        Scheme gone = registeredSchemes.remove(name);
+        AsyncScheme gone = registeredSchemes.remove(name);
         return gone;
     }
 
@@ -152,12 +152,12 @@ public final class SchemeRegistry {
     }
 
     /**
-     * Populates the internal collection of registered {@link Scheme protocol schemes}
+     * Populates the internal collection of registered {@link AsyncScheme protocol schemes}
      * with the content of the map passed as a parameter.
      *
      * @param map protocol schemes
      */
-    public void setItems(final Map<String, Scheme> map) {
+    public void setItems(final Map<String, AsyncScheme> map) {
         if (map == null) {
             return;
         }

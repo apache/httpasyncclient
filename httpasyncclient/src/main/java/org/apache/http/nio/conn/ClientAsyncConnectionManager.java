@@ -26,38 +26,24 @@
  */
 package org.apache.http.nio.conn;
 
-import java.io.IOException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.HttpRoutedConnection;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HttpContext;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
+import org.apache.http.nio.reactor.IOReactor;
 
-public interface ManagedClientConnection
-    extends HttpRoutedConnection, NHttpClientConnection, ConnectionReleaseTrigger {
+public interface ClientAsyncConnectionManager extends IOReactor {
 
-    Object getState();
+    AsyncSchemeRegistry getSchemeRegistry();
 
-    void setState(Object state);
+    Future<ManagedAsyncClientConnection> leaseConnection(
+            HttpRoute route, Object state,
+            long connectTimeout, TimeUnit timeUnit,
+            FutureCallback<ManagedAsyncClientConnection> callback);
 
-    void markReusable();
-
-    void unmarkReusable();
-
-    boolean isMarkedReusable();
-
-    void open(HttpRoute route, HttpContext context, HttpParams params) throws IOException;
-
-    void tunnelTarget(HttpParams params) throws IOException;
-
-    void tunnelProxy(HttpHost next, HttpParams params) throws IOException;
-
-    void layerProtocol(HttpContext context, HttpParams params) throws IOException;
-
-    void setIdleDuration(long duration, TimeUnit tunit);
+    void releaseConnection(ManagedAsyncClientConnection session,
+            long validDuration, TimeUnit timeUnit);
 
 }

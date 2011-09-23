@@ -45,7 +45,7 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.conn.ManagedClientConnection;
+import org.apache.http.nio.conn.ManagedAsyncClientConnection;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
@@ -242,7 +242,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
                                 @Override
                                 protected Object buildResult(final HttpContext context) throws Exception {
-                                    ManagedClientConnection conn = (ManagedClientConnection) context.getAttribute(
+                                    ManagedAsyncClientConnection conn = (ManagedAsyncClientConnection) context.getAttribute(
                                             ExecutionContext.HTTP_CONNECTION);
                                     return conn.getState();
                                 }

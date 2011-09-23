@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
-import org.apache.http.nio.conn.OperatedClientConnection;
+import org.apache.http.nio.conn.OperatedAsyncClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.pool.PoolEntry;
 import org.apache.http.protocol.ExecutionContext;
@@ -59,9 +59,9 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
         return expired;
     }
 
-    public OperatedClientConnection getOperatedClientConnection() {
+    public OperatedAsyncClientConnection getOperatedClientConnection() {
         IOSession session = getConnection();
-        return (OperatedClientConnection) session.getAttribute(
+        return (OperatedAsyncClientConnection) session.getAttribute(
                 ExecutionContext.HTTP_CONNECTION);
     }
 

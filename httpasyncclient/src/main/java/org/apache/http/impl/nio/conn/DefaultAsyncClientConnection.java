@@ -39,15 +39,15 @@ import org.apache.http.HttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.nio.NHttpMessageParser;
 import org.apache.http.nio.NHttpMessageWriter;
-import org.apache.http.nio.conn.OperatedClientConnection;
+import org.apache.http.nio.conn.OperatedAsyncClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionInputBuffer;
 import org.apache.http.nio.reactor.SessionOutputBuffer;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.params.HttpParams;
 
-public class DefaultClientConnection
-                        extends DefaultNHttpClientConnection implements OperatedClientConnection {
+public class DefaultAsyncClientConnection
+                    extends DefaultNHttpClientConnection implements OperatedAsyncClientConnection {
 
     private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
@@ -55,7 +55,7 @@ public class DefaultClientConnection
 
     private String id;
 
-    public DefaultClientConnection(
+    public DefaultAsyncClientConnection(
             final String id,
             final IOSession iosession,
             final HttpResponseFactory responseFactory,

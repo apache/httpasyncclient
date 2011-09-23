@@ -37,7 +37,7 @@ import org.apache.http.client.protocol.ResponseAuthCache;
 import org.apache.http.client.protocol.ResponseProcessCookies;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
-import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -53,7 +53,7 @@ import org.apache.http.util.VersionInfo;
 
 public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
 
-    public DefaultHttpAsyncClient(final ClientConnectionManager connmgr) {
+    public DefaultHttpAsyncClient(final ClientAsyncConnectionManager connmgr) {
         super(connmgr);
     }
 

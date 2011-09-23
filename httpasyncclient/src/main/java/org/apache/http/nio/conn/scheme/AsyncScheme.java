@@ -30,7 +30,7 @@ import java.util.Locale;
 
 import org.apache.http.util.LangUtils;
 
-public final class Scheme {
+public final class AsyncScheme {
 
     /** The name of this scheme, in lowercase. (e.g. http, https) */
     private final String name;
@@ -49,7 +49,7 @@ public final class Scheme {
      *  need to synchronize, and it does not affect immutability.
     */
 
-    public Scheme(final String name, final int port, final LayeringStrategy strategy) {
+    public AsyncScheme(final String name, final int port, final LayeringStrategy strategy) {
         if (name == null) {
             throw new IllegalArgumentException("Scheme name may not be null");
         }
@@ -92,8 +92,8 @@ public final class Scheme {
     @Override
     public final boolean equals(Object obj) {
         if (this == obj) return true;
-        if (obj instanceof Scheme) {
-            Scheme that = (Scheme) obj;
+        if (obj instanceof AsyncScheme) {
+            AsyncScheme that = (AsyncScheme) obj;
             return this.name.equals(that.name)
                 && this.defaultPort == that.defaultPort
                 && this.strategy.equals(that.strategy);

@@ -30,7 +30,7 @@ import org.apache.http.SSLTestContexts;
 import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.NHttpServerIOTarget;
-import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.params.HttpParams;
 
@@ -50,7 +50,7 @@ public class TestHttpsRedirects extends TestRedirects {
     @Override
     public void initClient() throws Exception {
         super.initClient();
-        this.connMgr.getSchemeRegistry().register(new Scheme("https", 443,
+        this.connMgr.getSchemeRegistry().register(new AsyncScheme("https", 443,
                 new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext())));
     }
 

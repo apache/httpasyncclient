@@ -31,13 +31,13 @@ import java.io.IOException;
 
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.impl.nio.conn.PoolingClientConnectionManager;
+import org.apache.http.impl.nio.conn.PoolingAsyncClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.HttpServerNio;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.NHttpServerIOTarget;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.reactor.IOReactorExceptionHandler;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
@@ -57,7 +57,7 @@ public abstract class HttpAsyncTestBase {
     protected HttpServerNio server;
     protected HttpProcessor serverHttpProc;
     protected DefaultConnectingIOReactor ioreactor;
-    protected PoolingClientConnectionManager connMgr;
+    protected PoolingAsyncClientConnectionManager connMgr;
     protected DefaultHttpAsyncClient httpclient;
 
     protected abstract NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
@@ -99,9 +99,9 @@ public abstract class HttpAsyncTestBase {
 
     public void initClient() throws Exception {
         this.ioreactor = new DefaultConnectingIOReactor();
-        SchemeRegistry schemeRegistry = new SchemeRegistry();
-        schemeRegistry.register(new Scheme("http", 80, null));
-        this.connMgr = new PoolingClientConnectionManager(this.ioreactor, schemeRegistry);
+        AsyncSchemeRegistry schemeRegistry = new AsyncSchemeRegistry();
+        schemeRegistry.register(new AsyncScheme("http", 80, null));
+        this.connMgr = new PoolingAsyncClientConnectionManager(this.ioreactor, schemeRegistry);
         this.httpclient = new DefaultHttpAsyncClient(this.connMgr);
         this.httpclient.getParams()
             .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)

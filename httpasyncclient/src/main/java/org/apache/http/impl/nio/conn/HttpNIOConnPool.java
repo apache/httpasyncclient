@@ -34,8 +34,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.pool.AbstractNIOConnPool;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
@@ -45,14 +45,14 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
     private static AtomicLong COUNTER = new AtomicLong();
 
     private final Log log;
-    private final SchemeRegistry schemeRegistry;
+    private final AsyncSchemeRegistry schemeRegistry;
     private final long connTimeToLive;
     private final TimeUnit tunit;
 
     HttpNIOConnPool(
             final Log log,
             final ConnectingIOReactor ioreactor,
-            final SchemeRegistry schemeRegistry,
+            final AsyncSchemeRegistry schemeRegistry,
             long connTimeToLive, final TimeUnit tunit) {
         super(ioreactor, new HttpNIOConnPoolFactory(), 2, 20);
         this.log = log;
@@ -75,7 +75,7 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
         String hostname = firsthop.getHostName();
         int port = firsthop.getPort();
         if (port < 0) {
-            Scheme scheme = this.schemeRegistry.getScheme(firsthop);
+            AsyncScheme scheme = this.schemeRegistry.getScheme(firsthop);
             port = scheme.resolvePort(port);
         }
         return new InetSocketAddress(hostname, port);

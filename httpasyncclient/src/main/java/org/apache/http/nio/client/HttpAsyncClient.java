@@ -33,7 +33,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.nio.conn.ClientConnectionManager;
+import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOReactorStatus;
@@ -48,7 +48,7 @@ public interface HttpAsyncClient {
 
     IOReactorStatus getStatus();
 
-    ClientConnectionManager getConnectionManager();
+    ClientAsyncConnectionManager getConnectionManager();
 
     HttpParams getParams();
 

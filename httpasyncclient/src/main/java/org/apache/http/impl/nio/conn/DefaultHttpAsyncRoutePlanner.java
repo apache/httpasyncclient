@@ -33,8 +33,8 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.protocol.HttpContext;
 
 import org.apache.http.conn.routing.HttpRoute;
@@ -44,9 +44,9 @@ import org.apache.http.conn.params.ConnRouteParams;
 
 public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
 
-    private final SchemeRegistry schemeRegistry;
+    private final AsyncSchemeRegistry schemeRegistry;
 
-    public DefaultHttpAsyncRoutePlanner(final SchemeRegistry schemeRegistry) {
+    public DefaultHttpAsyncRoutePlanner(final AsyncSchemeRegistry schemeRegistry) {
         super();
         this.schemeRegistry = schemeRegistry;
     }
@@ -67,7 +67,7 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         }
         InetAddress local = ConnRouteParams.getLocalAddress(request.getParams());
         HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
-        Scheme scheme;
+        AsyncScheme scheme;
         try {
             scheme = this.schemeRegistry.getScheme(target);
         } catch (IllegalStateException ex) {

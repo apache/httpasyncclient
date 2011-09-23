@@ -24,27 +24,18 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.conn;
+package org.apache.http.nio.conn;
 
-import org.apache.http.annotation.ThreadSafe;
-import org.apache.http.nio.conn.scheme.Scheme;
-import org.apache.http.nio.conn.scheme.SchemeRegistry;
-import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
+import org.apache.http.HttpInetConnection;
+import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.NHttpClientIOTarget;
+import org.apache.http.nio.reactor.IOSession;
 
-/**
- * @since 4.1
- */
-@ThreadSafe
-public final class SchemeRegistryFactory {
+public interface OperatedAsyncClientConnection
+    extends NHttpClientConnection, HttpInetConnection, NHttpClientIOTarget {
 
-    public static SchemeRegistry createDefault() {
-        SchemeRegistry registry = new SchemeRegistry();
-        registry.register(
-                new Scheme("http", 80, null));
-        registry.register(
-                new Scheme("https", 443, SSLLayeringStrategy.getDefaultStrategy()));
-        return registry;
-    }
+    void upgrade(IOSession iosession);
+
+    IOSession getIOSession();
 
 }
-

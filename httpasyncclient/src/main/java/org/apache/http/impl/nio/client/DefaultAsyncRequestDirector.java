@@ -77,9 +77,9 @@ import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.conn.ClientConnectionManager;
-import org.apache.http.nio.conn.ManagedClientConnection;
-import org.apache.http.nio.conn.scheme.Scheme;
+import org.apache.http.nio.conn.ClientAsyncConnectionManager;
+import org.apache.http.nio.conn.ManagedAsyncClientConnection;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 import org.apache.http.nio.protocol.HttpAsyncClientProtocolHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
@@ -99,7 +99,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final HttpContext localContext;
     private final ResultCallback<T> resultCallback;
-    private final ClientConnectionManager connmgr;
+    private final ClientAsyncConnectionManager connmgr;
     private final HttpProcessor httppocessor;
     private final HttpRoutePlanner routePlanner;
     private final HttpRouteDirector routeDirector;
@@ -121,8 +121,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private RequestWrapper currentRequest;
     private HttpResponse currentResponse;
     private boolean routeEstablished;
-    private Future<ManagedClientConnection> connFuture;
-    private ManagedClientConnection managedConn;
+    private Future<ManagedAsyncClientConnection> connFuture;
+    private ManagedAsyncClientConnection managedConn;
     private int redirectCount;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
@@ -134,7 +134,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext localContext,
             final ResultCallback<T> callback,
-            final ClientConnectionManager connmgr,
+            final ClientAsyncConnectionManager connmgr,
             final HttpProcessor httppocessor,
             final HttpRoutePlanner routePlanner,
             final ConnectionReuseStrategy reuseStrategy,
@@ -473,7 +473,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         return this.responseConsumer.getException();
     }
 
-    private synchronized void connectionRequestCompleted(final ManagedClientConnection conn) {
+    private synchronized void connectionRequestCompleted(final ManagedAsyncClientConnection conn) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request suceeded: " + conn);
         }
@@ -514,9 +514,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         }
     }
 
-    class InternalFutureCallback implements FutureCallback<ManagedClientConnection> {
+    class InternalFutureCallback implements FutureCallback<ManagedAsyncClientConnection> {
 
-        public void completed(final ManagedClientConnection session) {
+        public void completed(final ManagedAsyncClientConnection session) {
             connectionRequestCompleted(session);
         }
 
@@ -592,7 +592,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         String host = target.getHostName();
         int port = target.getPort();
         if (port < 0) {
-            Scheme scheme = this.connmgr.getSchemeRegistry().getScheme(target.getSchemeName());
+            AsyncScheme scheme = this.connmgr.getSchemeRegistry().getScheme(target.getSchemeName());
             port = scheme.getDefaultPort();
         }
         StringBuilder buffer = new StringBuilder(host.length() + 6);
@@ -806,7 +806,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         String hostname = host.getHostName();
         int port = host.getPort();
         if (port < 0) {
-            Scheme scheme = this.connmgr.getSchemeRegistry().getScheme(host);
+            AsyncScheme scheme = this.connmgr.getSchemeRegistry().getScheme(host);
             port = scheme.getDefaultPort();
         }
 
