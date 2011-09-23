@@ -36,6 +36,7 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.AsyncCharConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
+import org.apache.http.protocol.HttpContext;
 
 public class AsyncClientHttpExchangeStreaming {
 
@@ -77,7 +78,7 @@ public class AsyncClientHttpExchangeStreaming {
         }
 
         @Override
-        protected Boolean buildResult() {
+        protected Boolean buildResult(final HttpContext context) {
             return Boolean.TRUE;
         }
 
