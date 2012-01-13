@@ -63,7 +63,6 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + ": Disconnected");
         }
-        super.closed(conn);
     }
 
     @Override

@@ -150,6 +150,17 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     static class AuthHandler implements HttpRequestHandler {
 
+        private final boolean keepAlive;
+        
+        AuthHandler(boolean keepAlive) {
+            super();
+            this.keepAlive = keepAlive;
+        }
+        
+        AuthHandler() {
+            this(true);
+        }
+        
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -162,6 +173,8 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
                 NStringEntity entity = new NStringEntity("success", HTTP.ASCII);
                 response.setEntity(entity);
             }
+            response.setHeader(HTTP.CONN_DIRECTIVE, 
+                    this.keepAlive ? HTTP.CONN_KEEP_ALIVE : HTTP.CONN_CLOSE);
         }
 
     }
@@ -302,6 +315,27 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         this.httpclient.setCredentialsProvider(credsProvider);
 
         HttpGet httpget = new HttpGet("/");
+        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
+        AuthScope authscope = credsProvider.getAuthScope();
+        Assert.assertNotNull(authscope);
+        Assert.assertEquals("test realm", authscope.getRealm());
+    }
+
+    @Test
+    public void testBasicAuthenticationSuccessNonPersistentConnection() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new BufferingAsyncRequestHandler(new AuthHandler(false)));
+        HttpHost target = start(registry, null);
+
+        TestCredentialsProvider credsProvider = new TestCredentialsProvider(
+                new UsernamePasswordCredentials("test", "test"));
+        this.httpclient.setCredentialsProvider(credsProvider);
+
+        HttpGet httpget = new HttpGet("/");
+        httpget.addHeader(HTTP.CONN_DIRECTIVE, HTTP.CONN_CLOSE);
         Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
         HttpResponse response = future.get();
         Assert.assertNotNull(response);

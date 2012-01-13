@@ -208,15 +208,17 @@ public class PoolingAsyncClientConnectionManager
                         }
                     }
                 }
-                entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
-                if (this.log.isDebugEnabled()) {
-                    String s;
-                    if (keepalive > 0) {
-                        s = "for " + keepalive + " " + tunit;
-                    } else {
-                        s = "indefinitely";
+                if (managedConn.isOpen()) {
+                    entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                    if (this.log.isDebugEnabled()) {
+                        String s;
+                        if (keepalive > 0) {
+                            s = "for " + keepalive + " " + tunit;
+                        } else {
+                            s = "indefinitely";
+                        }
+                        this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
                     }
-                    this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
                 }
             } finally {
                 this.pool.release(entry, managedConn.isMarkedReusable());

@@ -396,6 +396,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
+                this.log.debug("Connection cannot be kept alive");
+                this.managedConn.unmarkReusable();
                 invalidateAuthIfSuccessful(this.proxyAuthState);
                 invalidateAuthIfSuccessful(this.targetAuthState);
             }
