@@ -485,7 +485,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.reactorThread.start();
     }
 
-    public synchronized void shutdown() throws InterruptedException {
+    public void shutdown() throws InterruptedException {
         try {
             this.connmgr.shutdown(5000);
         } catch (IOException ex) {
