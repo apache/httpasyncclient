@@ -31,7 +31,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentDecoderChannel;
@@ -46,6 +48,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
     private final File file;
 
     private HttpResponse response;
+    private ContentType contentType;
     private FileChannel fileChannel;
     private long idx = -1;
 
@@ -63,12 +66,18 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
     }
 
     @Override
+    protected void onEntityEnclosed(
+            final HttpEntity entity, final ContentType contentType) throws IOException {
+        this.contentType = contentType;
+        this.fileChannel = new FileOutputStream(this.file).getChannel();
+        this.idx = 0;
+    }
+
+    @Override
     protected void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         if (this.fileChannel == null) {
-            FileOutputStream out = new FileOutputStream(this.file);
-            this.fileChannel = out.getChannel();
-            this.idx = 0;
+            throw new IllegalStateException("File channel is null");
         }
         long transferred;
         if (decoder instanceof FileContentDecoder) {
@@ -87,14 +96,15 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
         }
     }
 
-    protected abstract T process(final HttpResponse response, final File file) throws Exception;
+    protected abstract T process(
+            HttpResponse response, File file, ContentType contentType) throws Exception;
 
     @Override
     protected T buildResult(final HttpContext context) throws Exception {
         FileEntity entity = new FileEntity(this.file);
         entity.setContentType(this.response.getFirstHeader(HTTP.CONTENT_TYPE));
         this.response.setEntity(entity);
-        return process(this.response, this.file);
+        return process(this.response, this.file, this.contentType);
     }
 
     @Override

@@ -27,9 +27,9 @@
 package org.apache.http.impl.nio.client;
 
 import org.apache.http.SSLTestContexts;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.params.HttpParams;
@@ -37,7 +37,7 @@ import org.apache.http.params.HttpParams;
 public class TestHttpsAsync extends TestHttpAsync {
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new SSLNHttpServerConnectionFactory(SSLTestContexts.createServerSSLContext(), null, params);
     }

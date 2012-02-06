@@ -51,16 +51,17 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.entity.NFileEntity;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
-import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.HttpParams;
@@ -88,7 +89,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     }
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new DefaultNHttpServerConnectionFactory(params);
     }
@@ -101,11 +102,12 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
-                requestHandlerResolver,
-                expectationVerifier,
+        HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                requestHandlerResolver,
+                expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();
@@ -193,7 +195,10 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         }
 
         @Override
-        protected Integer process(final HttpResponse response, final File file) throws Exception {
+        protected Integer process(
+                final HttpResponse response,
+                final File file,
+                final ContentType contentType) {
             return response.getStatusLine().getStatusCode();
         }
 
@@ -257,7 +262,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     @Test
     public void testTwoWayZeroCopy() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new TestHandler(false)));
+        registry.register("*", new BasicAsyncRequestHandler(new TestHandler(false)));
         HttpHost target = start(registry, null);
 
         File tmpdir = FileUtils.getTempDirectory();
@@ -287,7 +292,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     @Test
     public void testZeroCopyFallback() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new TestHandler(true)));
+        registry.register("*", new BasicAsyncRequestHandler(new TestHandler(true)));
         HttpHost target = start(registry, null);
         File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");

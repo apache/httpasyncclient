@@ -28,11 +28,9 @@ package org.apache.http.nio.conn;
 
 import org.apache.http.HttpInetConnection;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.NHttpClientIOTarget;
 import org.apache.http.nio.reactor.IOSession;
 
-public interface OperatedAsyncClientConnection
-    extends NHttpClientConnection, HttpInetConnection, NHttpClientIOTarget {
+public interface OperatedAsyncClientConnection extends NHttpClientConnection, HttpInetConnection {
 
     void upgrade(IOSession iosession);
 

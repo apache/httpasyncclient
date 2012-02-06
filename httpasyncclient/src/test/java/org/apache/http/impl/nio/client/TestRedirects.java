@@ -52,18 +52,19 @@ import org.apache.http.client.params.ClientPNames;
 import org.apache.http.cookie.SM;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
-import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.HttpParams;
@@ -95,7 +96,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     }
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new DefaultNHttpServerConnectionFactory(params);
     }
@@ -108,11 +109,12 @@ public class TestRedirects extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
-                requestHandlerResolver,
-                expectationVerifier,
+        HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                requestHandlerResolver,
+                expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();
@@ -276,7 +278,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect300() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MULTIPLE_CHOICES)));
         HttpHost target = start(registry, null);
 
@@ -298,7 +300,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect301() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_PERMANENTLY)));
         HttpHost target = start(registry, null);
 
@@ -323,7 +325,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect302() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         HttpHost target = start(registry, null);
 
@@ -348,7 +350,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect302NoLocation() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new HttpRequestHandler() {
+        registry.register("*", new BasicAsyncRequestHandler(new HttpRequestHandler() {
 
             public void handle(
                     final HttpRequest request,
@@ -381,7 +383,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect303() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_SEE_OTHER)));
         HttpHost target = start(registry, null);
 
@@ -406,7 +408,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect304() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_NOT_MODIFIED)));
         HttpHost target = start(registry, null);
 
@@ -428,7 +430,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect305() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_USE_PROXY)));
         HttpHost target = start(registry, null);
 
@@ -450,7 +452,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testBasicRedirect307() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_TEMPORARY_REDIRECT)));
         HttpHost target = start(registry, null);
 
@@ -475,7 +477,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test(expected=ExecutionException.class)
     public void testMaxRedirectCheck() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new CircularRedirectService()));
+        registry.register("*", new BasicAsyncRequestHandler(new CircularRedirectService()));
         HttpHost target = start(registry, null);
 
         this.httpclient.getParams().setBooleanParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, true);
@@ -494,7 +496,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test(expected=ExecutionException.class)
     public void testCircularRedirect() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new CircularRedirectService()));
+        registry.register("*", new BasicAsyncRequestHandler(new CircularRedirectService()));
         HttpHost target = start(registry, null);
 
         this.httpclient.getParams().setBooleanParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, false);
@@ -513,7 +515,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testPostNoRedirect() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         HttpHost target = start(registry, null);
 
@@ -537,7 +539,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testPostRedirectSeeOther() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_SEE_OTHER)));
         HttpHost target = start(registry, null);
 
@@ -561,7 +563,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testRelativeRedirect() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new RelativeRedirectService()));
+        registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService()));
         HttpHost target = start(registry, null);
 
         HttpContext context = new BasicHttpContext();
@@ -587,7 +589,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testRelativeRedirect2() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new RelativeRedirectService2()));
+        registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService2()));
         HttpHost target = start(registry, null);
 
         HttpContext context = new BasicHttpContext();
@@ -613,7 +615,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test(expected=ExecutionException.class)
     public void testRejectRelativeRedirect() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new RelativeRedirectService()));
+        registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService()));
         HttpHost target = start(registry, null);
 
         this.httpclient.getParams().setBooleanParameter(
@@ -632,7 +634,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test(expected=ExecutionException.class)
     public void testRejectBogusRedirectLocation() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BogusRedirectService(getSchemeName(), "xxx://bogus", true)));
         HttpHost target = start(registry, null);
 
@@ -650,7 +652,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test(expected=ExecutionException.class)
     public void testRejectInvalidRedirectLocation() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BogusRedirectService(getSchemeName(), "/newlocation/?p=I have spaces", false)));
         HttpHost target = start(registry, null);
 
@@ -667,7 +669,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testRedirectWithCookie() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         HttpHost target = start(registry, null);
 
@@ -700,7 +702,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Test
     public void testDefaultHeadersRedirect() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(
+        registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         HttpHost target = start(registry, null);
 

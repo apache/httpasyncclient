@@ -43,9 +43,9 @@ import org.apache.http.client.methods.HttpTrace;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.HttpAsyncContentProducer;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.nio.entity.ProducingNHttpEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
@@ -217,7 +217,10 @@ public final class HttpAsyncMethods {
         return new ZeroCopyConsumer<HttpResponse>(file) {
 
             @Override
-            protected HttpResponse process(final HttpResponse response, final File file) throws Exception {
+            protected HttpResponse process(
+                    final HttpResponse response,
+                    final File file,
+                    final ContentType contentType) {
                 return response;
             }
 
@@ -229,7 +232,7 @@ public final class HttpAsyncMethods {
         protected RequestProducerImpl(
                 final HttpHost target,
                 final HttpEntityEnclosingRequest request,
-                final ProducingNHttpEntity producer) {
+                final HttpAsyncContentProducer producer) {
             super(target, request, producer);
         }
 

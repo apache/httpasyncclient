@@ -29,6 +29,8 @@ package org.apache.http.nio.client.methods;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
@@ -48,13 +50,19 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
     }
 
     protected abstract void onByteReceived(
-            final ByteBuffer buf, final IOControl ioctrl) throws IOException;
+            ByteBuffer buf, IOControl ioctrl) throws IOException;
 
     @Override
-    protected void onContentReceived(
+    protected final void onEntityEnclosed(
+            final HttpEntity entity, final ContentType contentType) {
+        this.bbuf = ByteBuffer.allocate(this.bufSize);
+    }
+
+    @Override
+    protected final void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         if (this.bbuf == null) {
-            this.bbuf = ByteBuffer.allocate(this.bufSize);
+            throw new IllegalStateException("Byte buffer is null");
         }
         for (;;) {
             int bytesRead = decoder.read(this.bbuf);

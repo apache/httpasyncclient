@@ -35,23 +35,25 @@ import org.apache.http.HttpException;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.protocol.HttpAsyncClientProtocolHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 
-class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
+class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
 
-    private final Log log = LogFactory.getLog(HttpAsyncClientProtocolHandler.class);
+    private final Log log = LogFactory.getLog(HttpAsyncRequestExecutor.class);
 
-    public LoggingClientProtocolHandler() {
+    public LoggingAsyncRequestExecutor() {
         super();
     }
 
     @Override
-    protected void onException(final Exception ex) {
+    protected void log(final Exception ex) {
         this.log.debug(ex.getMessage(), ex);
     }
 
     @Override
-    public void connected(final NHttpClientConnection conn, final Object attachment) {
+    public void connected(
+            final NHttpClientConnection conn,
+            final Object attachment) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + ": Connected");
         }
@@ -63,10 +65,11 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + ": Disconnected");
         }
+        super.closed(conn);
     }
 
     @Override
-    public void exception(final NHttpClientConnection conn, final HttpException ex) {
+    public void exception(final NHttpClientConnection conn, final Exception ex) {
         if (this.log.isErrorEnabled()) {
             this.log.error(conn + " HTTP protocol exception: " + ex.getMessage(), ex);
         }
@@ -74,15 +77,8 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
     }
 
     @Override
-    public void exception(final NHttpClientConnection conn, final IOException ex) {
-        if (this.log.isErrorEnabled()) {
-            this.log.error(conn + " I/O error: " + ex.getMessage(), ex);
-        }
-        super.exception(conn, ex);
-    }
-
-    @Override
-    public void requestReady(final NHttpClientConnection conn) {
+    public void requestReady(
+            final NHttpClientConnection conn) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Request ready");
         }
@@ -90,7 +86,9 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
     }
 
     @Override
-    public void inputReady(final NHttpClientConnection conn, final ContentDecoder decoder) {
+    public void inputReady(
+            final NHttpClientConnection conn,
+            final ContentDecoder decoder) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Input ready " + decoder);
         }
@@ -98,7 +96,9 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
     }
 
     @Override
-    public void outputReady(final NHttpClientConnection conn, final ContentEncoder encoder) {
+    public void outputReady(
+            final NHttpClientConnection conn,
+            final ContentEncoder encoder) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Output ready " + encoder);
         }
@@ -106,7 +106,8 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
     }
 
     @Override
-    public void responseReceived(final NHttpClientConnection conn) {
+    public void responseReceived(
+            final NHttpClientConnection conn) throws HttpException, IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Response received");
         }
@@ -114,7 +115,7 @@ class LoggingClientProtocolHandler extends HttpAsyncClientProtocolHandler {
     }
 
     @Override
-    public void timeout(final NHttpClientConnection conn) {
+    public void timeout(final NHttpClientConnection conn) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Timeout");
         }

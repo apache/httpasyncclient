@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
 import org.apache.http.HttpAsyncTestBase;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -38,22 +39,24 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.ManagedAsyncClientConnection;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
-import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
-import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.BasicHttpParams;
@@ -83,7 +86,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
     }
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new DefaultNHttpServerConnectionFactory(params);
     }
@@ -96,11 +99,12 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
-                requestHandlerResolver,
-                expectationVerifier,
+        HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                requestHandlerResolver,
+                expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();
@@ -142,7 +146,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         });
 
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new SimpleService()));
+        registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
 
         HttpHost target = start(registry, null);
 
@@ -233,6 +237,12 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
                                 }
 
                                 @Override
+                                protected void onEntityEnclosed(
+                                        final HttpEntity entity,
+                                        final ContentType contentType) throws IOException {
+                                }
+
+                                @Override
                                 protected void onContentReceived(
                                         final ContentDecoder decoder,
                                         final IOControl ioctrl) throws IOException {
@@ -285,7 +295,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         this.connMgr.setDefaultMaxPerRoute(maxConn);
 
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new BufferingAsyncRequestHandler(new SimpleService()));
+        registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
 
         HttpHost target = start(registry, null);
 

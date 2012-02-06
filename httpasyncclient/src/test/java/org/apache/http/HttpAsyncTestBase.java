@@ -30,12 +30,12 @@ package org.apache.http;
 import java.io.IOException;
 
 import org.apache.http.HttpResponseInterceptor;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingAsyncClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.HttpServerNio;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.reactor.IOReactorExceptionHandler;
@@ -60,7 +60,7 @@ public abstract class HttpAsyncTestBase {
     protected PoolingAsyncClientConnectionManager connMgr;
     protected DefaultHttpAsyncClient httpclient;
 
-    protected abstract NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected abstract NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             HttpParams params) throws Exception;
 
     protected abstract String getSchemeName();

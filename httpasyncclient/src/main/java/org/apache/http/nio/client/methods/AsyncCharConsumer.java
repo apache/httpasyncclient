@@ -36,8 +36,6 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.UnsupportedCharsetException;
 
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
-import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
@@ -48,7 +46,6 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
 
     private final int bufSize;
     private ContentType contentType;
-    private Charset charset;
     private CharsetDecoder chardecoder;
     private ByteBuffer bbuf;
     private CharBuffer cbuf;
@@ -63,32 +60,31 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     }
 
     protected abstract void onCharReceived(
-            final CharBuffer buf, final IOControl ioctrl) throws IOException;
+            CharBuffer buf, IOControl ioctrl) throws IOException;
 
     @Override
-    public synchronized void responseReceived(
-            final HttpResponse response) throws IOException, HttpException {
-        HttpEntity entity = response.getEntity();
-        this.contentType = ContentType.getOrDefault(entity);
-        super.responseReceived(response);
+    protected final void onEntityEnclosed(
+            final HttpEntity entity, final ContentType contentType) throws IOException {
+        this.contentType = contentType != null ? contentType : ContentType.DEFAULT_TEXT;
+        try {
+            String cs = this.contentType.getCharset();
+            if (cs == null) {
+                cs = HTTP.DEFAULT_CONTENT_CHARSET;
+            }
+            Charset charset = Charset.forName(cs);
+            this.chardecoder = charset.newDecoder();
+        } catch (UnsupportedCharsetException ex) {
+            throw new UnsupportedEncodingException(this.contentType.getCharset());
+        }
+        this.bbuf = ByteBuffer.allocate(this.bufSize);
+        this.cbuf = CharBuffer.allocate(this.bufSize);
     }
 
     @Override
-    protected void onContentReceived(
+    protected final void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        if (this.charset == null) {
-            try {
-                String cs = this.contentType.getCharset();
-                if (cs == null) {
-                    cs = HTTP.DEFAULT_CONTENT_CHARSET;
-                }
-                this.charset = Charset.forName(cs);
-            } catch (UnsupportedCharsetException ex) {
-                throw new UnsupportedEncodingException(this.contentType.getCharset());
-            }
-            this.chardecoder = this.charset.newDecoder();
-            this.bbuf = ByteBuffer.allocate(this.bufSize);
-            this.cbuf = CharBuffer.allocate(this.bufSize);
+        if (this.bbuf == null) {
+            throw new IllegalStateException("Byte buffer is null");
         }
         for (;;) {
             int bytesRead = decoder.read(this.bbuf);
@@ -121,7 +117,6 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
 
     @Override
     protected void releaseResources() {
-        this.charset = null;
         this.chardecoder = null;
         this.bbuf = null;
         this.cbuf = null;

@@ -40,19 +40,19 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
-import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
-import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.HttpParams;
@@ -79,7 +79,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
     }
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new DefaultNHttpServerConnectionFactory(params);
     }
@@ -92,11 +92,12 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
-                requestHandlerResolver,
-                expectationVerifier,
+        HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                requestHandlerResolver,
+                expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();
@@ -112,8 +113,8 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
 
     private HttpHost start() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("/echo/*", new BufferingAsyncRequestHandler(new EchoHandler()));
-        registry.register("/random/*", new BufferingAsyncRequestHandler(new RandomHandler()));
+        registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
+        registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
     }
 
@@ -134,7 +135,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         }
 
         @Override
-        protected void onByteReceived(final ByteBuffer buf, final IOControl ioctrl) throws IOException {
+        protected void onByteReceived(final ByteBuffer buf, final IOControl ioctrl) {
             this.count.addAndGet(buf.remaining());
         }
 
@@ -182,7 +183,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         private StringBuilder sb = new StringBuilder();
 
         @Override
-        protected void onResponseReceived(final HttpResponse response) {
+        public void onResponseReceived(final HttpResponse response) {
         }
 
         @Override
@@ -264,7 +265,6 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         Future<String> future = this.httpclient.execute(httppost, consumer, null);
         String result = future.get();
         Assert.assertEquals(s, result);
-        Mockito.verify(consumer).responseCompleted(Mockito.any(HttpContext.class));
         Mockito.verify(consumer).buildResult(Mockito.any(HttpContext.class));
         Mockito.verify(consumer).releaseResources();
     }
@@ -276,8 +276,8 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
                 target.toURI() + "/echo/stuff", "stuff",
                 ContentType.create("text/plain", HTTP.ASCII));
         AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
-        Mockito.doThrow(new IOException("Kaboom")).when(consumer).consumeContent(
-                Mockito.any(ContentDecoder.class), Mockito.any(IOControl.class));
+        Mockito.doThrow(new IOException("Kaboom")).when(consumer).onCharReceived(
+                Mockito.any(CharBuffer.class), Mockito.any(IOControl.class));
 
         Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {
@@ -289,7 +289,6 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             Assert.assertTrue(t instanceof IOException);
             Assert.assertEquals("Kaboom", t.getMessage());
         }
-        Mockito.verify(consumer).failed(Mockito.any(IOException.class));
         Mockito.verify(consumer).releaseResources();
     }
 
@@ -312,7 +311,6 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             Assert.assertTrue(t instanceof HttpException);
             Assert.assertEquals("Kaboom", t.getMessage());
         }
-        Mockito.verify(consumer).responseCompleted(Mockito.any(HttpContext.class));
         Mockito.verify(consumer).releaseResources();
     }
 

@@ -41,22 +41,23 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.NHttpServerIOTarget;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.entity.NByteArrayEntity;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
-import org.apache.http.nio.protocol.BufferingAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.nio.protocol.HttpAsyncServiceHandler;
+import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.HttpParams;
@@ -81,7 +82,7 @@ public class TestHttpAsync extends HttpAsyncTestBase {
     }
 
     @Override
-    protected NHttpConnectionFactory<NHttpServerIOTarget> createServerConnectionFactory(
+    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
             final HttpParams params) throws Exception {
         return new DefaultNHttpServerConnectionFactory(params);
     }
@@ -94,11 +95,12 @@ public class TestHttpAsync extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncServiceHandler serviceHandler = new HttpAsyncServiceHandler(
-                requestHandlerResolver,
-                expectationVerifier,
+        HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                requestHandlerResolver,
+                expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();
@@ -114,8 +116,8 @@ public class TestHttpAsync extends HttpAsyncTestBase {
 
     private HttpHost start() throws Exception {
         HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("/echo/*", new BufferingAsyncRequestHandler(new EchoHandler()));
-        registry.register("/random/*", new BufferingAsyncRequestHandler(new RandomHandler()));
+        registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
+        registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
     }
 
@@ -221,7 +223,7 @@ public class TestHttpAsync extends HttpAsyncTestBase {
         BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
 
             @Override
-            public void consumeContent(final ContentDecoder decoder, final IOControl ioctrl)
+            public void onContentReceived(final ContentDecoder decoder, final IOControl ioctrl)
                     throws IOException {
                 throw new IOException("Kaboom");
             }

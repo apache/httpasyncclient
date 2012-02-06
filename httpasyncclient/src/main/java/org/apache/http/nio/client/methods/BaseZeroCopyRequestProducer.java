@@ -70,6 +70,13 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
         this.contentType = contentType;
     }
 
+    private void closeChannel() throws IOException {
+        if (this.fileChannel != null) {
+            this.fileChannel.close();
+            this.fileChannel = null;
+        }
+    }
+
     protected abstract HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity);
 
     public HttpRequest generateRequest() throws IOException, HttpException {
@@ -107,30 +114,26 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
         if (this.idx >= this.fileChannel.size()) {
             encoder.complete();
-            this.fileChannel.close();
-            this.fileChannel = null;
+            closeChannel();
         }
     }
 
     public void requestCompleted(final HttpContext context) {
     }
 
-    public synchronized boolean isRepeatable() {
+    public void failed(final Exception ex) {
+    }
+
+    public boolean isRepeatable() {
         return true;
     }
 
-    public synchronized void resetRequest() {
-        try {
-            close();
-        } catch (IOException ignore) {
-        }
+    public synchronized void resetRequest() throws IOException {
+        closeChannel();
     }
 
     public synchronized void close() throws IOException {
-        if (this.fileChannel != null) {
-            this.fileChannel.close();
-            this.fileChannel = null;
-        }
+        closeChannel();
     }
 
 }

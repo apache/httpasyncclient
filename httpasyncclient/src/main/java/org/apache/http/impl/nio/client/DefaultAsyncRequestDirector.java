@@ -80,8 +80,8 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.ManagedAsyncClientConnection;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
-import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
-import org.apache.http.nio.protocol.HttpAsyncClientProtocolHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.params.HttpConnectionParams;
@@ -91,7 +91,7 @@ import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
-class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T> {
+class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler<T> {
 
     private final Log log;
 
@@ -171,6 +171,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
 
     public synchronized void start() {
         try {
+
+            this.localContext.setAttribute(ClientContext.TARGET_AUTH_STATE, this.targetAuthState);
+            this.localContext.setAttribute(ClientContext.PROXY_AUTH_STATE, this.proxyAuthState);
+
             HttpHost target = this.requestProducer.getTarget();
             HttpRequest request = this.requestProducer.generateRequest();
             this.params = new ClientParamsStack(null, this.clientParams, request.getParams(), null);
@@ -229,7 +233,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             target = route.getTargetHost();
         }
         HttpHost proxy = route.getProxyHost();
-
+        this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
+        this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
+        this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
+        
         if (this.currentRequest == null) {
             this.currentRequest = this.mainRequest.getRequest();
             // Re-write request URI if needed
@@ -238,14 +245,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         // Reset headers on the request wrapper
         this.currentRequest.resetHeaders();
 
-        this.localContext.setAttribute(ExecutionContext.HTTP_REQUEST, this.currentRequest);
-        this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
-        this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
-        this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
-        this.localContext.setAttribute(ClientContext.TARGET_AUTH_STATE, this.targetAuthState);
-        this.localContext.setAttribute(ClientContext.PROXY_AUTH_STATE, this.proxyAuthState);
-
-        this.httppocessor.process(this.currentRequest, this.localContext);
         this.currentRequest.incrementExecCount();
         if (this.currentRequest.getExecCount() > 1
                 && !this.requestProducer.isRepeatable()
@@ -277,7 +276,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         return this.requestProducer.isRepeatable();
     }
 
-    public void resetRequest() {
+    public void resetRequest() throws IOException {
         this.requestProducer.resetRequest();
     }
 
@@ -288,8 +287,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
         }
         this.currentResponse = response;
         this.currentResponse.setParams(this.params);
-        this.localContext.setAttribute(ExecutionContext.HTTP_RESPONSE, this.currentResponse);
-        this.httppocessor.process(this.currentResponse, this.localContext);
 
         int status = this.currentResponse.getStatusLine().getStatusCode();
 
@@ -339,7 +336,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private void releaseConnection() {
         if (this.managedConn != null) {
             try {
-                this.managedConn.getContext().removeAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER);
+                this.managedConn.getContext().removeAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER);
                 this.managedConn.releaseConnection();
             } catch (IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
@@ -361,7 +358,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
             this.connFuture.cancel(true);
             this.connFuture = null;
         }
-        this.requestProducer.resetRequest();
+        try {
+            this.requestProducer.close();
+        } catch (IOException ex) {
+            this.log.debug("I/O error closing request producer", ex);
+        }
+        try {
+            this.responseConsumer.close();
+        } catch (IOException ex) {
+            this.log.debug("I/O error closing response consumer", ex);
+        }
     }
 
     public synchronized void failed(final Exception ex) {
@@ -485,7 +491,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
                 conn.open(route, this.localContext, this.params);
             }
             this.managedConn = conn;
-            this.managedConn.getContext().setAttribute(HttpAsyncClientProtocolHandler.HTTP_HANDLER, this);
+            this.managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
             this.managedConn.requestOutput();
             this.routeEstablished = route.equals(conn.getRoute());
         } catch (IOException ex) {
@@ -499,20 +505,18 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
     private synchronized void connectionRequestFailed(final Exception ex) {
         this.log.debug("Connection request failed", ex);
         try {
-            this.requestProducer.resetRequest();
-            this.responseConsumer.failed(ex);
-        } finally {
             this.resultCallback.failed(ex, this);
+        } finally {
+            releaseResources();
         }
     }
 
     private synchronized void connectionRequestCancelled() {
         this.log.debug("Connection request cancelled");
         try {
-            this.requestProducer.resetRequest();
-            this.responseConsumer.cancel();
-        } finally {
             this.resultCallback.cancelled(this);
+        } finally {
+            releaseResources();
         }
     }
 
@@ -854,6 +858,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncClientExchangeHandler<T
 
     public HttpContext getContext() {
         return this.localContext;
+    }
+
+    public HttpProcessor getHttpProcessor() {
+        return this.httppocessor;
     }
 
     public ConnectionReuseStrategy getConnectionReuseStrategy() {
