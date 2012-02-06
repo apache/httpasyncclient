@@ -63,7 +63,7 @@ public class HttpServerNio {
     }
 
     private void execute(final NHttpServerEventHandler serviceHandler) throws IOException {
-        IOEventDispatch ioEventDispatch = new DefaultHttpServerIODispatch(serviceHandler, 
+        IOEventDispatch ioEventDispatch = new DefaultHttpServerIODispatch(serviceHandler,
                 this.connFactory);
         this.ioReactor.execute(ioEventDispatch);
     }

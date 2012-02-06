@@ -236,7 +236,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
         this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
-        
+
         if (this.currentRequest == null) {
             this.currentRequest = this.mainRequest.getRequest();
             // Re-write request URI if needed

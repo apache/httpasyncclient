@@ -152,16 +152,16 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
     static class AuthHandler implements HttpRequestHandler {
 
         private final boolean keepAlive;
-        
+
         AuthHandler(boolean keepAlive) {
             super();
             this.keepAlive = keepAlive;
         }
-        
+
         AuthHandler() {
             this(true);
         }
-        
+
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -174,7 +174,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
                 NStringEntity entity = new NStringEntity("success", HTTP.ASCII);
                 response.setEntity(entity);
             }
-            response.setHeader(HTTP.CONN_DIRECTIVE, 
+            response.setHeader(HTTP.CONN_DIRECTIVE,
                     this.keepAlive ? HTTP.CONN_KEEP_ALIVE : HTTP.CONN_CLOSE);
         }
 
