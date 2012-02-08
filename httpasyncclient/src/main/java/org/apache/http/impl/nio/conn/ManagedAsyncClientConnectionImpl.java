@@ -62,7 +62,7 @@ class ManagedAsyncClientConnectionImpl implements ManagedAsyncClientConnection {
     private volatile boolean reusable;
     private volatile long duration;
 
-    public ManagedAsyncClientConnectionImpl(
+    ManagedAsyncClientConnectionImpl(
             final ClientAsyncConnectionManager manager,
             final HttpPoolEntry poolEntry) {
         super();
@@ -296,7 +296,8 @@ class ManagedAsyncClientConnectionImpl implements ManagedAsyncClientConnection {
 
     public synchronized void open(
             final HttpRoute route,
-            final HttpContext context, final HttpParams params) throws IOException {
+            final HttpContext context, 
+            final HttpParams params) throws IOException {
         HttpPoolEntry entry = ensurePoolEntry();
         RouteTracker tracker = entry.getTracker();
         if (tracker.isConnected()) {

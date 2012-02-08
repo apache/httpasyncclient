@@ -54,6 +54,7 @@ public class DefaultAsyncClientConnection
     private final Log log;
 
     private String id;
+    private IOSession original;
 
     public DefaultAsyncClientConnection(
             final String id,
@@ -63,25 +64,25 @@ public class DefaultAsyncClientConnection
             final HttpParams params) {
         super(iosession, responseFactory, allocator, params);
         this.id = id;
+        this.original = iosession;
         this.log = LogFactory.getLog(iosession.getClass());
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.session = new LoggingIOSession(iosession, this.id, this.log, this.wirelog);
+            bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
         }
     }
 
     public void upgrade(final IOSession iosession) {
-        this.session.setBufferStatus(null);
+        this.original = iosession;
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
             this.log.debug(this.id + " Upgrade session " + iosession);
-            this.session = new LoggingIOSession(iosession, this.id, this.headerlog, this.wirelog);
+            bind(new LoggingIOSession(iosession, this.id, this.headerlog, this.wirelog));
         } else {
-            this.session = iosession;
+            bind(iosession);
         }
-        this.session.setBufferStatus(this);
     }
 
     public IOSession getIOSession() {
-        return this.session;
+        return this.original;
     }
 
     @Override
