@@ -77,7 +77,7 @@ import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.DefaultHttpClientIODispatch;
 import org.apache.http.impl.nio.conn.DefaultHttpAsyncRoutePlanner;
-import org.apache.http.impl.nio.conn.PoolingAsyncClientConnectionManager;
+import org.apache.http.impl.nio.conn.PoolingClientAsyncConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.client.HttpAsyncClient;
@@ -131,7 +131,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         super();
         DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
-        this.connmgr = new PoolingAsyncClientConnectionManager(defaultioreactor);
+        this.connmgr = new PoolingClientAsyncConnectionManager(defaultioreactor);
         this.queue = new ConcurrentLinkedQueue<HttpAsyncRequestExecutionHandler<?>>();
     }
 

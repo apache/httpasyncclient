@@ -78,7 +78,7 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
-import org.apache.http.nio.conn.ManagedAsyncClientConnection;
+import org.apache.http.nio.conn.ManagedClientAsyncConnection;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
@@ -121,8 +121,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private RequestWrapper currentRequest;
     private HttpResponse currentResponse;
     private boolean routeEstablished;
-    private Future<ManagedAsyncClientConnection> connFuture;
-    private ManagedAsyncClientConnection managedConn;
+    private Future<ManagedClientAsyncConnection> connFuture;
+    private ManagedClientAsyncConnection managedConn;
     private int redirectCount;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
@@ -481,7 +481,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         return this.responseConsumer.getException();
     }
 
-    private synchronized void connectionRequestCompleted(final ManagedAsyncClientConnection conn) {
+    private synchronized void connectionRequestCompleted(final ManagedClientAsyncConnection conn) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request suceeded: " + conn);
         }
@@ -520,9 +520,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
-    class InternalFutureCallback implements FutureCallback<ManagedAsyncClientConnection> {
+    class InternalFutureCallback implements FutureCallback<ManagedClientAsyncConnection> {
 
-        public void completed(final ManagedAsyncClientConnection session) {
+        public void completed(final ManagedClientAsyncConnection session) {
             connectionRequestCompleted(session);
         }
 

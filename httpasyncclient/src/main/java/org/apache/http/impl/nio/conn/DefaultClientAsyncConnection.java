@@ -35,13 +35,13 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
-import org.apache.http.nio.conn.OperatedAsyncClientConnection;
+import org.apache.http.nio.conn.ClientAsyncConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.params.HttpParams;
 
-public class DefaultAsyncClientConnection
-                    extends DefaultNHttpClientConnection implements OperatedAsyncClientConnection {
+public class DefaultClientAsyncConnection
+                    extends DefaultNHttpClientConnection implements ClientAsyncConnection {
 
     private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
@@ -50,7 +50,7 @@ public class DefaultAsyncClientConnection
     private String id;
     private IOSession original;
 
-    public DefaultAsyncClientConnection(
+    public DefaultClientAsyncConnection(
             final String id,
             final IOSession iosession,
             final HttpResponseFactory responseFactory,

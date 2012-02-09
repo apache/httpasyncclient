@@ -26,38 +26,14 @@
  */
 package org.apache.http.nio.conn;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ConnectionReleaseTrigger;
-import org.apache.http.conn.HttpRoutedConnection;
-import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.HttpInetConnection;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HttpContext;
+import org.apache.http.nio.reactor.IOSession;
 
-public interface ManagedAsyncClientConnection
-    extends HttpRoutedConnection, NHttpClientConnection, ConnectionReleaseTrigger {
+public interface ClientAsyncConnection extends NHttpClientConnection, HttpInetConnection {
 
-    Object getState();
+    void upgrade(IOSession iosession);
 
-    void setState(Object state);
-
-    void markReusable();
-
-    void unmarkReusable();
-
-    boolean isMarkedReusable();
-
-    void open(HttpRoute route, HttpContext context, HttpParams params) throws IOException;
-
-    void tunnelTarget(HttpParams params) throws IOException;
-
-    void tunnelProxy(HttpHost next, HttpParams params) throws IOException;
-
-    void layerProtocol(HttpContext context, HttpParams params) throws IOException;
-
-    void setIdleDuration(long duration, TimeUnit tunit);
+    IOSession getIOSession();
 
 }

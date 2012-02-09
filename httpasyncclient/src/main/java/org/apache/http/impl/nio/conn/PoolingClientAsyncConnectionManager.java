@@ -35,7 +35,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.conn.ManagedAsyncClientConnection;
+import org.apache.http.nio.conn.ClientAsyncConnectionFactory;
+import org.apache.http.nio.conn.ManagedClientAsyncConnection;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
@@ -45,7 +46,7 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.pool.ConnPoolControl;
 import org.apache.http.pool.PoolStats;
 
-public class PoolingAsyncClientConnectionManager
+public class PoolingClientAsyncConnectionManager
                               implements ClientAsyncConnectionManager, ConnPoolControl<HttpRoute> {
 
     private final Log log = LogFactory.getLog(getClass());
@@ -53,8 +54,9 @@ public class PoolingAsyncClientConnectionManager
     private final ConnectingIOReactor ioreactor;
     private final HttpNIOConnPool pool;
     private final AsyncSchemeRegistry schemeRegistry;
+    private final ClientAsyncConnectionFactory connFactory;
 
-    public PoolingAsyncClientConnectionManager(
+    public PoolingClientAsyncConnectionManager(
             final ConnectingIOReactor ioreactor,
             final AsyncSchemeRegistry schemeRegistry,
             final long timeToLive, final TimeUnit tunit) {
@@ -71,15 +73,16 @@ public class PoolingAsyncClientConnectionManager
         this.ioreactor = ioreactor;
         this.pool = new HttpNIOConnPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
+        this.connFactory = createClientAsyncConnectionFactory();
     }
 
-    public PoolingAsyncClientConnectionManager(
+    public PoolingClientAsyncConnectionManager(
             final ConnectingIOReactor ioreactor,
             final AsyncSchemeRegistry schemeRegistry) throws IOReactorException {
         this(ioreactor, schemeRegistry, -1, TimeUnit.MILLISECONDS);
     }
 
-    public PoolingAsyncClientConnectionManager(
+    public PoolingClientAsyncConnectionManager(
             final ConnectingIOReactor ioreactor) throws IOReactorException {
         this(ioreactor, AsyncSchemeRegistryFactory.createDefault());
     }
@@ -93,6 +96,10 @@ public class PoolingAsyncClientConnectionManager
         }
     }
 
+    protected ClientAsyncConnectionFactory createClientAsyncConnectionFactory() {
+        return new DefaultClientAsyncConnectionFactory();
+    }
+    
     public AsyncSchemeRegistry getSchemeRegistry() {
         return this.schemeRegistry;
     }
@@ -149,12 +156,12 @@ public class PoolingAsyncClientConnectionManager
         return buf.toString();
     }
 
-    public Future<ManagedAsyncClientConnection> leaseConnection(
+    public Future<ManagedClientAsyncConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
             final long connectTimeout,
             final TimeUnit tunit,
-            final FutureCallback<ManagedAsyncClientConnection> callback) {
+            final FutureCallback<ManagedClientAsyncConnection> callback) {
         if (route == null) {
             throw new IllegalArgumentException("HTTP route may not be null");
         }
@@ -164,27 +171,27 @@ public class PoolingAsyncClientConnectionManager
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
-        BasicFuture<ManagedAsyncClientConnection> future = new BasicFuture<ManagedAsyncClientConnection>(
+        BasicFuture<ManagedClientAsyncConnection> future = new BasicFuture<ManagedClientAsyncConnection>(
                 callback);
         this.pool.lease(route, state, connectTimeout, tunit, new InternalPoolEntryCallback(future));
         return future;
     }
 
     public void releaseConnection(
-            final ManagedAsyncClientConnection conn,
+            final ManagedClientAsyncConnection conn,
             final long keepalive,
             final TimeUnit tunit) {
         if (conn == null) {
             throw new IllegalArgumentException("HTTP connection may not be null");
         }
-        if (!(conn instanceof ManagedAsyncClientConnectionImpl)) {
+        if (!(conn instanceof ManagedClientAsyncConnectionImpl)) {
             throw new IllegalArgumentException("Connection class mismatch, " +
                  "connection not obtained from this manager");
         }
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        ManagedAsyncClientConnectionImpl managedConn = (ManagedAsyncClientConnectionImpl) conn;
+        ManagedClientAsyncConnectionImpl managedConn = (ManagedClientAsyncConnectionImpl) conn;
         ClientAsyncConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
@@ -290,10 +297,10 @@ public class PoolingAsyncClientConnectionManager
 
     class InternalPoolEntryCallback implements FutureCallback<HttpPoolEntry> {
 
-        private final BasicFuture<ManagedAsyncClientConnection> future;
+        private final BasicFuture<ManagedClientAsyncConnection> future;
 
         public InternalPoolEntryCallback(
-                final BasicFuture<ManagedAsyncClientConnection> future) {
+                final BasicFuture<ManagedClientAsyncConnection> future) {
             super();
             this.future = future;
         }
@@ -302,8 +309,9 @@ public class PoolingAsyncClientConnectionManager
             if (log.isDebugEnabled()) {
                 log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
             }
-            ManagedAsyncClientConnection conn = new ManagedAsyncClientConnectionImpl(
-                    PoolingAsyncClientConnectionManager.this,
+            ManagedClientAsyncConnection conn = new ManagedClientAsyncConnectionImpl(
+                    PoolingClientAsyncConnectionManager.this,
+                    PoolingClientAsyncConnectionManager.this.connFactory,
                     entry);
             if (!this.future.completed(conn)) {
                 pool.release(entry, true);

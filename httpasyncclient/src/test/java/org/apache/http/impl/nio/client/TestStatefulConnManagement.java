@@ -48,7 +48,7 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.conn.ManagedAsyncClientConnection;
+import org.apache.http.nio.conn.ManagedClientAsyncConnection;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
@@ -57,12 +57,12 @@ import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.protocol.SyncBasicHttpContext;
@@ -252,8 +252,8 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
                                 @Override
                                 protected Object buildResult(final HttpContext context) throws Exception {
-                                    ManagedAsyncClientConnection conn = (ManagedAsyncClientConnection) context.getAttribute(
-                                            ExecutionContext.HTTP_CONNECTION);
+                                    ManagedClientAsyncConnection conn = (ManagedClientAsyncConnection) context.getAttribute(
+                                            IOEventDispatch.CONNECTION_KEY);
                                     return conn.getState();
                                 }
 

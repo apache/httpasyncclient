@@ -26,24 +26,11 @@
  */
 package org.apache.http.nio.conn;
 
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.params.HttpParams;
 
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
-import org.apache.http.nio.reactor.IOReactor;
+public interface ClientAsyncConnectionFactory {
 
-public interface ClientAsyncConnectionManager extends IOReactor {
-
-    AsyncSchemeRegistry getSchemeRegistry();
-
-    Future<ManagedClientAsyncConnection> leaseConnection(
-            HttpRoute route, Object state,
-            long connectTimeout, TimeUnit timeUnit,
-            FutureCallback<ManagedClientAsyncConnection> callback);
-
-    void releaseConnection(ManagedClientAsyncConnection session,
-            long validDuration, TimeUnit timeUnit);
-
+    ClientAsyncConnection create(String id, IOSession iosession, HttpParams params);
+    
 }

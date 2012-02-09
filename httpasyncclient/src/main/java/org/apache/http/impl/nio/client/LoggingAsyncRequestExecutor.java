@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
-import org.apache.http.impl.nio.conn.DefaultAsyncClientConnection;
+import org.apache.http.impl.nio.conn.DefaultClientAsyncConnection;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
@@ -122,8 +122,8 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.headerlog.isDebugEnabled()) {
             HttpResponse response = conn.getHttpResponse();
             String id;
-            if (conn instanceof DefaultAsyncClientConnection) {
-                id = ((DefaultAsyncClientConnection) conn).getId();
+            if (conn instanceof DefaultClientAsyncConnection) {
+                id = ((DefaultClientAsyncConnection) conn).getId();
             } else {
                 id = conn.toString();
             }

@@ -32,7 +32,7 @@ import java.io.IOException;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.impl.nio.conn.PoolingAsyncClientConnectionManager;
+import org.apache.http.impl.nio.conn.PoolingClientAsyncConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.localserver.HttpServerNio;
 import org.apache.http.nio.NHttpConnectionFactory;
@@ -57,7 +57,7 @@ public abstract class HttpAsyncTestBase {
     protected HttpServerNio server;
     protected HttpProcessor serverHttpProc;
     protected DefaultConnectingIOReactor ioreactor;
-    protected PoolingAsyncClientConnectionManager connMgr;
+    protected PoolingClientAsyncConnectionManager connMgr;
     protected DefaultHttpAsyncClient httpclient;
 
     protected abstract NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
@@ -101,7 +101,7 @@ public abstract class HttpAsyncTestBase {
         this.ioreactor = new DefaultConnectingIOReactor();
         AsyncSchemeRegistry schemeRegistry = new AsyncSchemeRegistry();
         schemeRegistry.register(new AsyncScheme("http", 80, null));
-        this.connMgr = new PoolingAsyncClientConnectionManager(this.ioreactor, schemeRegistry);
+        this.connMgr = new PoolingClientAsyncConnectionManager(this.ioreactor, schemeRegistry);
         this.httpclient = new DefaultHttpAsyncClient(this.connMgr);
         this.httpclient.getParams()
             .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
