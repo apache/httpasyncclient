@@ -244,27 +244,12 @@ public class PoolingClientAsyncConnectionManager
         return this.pool.getStats(route);
     }
 
-    @Deprecated
-    public void setTotalMax(int max) {
-        this.pool.setMaxTotal(max);
-    }
-
     public void setMaxTotal(int max) {
         this.pool.setMaxTotal(max);
     }
 
-    @Deprecated
-    public void setDefaultMaxPerHost(int max) {
-        this.pool.setDefaultMaxPerRoute(max);
-    }
-
     public void setDefaultMaxPerRoute(int max) {
         this.pool.setDefaultMaxPerRoute(max);
-    }
-
-    @Deprecated
-    public void setMaxPerHost(final HttpRoute route, int max) {
-        this.pool.setMaxPerRoute(route, max);
     }
 
     public void setMaxPerRoute(final HttpRoute route, int max) {
