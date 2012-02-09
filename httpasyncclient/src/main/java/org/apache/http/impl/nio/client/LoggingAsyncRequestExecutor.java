@@ -31,7 +31,10 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.Header;
 import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
+import org.apache.http.impl.nio.conn.DefaultAsyncClientConnection;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
@@ -39,6 +42,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 
 class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
 
+    private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
     private final Log log = LogFactory.getLog(HttpAsyncRequestExecutor.class);
 
     public LoggingAsyncRequestExecutor() {
@@ -110,6 +114,26 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             final NHttpClientConnection conn) throws HttpException, IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Response received");
+        }
+        
+        // TODO: move header logging back to DefaultAsyncClientConnection
+        // once DefaultNHttpClientConnection#onResponseReceived method
+        // becomes available.
+        if (this.headerlog.isDebugEnabled()) {
+            HttpResponse response = conn.getHttpResponse();
+            String id;
+            if (conn instanceof DefaultAsyncClientConnection) {
+                id = ((DefaultAsyncClientConnection) conn).getId();
+            } else {
+                id = conn.toString();
+            }
+            if (response != null && this.headerlog.isDebugEnabled()) {
+                this.headerlog.debug(id + " << " + response.getStatusLine().toString());
+                Header[] headers = response.getAllHeaders();
+                for (int i = 0; i < headers.length; i++) {
+                    this.headerlog.debug(id + " << " + headers[i].toString());
+                }
+            }
         }
         super.responseReceived(conn);
     }
