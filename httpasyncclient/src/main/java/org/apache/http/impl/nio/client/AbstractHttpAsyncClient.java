@@ -41,7 +41,7 @@ import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthSchemeRegistry;
-import org.apache.http.client.AuthenticationHandler;
+import org.apache.http.client.AuthenticationStrategy;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
@@ -60,15 +60,16 @@ import org.apache.http.cookie.CookieSpecRegistry;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.auth.DigestSchemeFactory;
+import org.apache.http.impl.auth.KerberosSchemeFactory;
 import org.apache.http.impl.auth.NTLMSchemeFactory;
-import org.apache.http.impl.auth.NegotiateSchemeFactory;
+import org.apache.http.impl.auth.SPNegoSchemeFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
-import org.apache.http.impl.client.DefaultProxyAuthenticationHandler;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
 import org.apache.http.impl.client.DefaultUserTokenHandler;
+import org.apache.http.impl.client.ProxyAuthenticationStrategy;
+import org.apache.http.impl.client.TargetAuthenticationStrategy;
 import org.apache.http.impl.cookie.BestMatchSpecFactory;
 import org.apache.http.impl.cookie.BrowserCompatSpecFactory;
 import org.apache.http.impl.cookie.IgnoreSpecFactory;
@@ -112,8 +113,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private CookieSpecRegistry supportedCookieSpecs;
     private CookieStore cookieStore;
     private AuthSchemeRegistry supportedAuthSchemes;
-    private AuthenticationHandler targetAuthHandler;
-    private AuthenticationHandler proxyAuthHandler;
+    private AuthenticationStrategy targetAuthStrategy;
+    private AuthenticationStrategy proxyAuthStrategy;
     private CredentialsProvider credsProvider;
     private HttpRoutePlanner routePlanner;
     private UserTokenHandler userTokenHandler;
@@ -180,7 +181,10 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                 new NTLMSchemeFactory());
         registry.register(
                 AuthPolicy.SPNEGO,
-                new NegotiateSchemeFactory());
+                new SPNegoSchemeFactory());
+        registry.register(
+                AuthPolicy.KERBEROS,
+                new KerberosSchemeFactory());
         return registry;
     }
 
@@ -207,12 +211,12 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         return registry;
     }
 
-    protected AuthenticationHandler createTargetAuthenticationHandler() {
-        return new DefaultTargetAuthenticationHandler();
+    protected AuthenticationStrategy createTargetAuthenticationStrategy() {
+        return new TargetAuthenticationStrategy();
     }
 
-    protected AuthenticationHandler createProxyAuthenticationHandler() {
-        return new DefaultProxyAuthenticationHandler();
+    protected AuthenticationStrategy createProxyAuthenticationStrategy() {
+        return new ProxyAuthenticationStrategy();
     }
 
     protected CookieStore createCookieStore() {
@@ -301,28 +305,28 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.supportedCookieSpecs = cookieSpecRegistry;
     }
 
-    public synchronized final AuthenticationHandler getTargetAuthenticationHandler() {
-        if (this.targetAuthHandler == null) {
-            this.targetAuthHandler = createTargetAuthenticationHandler();
+    public synchronized final AuthenticationStrategy getTargetAuthenticationStrategy() {
+        if (this.targetAuthStrategy == null) {
+            this.targetAuthStrategy = createTargetAuthenticationStrategy();
         }
-        return this.targetAuthHandler;
+        return this.targetAuthStrategy;
     }
 
-    public synchronized void setTargetAuthenticationHandler(
-            final AuthenticationHandler targetAuthHandler) {
-        this.targetAuthHandler = targetAuthHandler;
+    public synchronized void setTargetAuthenticationStrategy(
+            final AuthenticationStrategy targetAuthStrategy) {
+        this.targetAuthStrategy = targetAuthStrategy;
     }
 
-    public synchronized final AuthenticationHandler getProxyAuthenticationHandler() {
-        if (this.proxyAuthHandler == null) {
-            this.proxyAuthHandler = createProxyAuthenticationHandler();
+    public synchronized final AuthenticationStrategy getProxyAuthenticationStrategy() {
+        if (this.proxyAuthStrategy == null) {
+            this.proxyAuthStrategy = createProxyAuthenticationStrategy();
         }
-        return this.proxyAuthHandler;
+        return this.proxyAuthStrategy;
     }
 
-    public synchronized void setProxyAuthenticationHandler(
-            final AuthenticationHandler proxyAuthHandler) {
-        this.proxyAuthHandler = proxyAuthHandler;
+    public synchronized void setProxyAuthenticationStrategy(
+            final AuthenticationStrategy proxyAuthStrategy) {
+        this.proxyAuthStrategy = proxyAuthStrategy;
     }
 
     public synchronized final CookieStore getCookieStore() {
@@ -527,8 +531,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                     getConnectionReuseStrategy(),
                     getConnectionKeepAliveStrategy(),
                     getRedirectStrategy(),
-                    getTargetAuthenticationHandler(),
-                    getProxyAuthenticationHandler(),
+                    getTargetAuthenticationStrategy(),
+                    getProxyAuthenticationStrategy(),
                     getUserTokenHandler(),
                     getParams());
         }

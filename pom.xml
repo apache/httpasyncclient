@@ -72,7 +72,7 @@
     <maven.compile.optimize>true</maven.compile.optimize>
     <maven.compile.deprecation>true</maven.compile.deprecation>
     <httpcore.version>4.2-beta1</httpcore.version>
-    <httpclient.version>4.1.2</httpclient.version>
+    <httpclient.version>4.2-beta1</httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <commons-io.version>2.0.1</commons-io.version>
     <junit.version>4.8.1</junit.version>

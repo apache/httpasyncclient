@@ -33,7 +33,6 @@ import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.protocol.RequestDefaultHeaders;
 import org.apache.http.client.protocol.RequestProxyAuthentication;
 import org.apache.http.client.protocol.RequestTargetAuthentication;
-import org.apache.http.client.protocol.ResponseAuthCache;
 import org.apache.http.client.protocol.ResponseProcessCookies;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
@@ -103,7 +102,6 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         httpproc.addInterceptor(new ResponseProcessCookies());
         // HTTP authentication interceptors
         httpproc.addInterceptor(new RequestAuthCache());
-        httpproc.addInterceptor(new ResponseAuthCache());
         httpproc.addInterceptor(new RequestTargetAuthentication());
         httpproc.addInterceptor(new RequestProxyAuthentication());
         return httpproc;

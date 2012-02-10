@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.http.HttpAsyncTestBase;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -50,7 +51,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.DefaultTargetAuthenticationHandler;
+import org.apache.http.impl.client.TargetAuthenticationStrategy;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.localserver.BasicAuthTokenExtractor;
@@ -80,6 +81,7 @@ import org.apache.http.protocol.ResponseConnControl;
 import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
+import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -180,20 +182,21 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     }
 
-    static class TestTargetAuthenticationHandler extends DefaultTargetAuthenticationHandler {
+    static class TestTargetAuthenticationStrategy extends TargetAuthenticationStrategy {
 
         private int count;
 
-        public TestTargetAuthenticationHandler() {
+        public TestTargetAuthenticationStrategy() {
             super();
             this.count = 0;
         }
 
         @Override
         public boolean isAuthenticationRequested(
+                final HttpHost authhost,
                 final HttpResponse response,
                 final HttpContext context) {
-            boolean res = super.isAuthenticationRequested(response, context);
+            boolean res = super.isAuthenticationRequested(authhost, response, context);
             if (res == true) {
                 synchronized (this) {
                     this.count++;
@@ -445,10 +448,10 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         credsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials("test", "test"));
 
-        TestTargetAuthenticationHandler authHandler = new TestTargetAuthenticationHandler();
+        TestTargetAuthenticationStrategy authStrategy = new TestTargetAuthenticationStrategy();
 
         this.httpclient.setCredentialsProvider(credsProvider);
-        this.httpclient.setTargetAuthenticationHandler(authHandler);
+        this.httpclient.setTargetAuthenticationStrategy(authStrategy);
 
         HttpContext context = new BasicHttpContext();
 
@@ -464,7 +467,38 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         Assert.assertNotNull(response2);
         Assert.assertEquals(HttpStatus.SC_OK, response2.getStatusLine().getStatusCode());
 
-        Assert.assertEquals(1, authHandler.getCount());
+        Assert.assertEquals(1, authStrategy.getCount());
+    }
+
+    @Test
+    public void testAuthenticationUserinfoInRequestSuccess() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
+        HttpHost target = start(registry, null);
+        HttpGet httpget = new HttpGet("http://test:test@" +  target.toHostString() + "/");
+        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        HttpEntity entity = response.getEntity();
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
+        Assert.assertNotNull(entity);
+        EntityUtils.consume(entity);
+    }
+
+    @Test
+    public void testAuthenticationUserinfoInRequestFailure() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
+        HttpHost target = start(registry, null);
+        HttpGet httpget = new HttpGet("http://test:all-wrong@" +  target.toHostString() + "/");
+
+        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        HttpEntity entity = response.getEntity();
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
+        Assert.assertNotNull(entity);
+        EntityUtils.consume(entity);
     }
 
 }
