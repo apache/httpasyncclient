@@ -94,9 +94,12 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             final NHttpClientConnection conn,
             final ContentDecoder decoder) throws IOException {
         if (this.log.isDebugEnabled()) {
-            this.log.debug(conn + " Input ready " + decoder);
+            this.log.debug(conn + " Input ready");
         }
         super.inputReady(conn, decoder);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug(conn + " " + decoder);
+        }
     }
 
     @Override
@@ -104,9 +107,12 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             final NHttpClientConnection conn,
             final ContentEncoder encoder) throws IOException {
         if (this.log.isDebugEnabled()) {
-            this.log.debug(conn + " Output ready " + encoder);
+            this.log.debug(conn + " Output ready");
         }
         super.outputReady(conn, encoder);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug(conn + " " + encoder);
+        }
     }
 
     @Override

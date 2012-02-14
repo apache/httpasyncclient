@@ -103,6 +103,9 @@ public class DefaultClientAsyncConnection
         switch (this.status) {
         case ACTIVE:
             buf.append("ACTIVE");
+            if (this.inbuf.hasData()) {
+                buf.append("(").append(this.inbuf.length()).append(")");
+            }
             break;
         case CLOSING:
             buf.append("CLOSING");
