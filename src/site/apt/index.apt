@@ -71,7 +71,7 @@ HttpAsyncClient Overview
 
     * Source code is freely available under the Apache License.
 
-    * Basic, Digest, NTLMv1, NTLMv2, NTLM2 Session, SNPNEGO/Kerberos authentication schemes.
+    * Basic, Digest, NTLMv1, NTLMv2, NTLM2 Session, SNPNEGO and Kerberos authentication schemes.
 
     * Plug-in mechanism for custom authentication schemes.
 
