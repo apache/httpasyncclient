@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   ====================================================================
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+   ====================================================================
+
+   This software consists of voluntary contributions made by many
+   individuals on behalf of the Apache Software Foundation.  For more
+   information on the Apache Software Foundation, please see
+   <http://www.apache.org />.
+ -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.httpcomponents</groupId>
+    <artifactId>httpcomponents-asyncclient</artifactId>
+    <version>4.0-alpha4-SNAPSHOT</version>
+  </parent>
+  <artifactId>httpasyncclient-osgi</artifactId>
+  <name>HttpAsyncClient OSGi bundle</name>
+  <description>
+   HttpComponents AsyncClient (OSGi bundle)
+  </description>
+  <url>http://hc.apache.org/httpcomponents-asyncclient</url>
+  <packaging>bundle</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpasyncclient</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.compile.source>1.5</maven.compile.source>
+    <maven.compile.target>1.5</maven.compile.target>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Bundle-Name>Apache ${project.name}</Bundle-Name>
+            <Bundle-SymbolicName>${project.groupId}.httpclient</Bundle-SymbolicName>
+            <_exportcontents>
+            org.apache.http.nio.client.*;version=${project.version},
+            org.apache.http.nio.conn.*;version=${project.version},
+            org.apache.http.impl.nio.client.*;version=${project.version},
+            org.apache.http.impl.nio.conn.*;version=${project.version}
+            </_exportcontents>
+            <Embed-Dependency>*;scope=compile|runtime;inline=true</Embed-Dependency>
+            <Import-Package>
+            javax.crypto,
+            javax.crypto.spec,
+            javax.net.ssl,
+            javax.security.auth.x500,
+            org.ietf.jgss,
+            org.apache.commons.logging;version=${commons-logging.version},
+            org.apache.http;version=${httpcore.version},
+            org.apache.http.entity;version=${httpcore.version},
+            org.apache.http.concurrent;version=${httpcore.version},
+            org.apache.http.io;version=${httpcore.version},
+            org.apache.http.message;version=${httpcore.version},
+            org.apache.http.params;version=${httpcore.version},
+            org.apache.http.pool;version=${httpcore.version},
+            org.apache.http.protocol;version=${httpcore.version},
+            org.apache.http.util;version=${httpcore.version},
+            org.apache.http.impl;version=${httpcore.version},
+            org.apache.http.nio;version=${httpcore.version},
+            org.apache.http.nio.entity;version=${httpcore.version},
+            org.apache.http.nio.params;version=${httpcore.version},
+            org.apache.http.nio.pool;version=${httpcore.version},
+            org.apache.http.nio.protocol;version=${httpcore.version},
+            org.apache.http.nio.reactor;version=${httpcore.version},
+            org.apache.http.nio.reactor.ssl;version=${httpcore.version},
+            org.apache.http.nio.util;version=${httpcore.version},
+            org.apache.http.impl.nio;version=${httpcore.version},
+            org.apache.http.impl.nio.codec;version=${httpcore.version},
+            org.apache.http.impl.nio.reactor;version=${httpcore.version},
+            org.apache.http.auth;version=${httpclient.version},
+            org.apache.http.cookie;version=${httpclient.version},
+            org.apache.http.conn;version=${httpclient.version},
+            org.apache.http.conn.params;version=${httpclient.version},
+            org.apache.http.conn.routing;version=${httpclient.version},
+            org.apache.http.conn.ssl;version=${httpclient.version},
+            org.apache.http.client;version=${httpclient.version},
+            org.apache.http.client.methods;version=${httpclient.version},
+            org.apache.http.client.params;version=${httpclient.version},
+            org.apache.http.client.protocol;version=${httpclient.version},
+            org.apache.http.client.utils;version=${httpclient.version},
+            org.apache.http.impl.auth;version=${httpclient.version},
+            org.apache.http.impl.cookie;version=${httpclient.version},
+            org.apache.http.impl.conn;version=${httpclient.version},
+            org.apache.http.impl.client;version=${httpclient.version}
+            </Import-Package>
+            <Include-Resource></Include-Resource>
+            <!-- Stop the JAVA_1_n_HOME variables from being treated as headers by Bnd -->
+            <_removeheaders>JAVA_1_3_HOME,JAVA_1_4_HOME</_removeheaders>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>clirr-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+    <finalName>org.apache.httpcomponents.httpasyncclient_${project.version}</finalName>
+  </build>
+
+  <reports>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>clirr-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reports>
+</project>

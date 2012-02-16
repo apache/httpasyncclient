@@ -1,8 +1,4 @@
-<!--
-   $HeadURL$
-   $Revision$
-   $Date$
-
+<!-- 
    ====================================================================
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -28,27 +24,22 @@
    <http://www.apache.org/>.
  -->
 <assembly>
-    <id>bin</id>
+    <id>osgi-bin</id>
     <formats>
         <format>tar.gz</format>
         <format>zip</format>
     </formats>
-    <moduleSets>
-      <moduleSet>
-        <excludes>
-          <exclude>org.apache.httpcomponents:httpasyncclient-osgi</exclude>
-        </excludes>
-        <binaries>
-          <outputDirectory>lib</outputDirectory>
-          <unpack>false</unpack>
-          <dependencySets>
-            <dependencySet>
-            </dependencySet>
-          </dependencySets>
-        </binaries>
-      </moduleSet>
-    </moduleSets>
     <fileSets>
+        <fileSet>
+          <directory>httpasyncclient-osgi/target</directory>
+          <outputDirectory></outputDirectory>
+          <includes>
+            <include>*.jar</include>
+          </includes>
+          <excludes>
+            <exclude>*sources.jar</exclude>
+          </excludes>
+        </fileSet>
         <fileSet>
           <directory></directory>
           <outputDirectory></outputDirectory>
@@ -57,6 +48,7 @@
             <include>LICENSE.txt</include>
             <include>NOTICE.txt</include>
             <include>RELEASE_NOTES.txt</include>
+            <include>NTLM_SUPPORT.txt</include>
           </includes>
         </fileSet>
         <!-- Javadocs -->
