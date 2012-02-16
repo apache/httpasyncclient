@@ -57,6 +57,21 @@ performance in terms of a raw data throughput.
 
     <!-- multiple releases can be listed, each in it's own section -->
     <release>
+      <Version>
+        <name>httpcomponents-asyncclient-4.0-alpha1</name>
+        <created>2011-01-18</created>
+        <revision>4.0-alpha1</revision>
+      </Version>
+      <Version>
+        <name>httpcomponents-asyncclient-4.0-alpha2</name>
+        <created>2011-05-24</created>
+        <revision>4.0-alpha2</revision>
+      </Version>
+      <Version>
+        <name>httpcomponents-asyncclient-4.0-alpha3</name>
+        <created>2011-09-29</created>
+        <revision>4.0-alpha3</revision>
+      </Version>
     </release>
 
     <repository>

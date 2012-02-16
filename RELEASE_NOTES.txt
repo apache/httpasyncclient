@@ -1,3 +1,23 @@
+Release 4.0 Beta 1
+-------------------
+
+The 4.0 BETA1 release completes the application programming interface and the feature set 
+of HttpAsyncClient and upgrades to the latest versions of core and client components 
+(HttpCore 4.2-beta1 and HttpClient 4.2-beta1). As of this release HttpAsyncClient is expected
+to be API stable.
+
+Users of previous releases of HttpAsyncClient are advised to upgrade.
+
+Changelog:
+
+* [HTTPASYNC-11]: HttpAsyncClient fails to re-authenticate if connection is non-persistent.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* [HTTPASYNC-5]: Allow customized LineParser for asynchronous connections.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+
+
 Release 4.0 Alpha 3
 -------------------
 
