@@ -499,7 +499,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private synchronized void connectionRequestCompleted(final ManagedClientAsyncConnection conn) {
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Connection request suceeded: " + conn);
+            this.log.debug("Connection request succeeded: " + conn);
         }
         try {
             HttpRoute route = this.mainRequest.getRoute();
