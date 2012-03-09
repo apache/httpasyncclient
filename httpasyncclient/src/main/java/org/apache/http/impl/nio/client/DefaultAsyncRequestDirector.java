@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
+import org.apache.http.ConnectionClosedException;
 import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
@@ -124,6 +125,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private int redirectCount;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
+    private boolean requestSent;
     private int execCount;
 
     public DefaultAsyncRequestDirector(
@@ -275,6 +277,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public void requestCompleted(final HttpContext context) {
+        this.requestSent = true;
         this.requestProducer.requestCompleted(context);
     }
 
@@ -283,6 +286,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public void resetRequest() throws IOException {
+        this.requestSent = false;
         this.requestProducer.resetRequest();
     }
 
@@ -378,6 +382,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     public synchronized void failed(final Exception ex) {
         try {
+            if (!this.requestSent) {
+                this.requestProducer.failed(ex);
+            }
             this.responseConsumer.failed(ex);
         } finally {
             try {
@@ -510,6 +517,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
             this.managedConn.requestOutput();
             this.routeEstablished = route.equals(conn.getRoute());
+            if (!this.managedConn.isOpen()) {
+                throw new ConnectionClosedException("Connection closed");
+            }
         } catch (IOException ex) {
             failed(ex);
         } catch (RuntimeException runex) {
