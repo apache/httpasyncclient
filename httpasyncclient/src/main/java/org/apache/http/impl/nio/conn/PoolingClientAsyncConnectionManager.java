@@ -226,6 +226,8 @@ public class PoolingClientAsyncConnectionManager
                         }
                         this.log.debug("Connection " + format(entry) + " can be kept alive " + s);
                     }
+                    // Do not time out pooled connection
+                    managedConn.setSocketTimeout(0);
                 }
             } finally {
                 this.pool.release(entry, managedConn.isMarkedReusable());
