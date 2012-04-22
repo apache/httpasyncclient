@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
@@ -112,6 +111,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private final HttpAuthenticator authenticator;
     private final HttpParams clientParams;
 
+    private volatile boolean closed;
+    private volatile ManagedClientAsyncConnection managedConn;
+    
     private RoutedRequest mainRequest;
     private RoutedRequest followup;
     private HttpResponse finalResponse;
@@ -120,8 +122,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private RequestWrapper currentRequest;
     private HttpResponse currentResponse;
     private boolean routeEstablished;
-    private Future<ManagedClientAsyncConnection> connFuture;
-    private ManagedClientAsyncConnection managedConn;
     private int redirectCount;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
@@ -166,8 +166,29 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.clientParams = clientParams;
     }
 
-    public synchronized void close() throws IOException {
-        releaseResources();
+    public void close() {
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
+        ManagedClientAsyncConnection localConn = this.managedConn;
+        if (localConn != null) {
+            try {
+                localConn.abortConnection();
+            } catch (IOException ioex) {
+                this.log.debug("I/O error releasing connection", ioex);
+            }
+        }
+        try {
+            this.requestProducer.close();
+        } catch (IOException ex) {
+            this.log.debug("I/O error closing request producer", ex);
+        }
+        try {
+            this.responseConsumer.close();
+        } catch (IOException ex) {
+            this.log.debug("I/O error closing response consumer", ex);
+        }
     }
 
     public synchronized void start() {
@@ -355,31 +376,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
-    private void releaseResources() {
-        if (this.managedConn != null) {
-            try {
-                this.managedConn.abortConnection();
-            } catch (IOException ioex) {
-                this.log.debug("I/O error releasing connection", ioex);
-            }
-            this.managedConn = null;
-        }
-        if (this.connFuture != null) {
-            this.connFuture.cancel(true);
-            this.connFuture = null;
-        }
-        try {
-            this.requestProducer.close();
-        } catch (IOException ex) {
-            this.log.debug("I/O error closing request producer", ex);
-        }
-        try {
-            this.responseConsumer.close();
-        } catch (IOException ex) {
-            this.log.debug("I/O error closing response consumer", ex);
-        }
-    }
-
     public synchronized void failed(final Exception ex) {
         try {
             if (!this.requestSent) {
@@ -390,7 +386,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             try {
                 this.resultCallback.failed(ex, this);
             } finally {
-                releaseResources();
+                close();
             }
         }
     }
@@ -488,7 +484,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.resultCallback.failed(runex, this);
             throw runex;
         } finally {
-            releaseResources();
+            close();
         }
     }
 
@@ -509,15 +505,19 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.log.debug("Connection request succeeded: " + conn);
         }
         try {
+            this.managedConn = conn;
+            if (this.closed) {
+                conn.releaseConnection();
+                return;
+            }
             HttpRoute route = this.mainRequest.getRoute();
             if (!conn.isOpen()) {
                 conn.open(route, this.localContext, this.params);
             }
-            this.managedConn = conn;
-            this.managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-            this.managedConn.requestOutput();
+            conn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
+            conn.requestOutput();
             this.routeEstablished = route.equals(conn.getRoute());
-            if (!this.managedConn.isOpen()) {
+            if (!conn.isOpen()) {
                 throw new ConnectionClosedException("Connection closed");
             }
         } catch (IOException ex) {
@@ -533,7 +533,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         try {
             this.resultCallback.failed(ex, this);
         } finally {
-            releaseResources();
+            close();
         }
     }
 
@@ -542,7 +542,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         try {
             this.resultCallback.cancelled(this);
         } finally {
-            releaseResources();
+            close();
         }
     }
 
@@ -566,7 +566,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         HttpRoute route = this.mainRequest.getRoute();
         long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
         Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
-        this.connFuture = this.connmgr.leaseConnection(
+        this.connmgr.leaseConnection(
                 route, userToken,
                 connectTimeout, TimeUnit.MILLISECONDS,
                 new InternalFutureCallback());
