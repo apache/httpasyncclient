@@ -338,10 +338,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             }
 
             Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
-            if (managedConn != null && userToken == null) {
-                userToken = userTokenHandler.getUserToken(this.localContext);
-                if (userToken != null) {
+            if (managedConn != null) {
+                if (userToken == null) {
+                    userToken = userTokenHandler.getUserToken(this.localContext);
                     this.localContext.setAttribute(ClientContext.USER_TOKEN, userToken);
+                }
+                if (userToken != null) {
                     managedConn.setState(userToken);
                 }
             }
