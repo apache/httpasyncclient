@@ -42,7 +42,7 @@ import org.apache.http.nio.reactor.IOSession;
 
 class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPoolEntry> {
 
-    private static AtomicLong COUNTER = new AtomicLong();
+    private static final AtomicLong COUNTER = new AtomicLong(1);
 
     private final Log log;
     private final AsyncSchemeRegistry schemeRegistry;

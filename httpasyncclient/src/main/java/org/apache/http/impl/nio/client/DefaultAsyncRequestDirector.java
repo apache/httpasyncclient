@@ -31,6 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.http.ConnectionClosedException;
@@ -90,6 +91,8 @@ import org.apache.http.protocol.HttpProcessor;
 
 class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler<T> {
 
+    private static final AtomicLong COUNTER = new AtomicLong(1);
+    
     private final Log log;
 
     private final HttpAsyncRequestProducer requestProducer;
@@ -110,6 +113,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private final AuthState proxyAuthState;
     private final HttpAuthenticator authenticator;
     private final HttpParams clientParams;
+    private final long id;
 
     private volatile boolean closed;
     private volatile ManagedClientAsyncConnection managedConn;
@@ -164,6 +168,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.proxyAuthState = new AuthState();
         this.authenticator     = new HttpAuthenticator(log);
         this.clientParams = clientParams;
+        this.id = COUNTER.getAndIncrement();
     }
 
     public void close() {
@@ -193,7 +198,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     public synchronized void start() {
         try {
-
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("[exchange: " + this.id + "] start execution");
+            }
             this.localContext.setAttribute(ClientContext.TARGET_AUTH_STATE, this.targetAuthState);
             this.localContext.setAttribute(ClientContext.PROXY_AUTH_STATE, this.proxyAuthState);
 
@@ -227,7 +234,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 case HttpRouteDirector.CONNECT_PROXY:
                     break;
                 case HttpRouteDirector.TUNNEL_TARGET:
-                    this.log.debug("Tunnel required");
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug("[exchange: " + this.id + "] Tunnel required");
+                    }
                     HttpRequest connect = createConnectRequest(route);
                     this.currentRequest = wrapRequest(connect);
                     this.currentRequest.setParams(this.params);
@@ -283,13 +292,16 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
         this.execCount++;
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Attempt " + this.execCount + " to execute request");
+            this.log.debug("[exchange: " + this.id + "] Attempt " + this.execCount + " to execute request");
         }
         return this.currentRequest;
     }
 
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] produce content");
+        }
         this.requestContentProduced = true;
         this.requestProducer.produceContent(encoder, ioctrl);
         if (encoder.isCompleted()) {
@@ -298,6 +310,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public void requestCompleted(final HttpContext context) {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] request completed");
+        }
         this.requestSent = true;
         this.requestProducer.requestCompleted(context);
     }
@@ -314,7 +329,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     public synchronized void responseReceived(
             final HttpResponse response) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Response: " + response.getStatusLine());
+            this.log.debug("[exchange: " + this.id + "] Response received " + response.getStatusLine());
         }
         this.currentResponse = response;
         this.currentResponse.setParams(this.params);
@@ -355,6 +370,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     public synchronized void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] Consume content");
+        }
         if (this.finalResponse != null) {
             this.responseConsumer.consumeContent(decoder, ioctrl);
         } else {
@@ -394,7 +412,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public synchronized void responseCompleted(final HttpContext context) {
-        this.log.debug("Response fully read");
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] Response fully read");
+        }
         try {
             if (this.resultCallback.isDone()) {
                 return;
@@ -409,29 +429,37 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     } else {
                         s = "indefinitely";
                     }
-                    this.log.debug("Connection can be kept alive " + s);
+                    this.log.debug("[exchange: " + this.id + "] Connection can be kept alive " + s);
                 }
                 this.managedConn.setIdleDuration(duration, TimeUnit.MILLISECONDS);
             } else {
-                this.log.debug("Connection cannot be kept alive");
+                if (this.log.isDebugEnabled()) {
+                    this.log.debug("[exchange: " + this.id + "] Connection cannot be kept alive");
+                }
                 this.managedConn.unmarkReusable();
                 if (this.proxyAuthState.getState() == AuthProtocolState.SUCCESS
                         && this.proxyAuthState.getAuthScheme() != null
                         && this.proxyAuthState.getAuthScheme().isConnectionBased()) {
-                    this.log.debug("Resetting proxy auth state");
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug("[exchange: " + this.id + "] Resetting proxy auth state");
+                    }
                     this.proxyAuthState.reset();
                 }
                 if (this.targetAuthState.getState() == AuthProtocolState.SUCCESS
                         && this.targetAuthState.getAuthScheme() != null
                         && this.targetAuthState.getAuthScheme().isConnectionBased()) {
-                    this.log.debug("Resetting target auth state");
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug("[exchange: " + this.id + "] Resetting target auth state");
+                    }
                     this.targetAuthState.reset();
                 }
             }
 
             if (this.finalResponse != null) {
                 this.responseConsumer.responseCompleted(this.localContext);
-                this.log.debug("Response processed");
+                if (this.log.isDebugEnabled()) {
+                    this.log.debug("[exchange: " + this.id + "] Response processed");
+                }
                 releaseConnection();
                 T result = this.responseConsumer.getResult();
                 Exception ex = this.responseConsumer.getException();
@@ -468,7 +496,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public synchronized boolean cancel() {
-        this.log.debug("HTTP exchange cancelled");
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] Cancelled");
+        }
         try {
             boolean cancelled = this.responseConsumer.cancel();
 
@@ -504,7 +534,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private synchronized void connectionRequestCompleted(final ManagedClientAsyncConnection conn) {
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Connection request succeeded: " + conn);
+            this.log.debug("[exchange: " + this.id + "] Connection allocated: " + conn);
         }
         try {
             this.managedConn = conn;
@@ -531,7 +561,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     private synchronized void connectionRequestFailed(final Exception ex) {
-        this.log.debug("Connection request failed", ex);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] connection request failed");
+        }
         try {
             this.resultCallback.failed(ex, this);
         } finally {
@@ -540,7 +572,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     private synchronized void connectionRequestCancelled() {
-        this.log.debug("Connection request cancelled");
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] Connection request cancelled");
+        }
         try {
             this.resultCallback.cancelled(this);
         } finally {
@@ -566,6 +600,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private void requestConnection() {
         HttpRoute route = this.mainRequest.getRoute();
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] Request connection for " + route);
+        }
         long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
         Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
         this.connmgr.leaseConnection(
@@ -705,11 +742,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
             // Reset auth states if redirecting to another host
             if (!route.getTargetHost().equals(newTarget)) {
-                this.log.debug("Resetting target auth state");
+                if (this.log.isDebugEnabled()) {
+                    this.log.debug("[exchange: " + this.id + "] Resetting target auth state");
+                }
                 this.targetAuthState.reset();
                 AuthScheme authScheme = this.proxyAuthState.getAuthScheme();
                 if (authScheme != null && authScheme.isConnectionBased()) {
-                    this.log.debug("Resetting proxy auth state");
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug("[exchange: " + this.id + "] Resetting proxy auth state");
+                    }
                     this.proxyAuthState.reset();
                 }
             }
@@ -720,7 +761,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             HttpRoute newRoute = determineRoute(newTarget, newRequest, this.localContext);
 
             if (this.log.isDebugEnabled()) {
-                this.log.debug("Redirecting to '" + uri + "' via " + newRoute);
+                this.log.debug("[exchange: " + this.id + "] Redirecting to '" + uri + "' via " + newRoute);
             }
             return new RoutedRequest(newRequest, newRoute);
         }
