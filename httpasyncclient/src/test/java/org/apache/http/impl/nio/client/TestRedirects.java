@@ -28,8 +28,11 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -49,6 +52,7 @@ import org.apache.http.client.RedirectException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.cookie.SM;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
@@ -57,6 +61,8 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.localserver.HttpServerNio;
+import org.apache.http.localserver.RandomHandler;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NStringEntity;
@@ -728,6 +734,81 @@ public class TestRedirects extends HttpAsyncTestBase {
 
         Header header = reqWrapper.getFirstHeader(HTTP.USER_AGENT);
         Assert.assertEquals("my-test-client", header.getValue());
+    }
+    
+    static class CrossSiteRedirectService implements HttpRequestHandler {
+
+        private final HttpHost host;
+
+        public CrossSiteRedirectService(final HttpHost host) {
+            super();
+            this.host = host;
+        }
+
+        public void handle(
+                final HttpRequest request,
+                final HttpResponse response,
+                final HttpContext context) throws HttpException, IOException {
+            ProtocolVersion ver = request.getRequestLine().getProtocolVersion();
+            String location;
+            try {
+                URIBuilder uribuilder = new URIBuilder(request.getRequestLine().getUri()); 
+                uribuilder.setScheme(this.host.getSchemeName());
+                uribuilder.setHost(this.host.getHostName());
+                uribuilder.setPort(this.host.getPort());
+                uribuilder.setPath("/random/1024");
+                location = uribuilder.build().toASCIIString();
+            } catch (URISyntaxException ex) {
+                throw new ProtocolException("Invalid request URI", ex);
+            }
+            response.setStatusLine(ver, HttpStatus.SC_TEMPORARY_REDIRECT);
+            response.addHeader(new BasicHeader("Location", location));
+        }
+    }
+
+    @Test
+    public void testCrossSiteRedirect() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("/random/*", new BasicAsyncRequestHandler(
+                new RandomHandler()));
+        HttpHost redirectTarget = start(registry, null);
+
+        HttpAsyncRequestHandlerRegistry registry2 = new HttpAsyncRequestHandlerRegistry();
+        registry2.register("/redirect/*", new BasicAsyncRequestHandler(
+                new CrossSiteRedirectService(redirectTarget)));
+        HttpServerNio secondServer = new HttpServerNio(createServerConnectionFactory(this.serverParams));
+        secondServer.setExceptionHandler(new SimpleIOReactorExceptionHandler());
+        HttpAsyncService serviceHandler = new HttpAsyncService(
+                this.serverHttpProc,
+                new DefaultConnectionReuseStrategy(),
+                new DefaultHttpResponseFactory(),
+                registry2,
+                null,
+                this.serverParams);
+        secondServer.start(serviceHandler);
+        try {
+            ListenerEndpoint endpoint2 = secondServer.getListenerEndpoint();
+            endpoint2.waitFor();
+
+            Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, secondServer.getStatus());
+            InetSocketAddress address2 = (InetSocketAddress) endpoint2.getAddress();
+            HttpHost initialTarget = new HttpHost("localhost", address2.getPort(), getSchemeName());
+
+            Queue<Future<HttpResponse>> queue = new ConcurrentLinkedQueue<Future<HttpResponse>>();
+            for (int i = 0; i < 4; i++) {
+                HttpContext context = new BasicHttpContext();
+                HttpGet httpget = new HttpGet("/redirect/anywhere");
+                queue.add(this.httpclient.execute(initialTarget, httpget, context, null));
+            }
+            while (!queue.isEmpty()) {
+                Future<HttpResponse> future = queue.remove();
+                HttpResponse response = future.get();
+                Assert.assertNotNull(response);
+                Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+            }
+        } finally {
+            this.server.shutdown();
+        }
     }
 
 }

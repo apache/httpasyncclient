@@ -178,6 +178,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.closed = true;
         ManagedClientAsyncConnection localConn = this.managedConn;
         if (localConn != null) {
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("[exchange: " + this.id + "] aborting connection " + localConn);
+            }
             try {
                 localConn.abortConnection();
             } catch (IOException ioex) {
@@ -311,7 +314,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     public void requestCompleted(final HttpContext context) {
         if (this.log.isDebugEnabled()) {
-            this.log.debug("[exchange: " + this.id + "] request completed");
+            this.log.debug("[exchange: " + this.id + "] Request completed");
         }
         this.requestSent = true;
         this.requestProducer.requestCompleted(context);
@@ -386,6 +389,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private void releaseConnection() {
         if (this.managedConn != null) {
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("[exchange: " + this.id + "] releasing connection " + this.managedConn);
+            }
             try {
                 this.managedConn.getContext().removeAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER);
                 this.managedConn.releaseConnection();

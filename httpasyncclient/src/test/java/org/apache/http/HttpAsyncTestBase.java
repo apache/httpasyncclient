@@ -65,7 +65,7 @@ public abstract class HttpAsyncTestBase {
 
     protected abstract String getSchemeName();
 
-    class SimpleIOReactorExceptionHandler implements IOReactorExceptionHandler {
+    public static class SimpleIOReactorExceptionHandler implements IOReactorExceptionHandler {
 
         public boolean handle(final RuntimeException ex) {
             ex.printStackTrace(System.out);
