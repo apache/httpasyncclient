@@ -47,7 +47,7 @@ public class ZeroCopyHttpExchange {
             File upload = new File(args[0]);
             File download = new File(args[1]);
             ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload,
-                    ContentType.create("text/plain", null));
+                    ContentType.create("text/plain"));
             ZeroCopyConsumer<File> consumer = new ZeroCopyConsumer<File>(download) {
 
                 @Override

@@ -30,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.http.Consts;
 import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -173,7 +174,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
             } else {
                 response.setStatusCode(HttpStatus.SC_OK);
-                NStringEntity entity = new NStringEntity("success", HTTP.ASCII);
+                NStringEntity entity = new NStringEntity("success", Consts.ASCII);
                 response.setEntity(entity);
             }
             response.setHeader(HTTP.CONN_DIRECTIVE,
@@ -427,7 +428,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         this.httpclient.setCredentialsProvider(credsProvider);
 
         HttpPost httppost = new HttpPost("/");
-        httppost.setEntity(new NStringEntity("some important stuff", HTTP.ISO_8859_1));
+        httppost.setEntity(new NStringEntity("some important stuff", Consts.ISO_8859_1));
 
         Future<HttpResponse> future = this.httpclient.execute(target, httppost, null);
         HttpResponse response = future.get();

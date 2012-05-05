@@ -26,13 +26,11 @@
  */
 package org.apache.http.impl.nio.conn;
 
-import java.io.IOException;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
-import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.nio.conn.ClientAsyncConnection;
@@ -84,7 +82,18 @@ public class DefaultClientAsyncConnection
     }
     
     @Override
-    public void submitRequest(final HttpRequest request) throws IOException, HttpException {
+    protected void onResponseReceived(HttpResponse response) {
+        if (response != null && this.headerlog.isDebugEnabled()) {
+            this.headerlog.debug(this.id + " << " + response.getStatusLine().toString());
+            Header[] headers = response.getAllHeaders();
+            for (int i = 0; i < headers.length; i++) {
+                this.headerlog.debug(this.id + " << " + headers[i].toString());
+            }
+        }
+    }
+
+    @Override
+    protected void onRequestSubmitted(HttpRequest request) {
         if (request != null && this.headerlog.isDebugEnabled()) {
             this.headerlog.debug(this.id + " >> " + request.getRequestLine().toString());
             Header[] headers = request.getAllHeaders();
@@ -92,7 +101,6 @@ public class DefaultClientAsyncConnection
                 this.headerlog.debug(this.id + " >> " + headers[i].toString());
             }
         }
-        super.submitRequest(request);
     }
 
     @Override

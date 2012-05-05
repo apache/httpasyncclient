@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 
+import org.apache.http.Consts;
 import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -59,7 +60,6 @@ import org.apache.http.nio.protocol.HttpAsyncService;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.protocol.ImmutableHttpProcessor;
@@ -161,7 +161,7 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
             } else {
                 response.setStatusCode(HttpStatus.SC_OK);
-                StringEntity entity = new StringEntity("success", HTTP.ASCII);
+                StringEntity entity = new StringEntity("success", Consts.ASCII);
                 response.setEntity(entity);
             }
         }

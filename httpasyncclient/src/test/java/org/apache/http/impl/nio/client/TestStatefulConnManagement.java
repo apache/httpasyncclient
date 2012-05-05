@@ -63,9 +63,9 @@ import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.apache.http.protocol.SyncBasicHttpContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -159,7 +159,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         HttpContext[] contexts = new HttpContext[workerCount];
         HttpWorker[] workers = new HttpWorker[workerCount];
         for (int i = 0; i < contexts.length; i++) {
-            HttpContext context = new SyncBasicHttpContext();
+            HttpContext context = new BasicHttpContext();
             Object token = Integer.valueOf(i);
             context.setAttribute("user", token);
             contexts[i] = context;
@@ -300,7 +300,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         HttpHost target = start(registry, null);
 
         // Bottom of the pool : a *keep alive* connection to Route 1.
-        HttpContext context1 = new SyncBasicHttpContext();
+        HttpContext context1 = new BasicHttpContext();
         context1.setAttribute("user", "stuff");
 
         Future<HttpResponse> future1 = this.httpclient.execute(
@@ -317,7 +317,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         // Send a very simple HTTP get (it MUST be simple, no auth, no proxy, no 302, no 401, ...)
         // Send it to another route. Must be a keepalive.
-        HttpContext context2 = new SyncBasicHttpContext();
+        HttpContext context2 = new BasicHttpContext();
 
         Future<HttpResponse> future2 = this.httpclient.execute(
                 new HttpHost("127.0.0.1", target.getPort(), target.getSchemeName()),
@@ -337,7 +337,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         // So the ConnPoolByRoute will need to kill one connection (it is maxed out globally).
         // The killed conn is the oldest, which means the first HTTPGet ([localhost][stuff]).
         // When this happens, the RouteSpecificPool becomes empty.
-        HttpContext context3 = new SyncBasicHttpContext();
+        HttpContext context3 = new BasicHttpContext();
         Future<HttpResponse> future3 = this.httpclient.execute(
                 target, new HttpGet("/"), context3, null);
         HttpResponse response3 = future3.get();

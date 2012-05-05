@@ -27,13 +27,11 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
-import java.nio.charset.UnsupportedCharsetException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
@@ -66,16 +64,11 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     protected final void onEntityEnclosed(
             final HttpEntity entity, final ContentType contentType) throws IOException {
         this.contentType = contentType != null ? contentType : ContentType.DEFAULT_TEXT;
-        try {
-            String cs = this.contentType.getCharset();
-            if (cs == null) {
-                cs = HTTP.DEFAULT_CONTENT_CHARSET;
-            }
-            Charset charset = Charset.forName(cs);
-            this.chardecoder = charset.newDecoder();
-        } catch (UnsupportedCharsetException ex) {
-            throw new UnsupportedEncodingException(this.contentType.getCharset());
+        Charset charset = this.contentType.getCharset();
+        if (charset == null) {
+            charset = HTTP.DEF_CONTENT_CHARSET;
         }
+        this.chardecoder = charset.newDecoder();
         this.bbuf = ByteBuffer.allocate(this.bufSize);
         this.cbuf = CharBuffer.allocate(this.bufSize);
     }

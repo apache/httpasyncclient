@@ -169,7 +169,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         private final boolean forceChunking;
 
         protected TestZeroCopyPost(final String requestURI, final boolean forceChunking) {
-            super(URI.create(requestURI), TEST_FILE, ContentType.create("text/plain", null));
+            super(URI.create(requestURI), TEST_FILE, ContentType.create("text/plain"));
             this.forceChunking = forceChunking;
         }
 
@@ -248,7 +248,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
             }
             if (ok) {
                 NFileEntity responseEntity = new NFileEntity(TEST_FILE,
-                        ContentType.create("text/plian", null));
+                        ContentType.create("text/plian"));
                 if (this.forceChunking) {
                     responseEntity.setChunked(true);
                 }
