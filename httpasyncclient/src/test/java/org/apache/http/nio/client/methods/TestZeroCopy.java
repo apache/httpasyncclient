@@ -39,6 +39,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.http.Consts;
 import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -231,7 +232,11 @@ public class TestZeroCopy extends HttpAsyncTestBase {
             InputStream instream = requestEntity.getContent();
             try {
                 ContentType contentType = ContentType.getOrDefault(requestEntity);
-                LineIterator it = IOUtils.lineIterator(instream, contentType.getCharset());
+                Charset charset = contentType.getCharset();
+                if (charset == null) {
+                    charset = Consts.ISO_8859_1;
+                }
+                LineIterator it = IOUtils.lineIterator(instream, charset.name());
                 int count = 0;
                 while (it.hasNext()) {
                     String line = it.next();
