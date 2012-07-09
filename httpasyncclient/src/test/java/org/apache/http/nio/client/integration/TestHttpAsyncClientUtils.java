@@ -24,7 +24,7 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.client.util;
+package org.apache.http.nio.client.integration;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
@@ -40,6 +40,7 @@ import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.NHttpConnectionFactory;
+import org.apache.http.nio.client.util.HttpAsyncClientUtils;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;

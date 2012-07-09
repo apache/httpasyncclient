@@ -24,7 +24,7 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.client;
+package org.apache.http.nio.client.integration;
 
 import org.apache.http.SSLTestContexts;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
@@ -34,7 +34,7 @@ import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.params.HttpParams;
 
-public class TestHttpsAsync extends TestHttpAsync {
+public class TestHttpsRedirects extends TestRedirects {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(

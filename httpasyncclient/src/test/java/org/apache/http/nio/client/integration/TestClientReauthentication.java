@@ -23,7 +23,7 @@
  * <http://www.apache.org/>.
  */
 
-package org.apache.http.impl.nio.client;
+package org.apache.http.nio.client.integration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
