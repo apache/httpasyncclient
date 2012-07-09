@@ -31,9 +31,6 @@ import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 
-/**
- * @since 4.1
- */
 @ThreadSafe
 public final class AsyncSchemeRegistryFactory {
 
