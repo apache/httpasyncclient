@@ -1,6 +1,9 @@
 Changes sicne release 4.0 Beta 1
 -------------------
 
+* [HTTPASYNC-17] Caching HttpAsyncClient facade.
+  Contributed by Clinton Nielsen <clinton.h.nielsen at gmail.com>
+
 * [HTTPASYNC-19] Fixed incorrect execution of message exchanges that span across multiple hosts 
   (for instance, in case of a request redirect).  
   Contributed by Oleg Kalnichevski <olegk at apache.org>
