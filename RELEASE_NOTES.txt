@@ -1,6 +1,9 @@
 Changes sicne release 4.0 Beta 1
 -------------------
 
+* [HTTPASYNC-20] HTTP exchange can now be aborted with HttpUriRequest#abort().
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-17] Caching HttpAsyncClient facade.
   Contributed by Clinton Nielsen <clinton.h.nielsen at gmail.com>
 

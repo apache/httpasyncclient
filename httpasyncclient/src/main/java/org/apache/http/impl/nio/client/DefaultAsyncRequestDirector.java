@@ -54,6 +54,7 @@ import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.UserTokenHandler;
+import org.apache.http.client.methods.AbortableHttpRequest;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.HttpClientParams;
@@ -61,6 +62,7 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.ConnectionReleaseTrigger;
 import org.apache.http.conn.routing.BasicRouteDirector;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.HttpRouteDirector;
@@ -92,7 +94,7 @@ import org.apache.http.protocol.HttpProcessor;
 class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler<T> {
 
     private static final AtomicLong COUNTER = new AtomicLong(1);
-    
+
     private final Log log;
 
     private final HttpAsyncRequestProducer requestProducer;
@@ -117,7 +119,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private volatile boolean closed;
     private volatile ManagedClientAsyncConnection managedConn;
-    
+
     private RoutedRequest mainRequest;
     private RoutedRequest followup;
     private HttpResponse finalResponse;
@@ -209,6 +211,18 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
             HttpHost target = this.requestProducer.getTarget();
             HttpRequest request = this.requestProducer.generateRequest();
+            if (request instanceof AbortableHttpRequest) {
+                ((AbortableHttpRequest) request).setReleaseTrigger(new ConnectionReleaseTrigger() {
+
+                    public void releaseConnection() throws IOException {
+                    }
+
+                    public void abortConnection() throws IOException {
+                        cancel();
+                    }
+
+                });
+            }
             this.params = new ClientParamsStack(null, this.clientParams, request.getParams(), null);
             RequestWrapper wrapper = wrapRequest(request);
             wrapper.setParams(this.params);
@@ -279,7 +293,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 this.targetAuthState.update(
                         new BasicScheme(), new UsernamePasswordCredentials(userinfo));
             }
-            
+
             // Re-write request URI if needed
             rewriteRequestURI(this.currentRequest, route);
         }
