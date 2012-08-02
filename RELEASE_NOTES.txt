@@ -1,5 +1,13 @@
-Changes sicne release 4.0 Beta 1
+Release 4.0 Beta 2
 -------------------
+
+The 4.0 BETA2 release fixes a number of non-critical issues found since release 4.0-beta1 and 
+introduces basic support for HTTP/1.1 response caching. Please note that caching for streaming 
+HTTP exchanges is currently not supported.
+
+Users of previous releases of HttpAsyncClient are advised to upgrade.
+
+Changelog:
 
 * [HTTPASYNC-20] HTTP exchange can now be aborted with HttpUriRequest#abort().
   Contributed by Oleg Kalnichevski <olegk at apache.org>
