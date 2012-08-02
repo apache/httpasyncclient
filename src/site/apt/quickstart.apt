@@ -33,7 +33,8 @@ HttpAsyncClient Quick Start
     [[1]] Download 'Binary' package of the latest official release from the 
     {{{http://hc.apache.org/downloads.cgi} project download page}}. 
   
-    There should be 6 jars in total:
+    There should be 7 jars in total (components marked with (*) include additional features and 
+    are optional):
   
     * commons-logging-<x.x.x>.jar
   
@@ -47,4 +48,15 @@ HttpAsyncClient Quick Start
   
     * httpasyncclient-<x.x.x>.jar
   
-    []
+    * httpasyncclient-cache-<x.x.x>.jar (*)
+
+   []
+
+    [[2]] Take a look at the {{{../httpcomponents-core-ga/tutorial/html/index.html}HttpCore 
+    tutorial}} for introduction to fundamentals of asynchronous HTTP communication with
+    HttpComponents.
+    
+    [[3]] Another good way of getting started with HttpClient is by seeing it in action. Take 
+    a look at the samples shipped with the release package or available {{{./examples.html}online}}.
+    
+

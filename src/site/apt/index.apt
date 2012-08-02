@@ -80,6 +80,8 @@ HttpAsyncClient Overview
 
     * Plug-in mechanism for custom cookie policies.
 
+    * Support for HTTP/1.1 response caching.
+
 {Standards Compliance}
 
     HttpAsyncClient strives to conform to the following specifications endorsed by the Internet 
