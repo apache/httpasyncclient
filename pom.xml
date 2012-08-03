@@ -130,6 +130,7 @@
 
   <modules>
     <module>httpasyncclient</module>
+    <module>httpasyncclient-cache</module>
     <module>httpasyncclient-osgi</module>
   </modules>
 
