@@ -697,12 +697,6 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private RoutedRequest handleResponse() throws HttpException {
         RoutedRequest followup = null;
-        if (HttpClientParams.isRedirecting(this.params)) {
-            followup = handleRedirect();
-            if (followup != null) {
-                return followup;
-            }
-        }
         if (HttpClientParams.isAuthenticating(this.params)) {
             CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
                     ClientContext.CREDS_PROVIDER);
@@ -715,6 +709,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 if (followup != null) {
                     return followup;
                 }
+            }
+        }
+        if (HttpClientParams.isRedirecting(this.params)) {
+            followup = handleRedirect();
+            if (followup != null) {
+                return followup;
             }
         }
         return null;
