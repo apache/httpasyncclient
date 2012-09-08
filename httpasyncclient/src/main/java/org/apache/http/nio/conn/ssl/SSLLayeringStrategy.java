@@ -195,6 +195,11 @@ public class SSLLayeringStrategy implements LayeringStrategy {
 
     protected void initializeEngine(final SSLEngine engine) {
     }
+    protected void verifySession(final IOSession iosession,
+                          final SSLSession sslsession) throws SSLException {
+        InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
+        hostnameVerifier.verify(address.getHostName(), sslsession);
+    }
 
     class InternalSSLSetupHandler implements SSLSetupHandler {
 
@@ -206,8 +211,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         public void verify(
                 final IOSession iosession,
                 final SSLSession sslsession) throws SSLException {
-            InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
-            hostnameVerifier.verify(address.getHostName(), sslsession);
+            verifySession(iosession, sslsession);
         }
 
     }

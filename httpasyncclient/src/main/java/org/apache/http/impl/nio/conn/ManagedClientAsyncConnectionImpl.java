@@ -37,6 +37,7 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.conn.ConnectionShutdownException;
@@ -44,6 +45,7 @@ import org.apache.http.nio.conn.ClientAsyncConnectionFactory;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.ManagedClientAsyncConnection;
 import org.apache.http.nio.conn.ClientAsyncConnection;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -284,6 +286,15 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    private AsyncSchemeRegistry getSchemeRegistry(final HttpContext context) {
+        AsyncSchemeRegistry reg = (AsyncSchemeRegistry) context.getAttribute(
+                ClientContext.SCHEME_REGISTRY);
+        if (reg == null) {
+            reg = this.manager.getSchemeRegistry();
+        }
+        return reg;
+    }
+    
     public synchronized void open(
             final HttpRoute route,
             final HttpContext context, 
@@ -299,7 +310,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         IOSession iosession = entry.getConnection();
 
         if (proxy == null) {
-            AsyncScheme scheme = this.manager.getSchemeRegistry().getScheme(target);
+            AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
             LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
                 iosession = layeringStrategy.layer(iosession);
@@ -356,7 +367,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
             throw new IllegalStateException("Multiple protocol layering not supported");
         }
         HttpHost target = tracker.getTargetHost();
-        AsyncScheme scheme = this.manager.getSchemeRegistry().getScheme(target);
+        AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
         LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
         if (layeringStrategy == null) {
             throw new IllegalStateException(scheme.getName() +

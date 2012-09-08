@@ -37,6 +37,7 @@ import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.protocol.HttpContext;
 
+import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 
@@ -51,6 +52,15 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         this.schemeRegistry = schemeRegistry;
     }
 
+    private AsyncSchemeRegistry getSchemeRegistry(final HttpContext context) {
+        AsyncSchemeRegistry reg = (AsyncSchemeRegistry) context.getAttribute(
+                ClientContext.SCHEME_REGISTRY);
+        if (reg == null) {
+            reg = this.schemeRegistry;
+        }
+        return reg;
+    }
+    
     public HttpRoute determineRoute(
             final HttpHost target,
             final HttpRequest request,
@@ -69,7 +79,8 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
         AsyncScheme scheme;
         try {
-            scheme = this.schemeRegistry.getScheme(target);
+            AsyncSchemeRegistry registry = getSchemeRegistry(context);
+            scheme = registry.getScheme(target);
         } catch (IllegalStateException ex) {
             throw new HttpException(ex.getMessage());
         }

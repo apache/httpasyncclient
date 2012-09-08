@@ -80,6 +80,7 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.ManagedClientAsyncConnection;
 import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
@@ -675,6 +676,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    private AsyncSchemeRegistry getSchemeRegistry(final HttpContext context) {
+        AsyncSchemeRegistry reg = (AsyncSchemeRegistry) context.getAttribute(
+                ClientContext.SCHEME_REGISTRY);
+        if (reg == null) {
+            reg = this.connmgr.getSchemeRegistry();
+        }
+        return reg;
+    }
+    
     private HttpRequest createConnectRequest(final HttpRoute route) {
         // see RFC 2817, section 5.2 and
         // INTERNET-DRAFT: Tunneling TCP based protocols through
@@ -683,7 +693,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         String host = target.getHostName();
         int port = target.getPort();
         if (port < 0) {
-            AsyncScheme scheme = this.connmgr.getSchemeRegistry().getScheme(target.getSchemeName());
+            AsyncSchemeRegistry registry = getSchemeRegistry(this.localContext);
+            AsyncScheme scheme = registry.getScheme(target.getSchemeName());
             port = scheme.getDefaultPort();
         }
         StringBuilder buffer = new StringBuilder(host.length() + 6);
