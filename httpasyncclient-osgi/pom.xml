@@ -99,7 +99,6 @@
             org.apache.http.nio.reactor.ssl;version=${httpcore.version},
             org.apache.http.nio.util;version=${httpcore.version},
             org.apache.http.impl.nio;version=${httpcore.version},
-            org.apache.http.impl.nio.codec;version=${httpcore.version},
             org.apache.http.impl.nio.reactor;version=${httpcore.version},
             org.apache.http.auth;version=${httpclient.version},
             org.apache.http.cookie;version=${httpclient.version},
