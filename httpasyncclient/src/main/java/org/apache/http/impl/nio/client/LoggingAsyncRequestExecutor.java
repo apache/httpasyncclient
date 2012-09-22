@@ -28,16 +28,13 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpException;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 
 class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
@@ -129,25 +126,6 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             this.log.debug(conn + " Timeout");
         }
         super.timeout(conn);
-    }
-
-    @Override
-    public void endOfInput(NHttpClientConnection conn) throws IOException {
-        ///
-        /// TODO: remove when fix for HTTPASYNC-21 is available in HttpCore stable release
-        ///
-        HttpAsyncRequestExecutionHandler<?> handler = (HttpAsyncRequestExecutionHandler<?>) conn.getContext().getAttribute(HTTP_HANDLER);
-        Object state = conn.getContext().getAttribute("http.nio.http-exchange-state");
-        try {
-            Method m1 = state.getClass().getDeclaredMethod("getRequestState");
-            m1.setAccessible(true);
-            Object obj = m1.invoke(state);
-            if (!obj.toString().equals("READY")) {
-                handler.failed(new ConnectionClosedException("Connection closed"));
-            }
-        } catch (Exception ex) {
-        }
-        super.endOfInput(conn);
     }
 
 }

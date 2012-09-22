@@ -71,7 +71,7 @@
     <maven.compile.target>1.5</maven.compile.target>
     <maven.compile.optimize>true</maven.compile.optimize>
     <maven.compile.deprecation>true</maven.compile.deprecation>
-    <httpcore.version>4.2.1</httpcore.version>
+    <httpcore.version>4.2.2</httpcore.version>
     <httpclient.version>4.2.1</httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <!-- Note IO 2.3+ requires Java 6 -->
