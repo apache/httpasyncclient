@@ -1,9 +1,19 @@
-Changes since 4.0 Beta 2
+Release 4.0 Beta 3
 -------------------
+
+The 4.0 BETA3 is a maintenance release that picks up the latest bug fixes in the core components.
+
+* Upgraded HttpCore to version 4.2.2
+
+* [HTTPASYNC-26] OSGi bundle import fix.
+  Contributed by Daniel Kulp <dkulp at apache.org>
 
 * [HTTPASYNC-25] AsyncSchemeRegistry instance set in the execution context takes precedence over
   the default one.
   Contributed by Daniel Kulp <dkulp at apache.org> 
+
+* Ported fix for HTTPCLIENT-1224
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
 
 
 Release 4.0 Beta 2
