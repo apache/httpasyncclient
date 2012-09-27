@@ -1,7 +1,15 @@
+Changes since 4.0 Beta 3
+
+* [HTTPASYNC-28] PoolEntry's expiry information is never updated.
+  Contributed by Daniel Kulp <dkulp at apache.org>
+
+
 Release 4.0 Beta 3
 -------------------
 
 The 4.0 BETA3 is a maintenance release that picks up the latest bug fixes in the core components.
+
+Changelog:
 
 * Upgraded HttpCore to version 4.2.2
 

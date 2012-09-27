@@ -201,7 +201,7 @@ public class PoolingClientAsyncConnectionManager
         }
 
         synchronized (managedConn) {
-            HttpPoolEntry entry = managedConn.detach();
+            HttpPoolEntry entry = managedConn.getPoolEntry();
             if (entry == null) {
                 return;
             }
@@ -230,7 +230,7 @@ public class PoolingClientAsyncConnectionManager
                     managedConn.setSocketTimeout(0);
                 }
             } finally {
-                this.pool.release(entry, managedConn.isMarkedReusable());
+                this.pool.release(managedConn.detach(), managedConn.isMarkedReusable());
             }
             if (this.log.isDebugEnabled()) {
                 this.log.debug("Connection released: " + format(entry) + formatStats(entry.getRoute()));
