@@ -32,16 +32,14 @@ import java.net.InetAddress;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
-import org.apache.http.nio.conn.scheme.LayeringStrategy;
-import org.apache.http.nio.conn.scheme.AsyncScheme;
-import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
-import org.apache.http.protocol.HttpContext;
-
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.HttpRoutePlanner;
-
-import org.apache.http.conn.params.ConnRouteParams;
+import org.apache.http.nio.conn.scheme.AsyncScheme;
+import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
+import org.apache.http.nio.conn.scheme.LayeringStrategy;
+import org.apache.http.protocol.HttpContext;
 
 public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
 

@@ -29,7 +29,6 @@ package org.apache.http;
 
 import java.io.IOException;
 
-import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
 import org.apache.http.impl.nio.conn.PoolingClientAsyncConnectionManager;
