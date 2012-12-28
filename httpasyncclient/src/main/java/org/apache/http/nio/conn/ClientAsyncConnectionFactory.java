@@ -32,5 +32,5 @@ import org.apache.http.params.HttpParams;
 public interface ClientAsyncConnectionFactory {
 
     ClientAsyncConnection create(String id, IOSession iosession, HttpParams params);
-    
+
 }

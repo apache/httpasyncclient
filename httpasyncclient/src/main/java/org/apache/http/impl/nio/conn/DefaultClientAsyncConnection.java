@@ -80,7 +80,7 @@ public class DefaultClientAsyncConnection
     public String getId() {
         return this.id;
     }
-    
+
     @Override
     protected void onResponseReceived(HttpResponse response) {
         if (response != null && this.headerlog.isDebugEnabled()) {

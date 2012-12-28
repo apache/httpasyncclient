@@ -99,7 +99,7 @@ public class PoolingClientAsyncConnectionManager
     protected ClientAsyncConnectionFactory createClientAsyncConnectionFactory() {
         return new DefaultClientAsyncConnectionFactory();
     }
-    
+
     public AsyncSchemeRegistry getSchemeRegistry() {
         return this.schemeRegistry;
     }

@@ -684,7 +684,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
         return reg;
     }
-    
+
     private HttpRequest createConnectRequest(final HttpRoute route) {
         // see RFC 2817, section 5.2 and
         // INTERNET-DRAFT: Tunneling TCP based protocols through

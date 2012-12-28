@@ -39,15 +39,15 @@ public class DefaultClientAsyncConnectionFactory implements ClientAsyncConnectio
 
     private final HttpResponseFactory responseFactory;
     private final ByteBufferAllocator allocator;
-    
+
     public DefaultClientAsyncConnectionFactory() {
         super();
         this.responseFactory = createHttpResponseFactory();
         this.allocator = createByteBufferAllocator();
     }
-    
+
     public ClientAsyncConnection create(
-            final String id, 
+            final String id,
             final IOSession iosession,
             final HttpParams params) {
         return new DefaultClientAsyncConnection(
@@ -61,5 +61,5 @@ public class DefaultClientAsyncConnectionFactory implements ClientAsyncConnectio
     protected HttpResponseFactory createHttpResponseFactory() {
         return new DefaultHttpResponseFactory();
     }
-    
+
 }

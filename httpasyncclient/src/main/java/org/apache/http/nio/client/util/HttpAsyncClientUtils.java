@@ -41,7 +41,7 @@ public class HttpAsyncClientUtils {
      * connection manager and releases the resources.
      * <p>
      * Example Code:
-     * 
+     *
      * <pre>
      * HttpAsyncClient httpAsyncClient = null;
      * try {
@@ -52,7 +52,7 @@ public class HttpAsyncClientUtils {
      *   HttpAsyncClientUtils.closeQuietly(httpAsyncClient);
      * }
      * </pre>
-     * 
+     *
      * @param httpAsyncClient
      *            the HttpAsyncClient to close, may be null or already closed.
      */

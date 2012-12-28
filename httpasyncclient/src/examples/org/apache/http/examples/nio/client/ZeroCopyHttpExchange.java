@@ -52,7 +52,7 @@ public class ZeroCopyHttpExchange {
 
                 @Override
                 protected File process(
-                        final HttpResponse response, 
+                        final HttpResponse response,
                         final File file,
                         final ContentType contentType) throws Exception {
                     if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {

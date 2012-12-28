@@ -106,7 +106,7 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
-                requestHandlerResolver, expectationVerifier, 
+                requestHandlerResolver, expectationVerifier,
                 this.serverParams);
         this.server.start(serviceHandler);
         this.httpclient.start();

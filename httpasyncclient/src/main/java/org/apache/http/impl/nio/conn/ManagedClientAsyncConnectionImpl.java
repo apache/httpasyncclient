@@ -294,10 +294,10 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
         return reg;
     }
-    
+
     public synchronized void open(
             final HttpRoute route,
-            final HttpContext context, 
+            final HttpContext context,
             final HttpParams params) throws IOException {
         HttpPoolEntry entry = ensurePoolEntry();
         RouteTracker tracker = entry.getTracker();
@@ -318,8 +318,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
 
         ClientAsyncConnection conn = this.connFactory.create(
-                "http-outgoing-" + entry.getId(), 
-                iosession, 
+                "http-outgoing-" + entry.getId(),
+                iosession,
                 params);
         iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
 

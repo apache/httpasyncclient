@@ -137,7 +137,7 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
         HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
-    
+
     public class ResponseBasicUnauthorized implements HttpResponseInterceptor {
 
         public void process(

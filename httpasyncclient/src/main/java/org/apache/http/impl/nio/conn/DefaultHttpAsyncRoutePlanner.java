@@ -58,7 +58,7 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         }
         return reg;
     }
-    
+
     public HttpRoute determineRoute(
             final HttpHost target,
             final HttpRequest request,

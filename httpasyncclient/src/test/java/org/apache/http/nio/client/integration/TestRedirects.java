@@ -735,7 +735,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         Header header = reqWrapper.getFirstHeader(HTTP.USER_AGENT);
         Assert.assertEquals("my-test-client", header.getValue());
     }
-    
+
     static class CrossSiteRedirectService implements HttpRequestHandler {
 
         private final HttpHost host;
@@ -752,7 +752,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             ProtocolVersion ver = request.getRequestLine().getProtocolVersion();
             String location;
             try {
-                URIBuilder uribuilder = new URIBuilder(request.getRequestLine().getUri()); 
+                URIBuilder uribuilder = new URIBuilder(request.getRequestLine().getUri());
                 uribuilder.setScheme(this.host.getSchemeName());
                 uribuilder.setHost(this.host.getHostName());
                 uribuilder.setPort(this.host.getPort());
