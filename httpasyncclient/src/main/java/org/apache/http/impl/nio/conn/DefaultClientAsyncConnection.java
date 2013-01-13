@@ -45,7 +45,7 @@ public class DefaultClientAsyncConnection
     private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
     private final Log log;
 
-    private String id;
+    private final String id;
     private IOSession original;
 
     public DefaultClientAsyncConnection(

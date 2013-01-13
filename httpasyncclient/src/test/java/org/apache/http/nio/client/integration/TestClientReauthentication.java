@@ -160,7 +160,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
     static class AuthHandler implements HttpRequestHandler {
 
-        private AtomicLong count = new AtomicLong(0);
+        private final AtomicLong count = new AtomicLong(0);
 
         public void handle(
                 final HttpRequest request,

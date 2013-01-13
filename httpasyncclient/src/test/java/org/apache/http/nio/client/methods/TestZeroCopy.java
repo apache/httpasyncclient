@@ -207,7 +207,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     static class TestHandler implements HttpRequestHandler {
 
-        private boolean forceChunking;
+        private final boolean forceChunking;
 
         TestHandler(boolean forceChunking) {
             super();

@@ -128,7 +128,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             super(bufSize);
         }
 
-        private AtomicLong count = new AtomicLong(0);
+        private final AtomicLong count = new AtomicLong(0);
 
         @Override
         protected void onResponseReceived(final HttpResponse response) {
@@ -180,7 +180,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             super(bufSize);
         }
 
-        private StringBuilder sb = new StringBuilder();
+        private final StringBuilder sb = new StringBuilder();
 
         @Override
         public void onResponseReceived(final HttpResponse response) {
