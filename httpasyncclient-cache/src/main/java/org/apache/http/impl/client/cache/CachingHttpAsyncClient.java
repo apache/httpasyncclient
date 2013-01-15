@@ -555,7 +555,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                         int maxstale = Integer.parseInt(elt.getValue());
                         long age = this.validityPolicy.getCurrentAgeSecs(entry, now);
                         long lifetime = this.validityPolicy.getFreshnessLifetimeSecs(entry);
-                        if (age - lifetime > maxstale) return true;
+                        if (age - lifetime > maxstale) {
+							return true;
+						}
                     } catch (NumberFormatException nfe) {
                         return true;
                     }
@@ -614,14 +616,17 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     boolean clientRequestsOurOptions(HttpRequest request) {
         RequestLine line = request.getRequestLine();
 
-        if (!HeaderConstants.OPTIONS_METHOD.equals(line.getMethod()))
-            return false;
+        if (!HeaderConstants.OPTIONS_METHOD.equals(line.getMethod())) {
+			return false;
+		}
 
-        if (!"*".equals(line.getUri()))
-            return false;
+        if (!"*".equals(line.getUri())) {
+			return false;
+		}
 
-        if (!"0".equals(request.getFirstHeader(HeaderConstants.MAX_FORWARDS).getValue()))
-            return false;
+        if (!"0".equals(request.getFirstHeader(HeaderConstants.MAX_FORWARDS).getValue())) {
+			return false;
+		}
 
         return true;
     }
@@ -662,7 +667,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             try {
                 Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
                 Date respDate = DateUtils.parseDate(responseDateHeader.getValue());
-                if (respDate.before(entryDate)) return true;
+                if (respDate.before(entryDate)) {
+					return true;
+				}
             } catch (DateParseException e) {
                 // either backend response or cached entry did not have a valid
                 // Date header, so we can't tell if they are out of order
@@ -972,11 +979,17 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         } catch (IOException ioe) {
             // nop
         }
-        if (existing == null) return false;
+        if (existing == null) {
+			return false;
+		}
         Header entryDateHeader = existing.getFirstHeader("Date");
-        if (entryDateHeader == null) return false;
+        if (entryDateHeader == null) {
+			return false;
+		}
         Header responseDateHeader = backendResponse.getFirstHeader("Date");
-        if (responseDateHeader == null) return false;
+        if (responseDateHeader == null) {
+			return false;
+		}
         try {
             Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
             Date responseDate = DateUtils.parseDate(responseDateHeader.getValue());

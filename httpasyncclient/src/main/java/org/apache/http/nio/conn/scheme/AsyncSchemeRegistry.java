@@ -97,8 +97,9 @@ public final class AsyncSchemeRegistry {
      *          <code>null</code> if there is none by this name
      */
     public final AsyncScheme get(String name) {
-        if (name == null)
-            throw new IllegalArgumentException("Name must not be null.");
+        if (name == null) {
+			throw new IllegalArgumentException("Name must not be null.");
+		}
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
@@ -117,8 +118,9 @@ public final class AsyncSchemeRegistry {
      *          <code>null</code> if none was registered
      */
     public final AsyncScheme register(AsyncScheme sch) {
-        if (sch == null)
-            throw new IllegalArgumentException("Scheme must not be null.");
+        if (sch == null) {
+			throw new IllegalArgumentException("Scheme must not be null.");
+		}
 
         AsyncScheme old = registeredSchemes.put(sch.getName(), sch);
         return old;
@@ -133,8 +135,9 @@ public final class AsyncSchemeRegistry {
      *          <code>null</code> if there was none
      */
     public final AsyncScheme unregister(String name) {
-        if (name == null)
-            throw new IllegalArgumentException("Name must not be null.");
+        if (name == null) {
+			throw new IllegalArgumentException("Name must not be null.");
+		}
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
