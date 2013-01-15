@@ -112,7 +112,7 @@ public class PoolingClientAsyncConnectionManager
         return this.ioreactor.getStatus();
     }
 
-    public void shutdown(long waitMs) throws IOException {
+    public void shutdown(final long waitMs) throws IOException {
         this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(waitMs);
         this.log.debug("Connection manager shut down");
@@ -246,15 +246,15 @@ public class PoolingClientAsyncConnectionManager
         return this.pool.getStats(route);
     }
 
-    public void setMaxTotal(int max) {
+    public void setMaxTotal(final int max) {
         this.pool.setMaxTotal(max);
     }
 
-    public void setDefaultMaxPerRoute(int max) {
+    public void setDefaultMaxPerRoute(final int max) {
         this.pool.setDefaultMaxPerRoute(max);
     }
 
-    public void setMaxPerRoute(final HttpRoute route, int max) {
+    public void setMaxPerRoute(final HttpRoute route, final int max) {
         this.pool.setMaxPerRoute(route, max);
     }
 
@@ -270,7 +270,7 @@ public class PoolingClientAsyncConnectionManager
         return this.pool.getMaxPerRoute(route);
     }
 
-    public void closeIdleConnections(long idleTimeout, final TimeUnit tunit) {
+    public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
         if (log.isDebugEnabled()) {
             log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
         }

@@ -48,7 +48,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     private ByteBuffer bbuf;
     private CharBuffer cbuf;
 
-    public AsyncCharConsumer(int bufSize) {
+    public AsyncCharConsumer(final int bufSize) {
         super();
         this.bufSize = bufSize;
     }

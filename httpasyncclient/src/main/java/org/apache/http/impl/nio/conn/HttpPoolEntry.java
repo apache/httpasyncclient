@@ -51,7 +51,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
     }
 
     @Override
-    public boolean isExpired(long now) {
+    public boolean isExpired(final long now) {
         boolean expired = super.isExpired(now);
         if (expired && this.log.isDebugEnabled()) {
             this.log.debug("Connection " + this + " expired @ " + new Date(getExpiry()));

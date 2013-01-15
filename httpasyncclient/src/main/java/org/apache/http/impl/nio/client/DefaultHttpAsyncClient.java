@@ -71,7 +71,7 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         return params;
     }
 
-    public static void setDefaultHttpParams(HttpParams params) {
+    public static void setDefaultHttpParams(final HttpParams params) {
         HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
         HttpProtocolParams.setContentCharset(params, HTTP.DEF_CONTENT_CHARSET.name());
         HttpConnectionParams.setTcpNoDelay(params, true);

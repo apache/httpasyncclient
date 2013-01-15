@@ -182,12 +182,12 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
         public void clear() {
         }
 
-        public Credentials getCredentials(AuthScope authscope) {
+        public Credentials getCredentials(final AuthScope authscope) {
             this.authscope = authscope;
             return this.creds;
         }
 
-        public void setCredentials(AuthScope authscope, Credentials credentials) {
+        public void setCredentials(final AuthScope authscope, final Credentials credentials) {
         }
 
         public AuthScope getAuthScope() {

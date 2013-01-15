@@ -405,11 +405,11 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         return getHttpProcessor().getResponseInterceptorCount();
     }
 
-    public synchronized HttpResponseInterceptor getResponseInterceptor(int index) {
+    public synchronized HttpResponseInterceptor getResponseInterceptor(final int index) {
         return getHttpProcessor().getResponseInterceptor(index);
     }
 
-    public synchronized HttpRequestInterceptor getRequestInterceptor(int index) {
+    public synchronized HttpRequestInterceptor getRequestInterceptor(final int index) {
         return getHttpProcessor().getRequestInterceptor(index);
     }
 
@@ -422,7 +422,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.protocolProcessor = null;
     }
 
-    public synchronized void addResponseInterceptor(final HttpResponseInterceptor itcp, int index) {
+    public synchronized void addResponseInterceptor(final HttpResponseInterceptor itcp, final int index) {
         getHttpProcessor().addInterceptor(itcp, index);
         this.protocolProcessor = null;
     }
@@ -432,7 +432,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.protocolProcessor = null;
     }
 
-    public synchronized void removeResponseInterceptorByClass(Class<? extends HttpResponseInterceptor> clazz) {
+    public synchronized void removeResponseInterceptorByClass(final Class<? extends HttpResponseInterceptor> clazz) {
         getHttpProcessor().removeResponseInterceptorByClass(clazz);
         this.protocolProcessor = null;
     }
@@ -442,7 +442,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.protocolProcessor = null;
     }
 
-    public synchronized void addRequestInterceptor(final HttpRequestInterceptor itcp, int index) {
+    public synchronized void addRequestInterceptor(final HttpRequestInterceptor itcp, final int index) {
         getHttpProcessor().addInterceptor(itcp, index);
         this.protocolProcessor = null;
     }
@@ -452,7 +452,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         this.protocolProcessor = null;
     }
 
-    public synchronized void removeRequestInterceptorByClass(Class<? extends HttpRequestInterceptor> clazz) {
+    public synchronized void removeRequestInterceptorByClass(final Class<? extends HttpRequestInterceptor> clazz) {
         getHttpProcessor().removeRequestInterceptorByClass(clazz);
         this.protocolProcessor = null;
     }

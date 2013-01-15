@@ -204,7 +204,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         public HttpWorker(
                 final HttpContext context,
-                int requestCount,
+                final int requestCount,
                 final HttpHost target,
                 final HttpAsyncClient httpclient) {
             super();

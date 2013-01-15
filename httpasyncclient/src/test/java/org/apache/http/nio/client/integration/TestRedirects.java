@@ -139,7 +139,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         private final String schemeName;
         private final int statuscode;
 
-        public BasicRedirectService(final String schemeName, int statuscode) {
+        public BasicRedirectService(final String schemeName, final int statuscode) {
             super();
             this.schemeName = schemeName;
             this.statuscode = statuscode;

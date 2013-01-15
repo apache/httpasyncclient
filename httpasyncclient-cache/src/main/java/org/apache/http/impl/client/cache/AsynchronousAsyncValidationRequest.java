@@ -56,9 +56,9 @@ class AsynchronousAsyncValidationRequest implements Runnable {
      * Used internally by {@link AsynchronousValidator} to schedule a
      * revalidation.
      */
-    AsynchronousAsyncValidationRequest(AsynchronousAsyncValidator parent,
-            CachingHttpAsyncClient cachingClient, HttpHost target, HttpRequest request,
-            HttpContext context, HttpCacheEntry cacheEntry, String identifier) {
+    AsynchronousAsyncValidationRequest(final AsynchronousAsyncValidator parent,
+            final CachingHttpAsyncClient cachingClient, final HttpHost target, final HttpRequest request,
+            final HttpContext context, final HttpCacheEntry cacheEntry, final String identifier) {
         this.parent = parent;
         this.cachingAsyncClient = cachingClient;
         this.target = target;
@@ -76,10 +76,10 @@ class AsynchronousAsyncValidationRequest implements Runnable {
                         public void cancelled() {
                         }
 
-                        public void completed(HttpResponse httpResponse) {
+                        public void completed(final HttpResponse httpResponse) {
                         }
 
-                        public void failed(Exception e) {
+                        public void failed(final Exception e) {
                             if (e instanceof IOException) {
                                 AsynchronousAsyncValidationRequest.this.log
                                         .debug("Asynchronous revalidation failed due to exception: "

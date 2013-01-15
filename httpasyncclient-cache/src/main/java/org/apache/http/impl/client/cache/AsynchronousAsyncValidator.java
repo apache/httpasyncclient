@@ -69,7 +69,7 @@ class AsynchronousAsyncValidator {
      *            {@link CacheConfig#getAsynchronousWorkerIdleLifetimeSecs()},
      *            and {@link CacheConfig#getRevalidationQueueSize()}.
      */
-    public AsynchronousAsyncValidator(CachingHttpAsyncClient cachingClient, CacheConfig config) {
+    public AsynchronousAsyncValidator(final CachingHttpAsyncClient cachingClient, final CacheConfig config) {
         this(cachingClient, new ThreadPoolExecutor(config.getAsynchronousWorkersCore(),
                 config.getAsynchronousWorkersMax(), config.getAsynchronousWorkerIdleLifetimeSecs(),
                 TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(
@@ -85,7 +85,7 @@ class AsynchronousAsyncValidator {
      * @param executor
      *            used to manage a thread pool of revalidation workers
      */
-    AsynchronousAsyncValidator(CachingHttpAsyncClient cachingClient, ExecutorService executor) {
+    AsynchronousAsyncValidator(final CachingHttpAsyncClient cachingClient, final ExecutorService executor) {
         this.cachingAsyncClient = cachingClient;
         this.executor = executor;
         this.queued = new HashSet<String>();
@@ -100,8 +100,8 @@ class AsynchronousAsyncValidator {
      * @param context
      * @param entry
      */
-    public synchronized void revalidateCacheEntry(HttpHost target, HttpRequest request,
-            HttpContext context, HttpCacheEntry entry) {
+    public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequest request,
+            final HttpContext context, final HttpCacheEntry entry) {
         // getVariantURI will fall back on getURI if no variants exist
         String uri = this.cacheKeyGenerator.getVariantURI(target, request, entry);
 
@@ -126,7 +126,7 @@ class AsynchronousAsyncValidator {
      *
      * @param identifier
      */
-    synchronized void markComplete(String identifier) {
+    synchronized void markComplete(final String identifier) {
         this.queued.remove(identifier);
     }
 

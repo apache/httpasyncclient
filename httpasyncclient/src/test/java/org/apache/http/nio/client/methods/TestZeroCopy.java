@@ -209,7 +209,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
         private final boolean forceChunking;
 
-        TestHandler(boolean forceChunking) {
+        TestHandler(final boolean forceChunking) {
             super();
             this.forceChunking = forceChunking;
         }

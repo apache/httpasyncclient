@@ -40,7 +40,7 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
     private final int bufSize;
     private ByteBuffer bbuf;
 
-    public AsyncByteConsumer(int bufSize) {
+    public AsyncByteConsumer(final int bufSize) {
         super();
         this.bufSize = bufSize;
     }

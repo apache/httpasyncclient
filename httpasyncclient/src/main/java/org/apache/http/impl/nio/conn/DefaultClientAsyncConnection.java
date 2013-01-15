@@ -82,7 +82,7 @@ public class DefaultClientAsyncConnection
     }
 
     @Override
-    protected void onResponseReceived(HttpResponse response) {
+    protected void onResponseReceived(final HttpResponse response) {
         if (response != null && this.headerlog.isDebugEnabled()) {
             this.headerlog.debug(this.id + " << " + response.getStatusLine().toString());
             Header[] headers = response.getAllHeaders();
@@ -93,7 +93,7 @@ public class DefaultClientAsyncConnection
     }
 
     @Override
-    protected void onRequestSubmitted(HttpRequest request) {
+    protected void onRequestSubmitted(final HttpRequest request) {
         if (request != null && this.headerlog.isDebugEnabled()) {
             this.headerlog.debug(this.id + " >> " + request.getRequestLine().toString());
             Header[] headers = request.getAllHeaders();

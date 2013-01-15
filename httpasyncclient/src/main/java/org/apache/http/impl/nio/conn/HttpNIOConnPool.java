@@ -53,7 +53,7 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
             final Log log,
             final ConnectingIOReactor ioreactor,
             final AsyncSchemeRegistry schemeRegistry,
-            long connTimeToLive, final TimeUnit tunit) {
+            final long connTimeToLive, final TimeUnit tunit) {
         super(ioreactor, new HttpNIOConnPoolFactory(), 2, 20);
         this.log = log;
         this.schemeRegistry = schemeRegistry;

@@ -141,7 +141,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         return isOpen();
     }
 
-    public void setSocketTimeout(int timeout) {
+    public void setSocketTimeout(final int timeout) {
         ClientAsyncConnection conn = ensureConnection();
         conn.setSocketTimeout(timeout);
     }
@@ -278,7 +278,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         return this.reusable;
     }
 
-    public void setIdleDuration(long duration, TimeUnit unit) {
+    public void setIdleDuration(final long duration, final TimeUnit unit) {
         if(duration > 0) {
             this.duration = unit.toMillis(duration);
         } else {

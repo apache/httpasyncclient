@@ -124,7 +124,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             super();
         }
 
-        public ByteCountingConsumer(int bufSize) {
+        public ByteCountingConsumer(final int bufSize) {
             super(bufSize);
         }
 
@@ -176,7 +176,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
             super();
         }
 
-        public BufferingCharConsumer(int bufSize) {
+        public BufferingCharConsumer(final int bufSize) {
             super(bufSize);
         }
 

@@ -61,7 +61,7 @@ public final class AsyncSchemeRegistry {
      * @throws IllegalStateException
      *          if the scheme with the given name is not registered
      */
-    public final AsyncScheme getScheme(String name) {
+    public final AsyncScheme getScheme(final String name) {
         AsyncScheme found = get(name);
         if (found == null) {
             throw new IllegalStateException
@@ -81,7 +81,7 @@ public final class AsyncSchemeRegistry {
      * @throws IllegalStateException
      *          if a scheme with the respective name is not registered
      */
-    public final AsyncScheme getScheme(HttpHost host) {
+    public final AsyncScheme getScheme(final HttpHost host) {
         if (host == null) {
             throw new IllegalArgumentException("Host must not be null.");
         }
@@ -96,7 +96,7 @@ public final class AsyncSchemeRegistry {
      * @return  the scheme, or
      *          <code>null</code> if there is none by this name
      */
-    public final AsyncScheme get(String name) {
+    public final AsyncScheme get(final String name) {
         if (name == null) {
 			throw new IllegalArgumentException("Name must not be null.");
 		}
@@ -117,7 +117,7 @@ public final class AsyncSchemeRegistry {
      * @return  the scheme previously registered with that name, or
      *          <code>null</code> if none was registered
      */
-    public final AsyncScheme register(AsyncScheme sch) {
+    public final AsyncScheme register(final AsyncScheme sch) {
         if (sch == null) {
 			throw new IllegalArgumentException("Scheme must not be null.");
 		}
@@ -134,7 +134,7 @@ public final class AsyncSchemeRegistry {
      * @return  the unregistered scheme, or
      *          <code>null</code> if there was none
      */
-    public final AsyncScheme unregister(String name) {
+    public final AsyncScheme unregister(final String name) {
         if (name == null) {
 			throw new IllegalArgumentException("Name must not be null.");
 		}

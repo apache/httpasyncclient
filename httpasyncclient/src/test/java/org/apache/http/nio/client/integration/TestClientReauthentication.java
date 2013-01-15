@@ -196,12 +196,12 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
         public void clear() {
         }
 
-        public Credentials getCredentials(AuthScope authscope) {
+        public Credentials getCredentials(final AuthScope authscope) {
             this.authscope = authscope;
             return this.creds;
         }
 
-        public void setCredentials(AuthScope authscope, Credentials credentials) {
+        public void setCredentials(final AuthScope authscope, final Credentials credentials) {
         }
 
         public AuthScope getAuthScope() {
@@ -222,7 +222,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
         BasicSchemeFactory myBasicAuthSchemeFactory = new BasicSchemeFactory() {
 
             @Override
-            public AuthScheme newInstance(HttpParams params) {
+            public AuthScheme newInstance(final HttpParams params) {
                 return new BasicScheme() {
 
                     @Override

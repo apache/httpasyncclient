@@ -72,7 +72,7 @@ public class HttpServerNio {
         return this.endpoint;
     }
 
-    public void setEndpoint(ListenerEndpoint endpoint) {
+    public void setEndpoint(final ListenerEndpoint endpoint) {
         this.endpoint = endpoint;
     }
 
@@ -94,7 +94,7 @@ public class HttpServerNio {
         return this.ioReactor.getAuditLog();
     }
 
-    public void join(long timeout) throws InterruptedException {
+    public void join(final long timeout) throws InterruptedException {
         if (this.thread != null) {
             this.thread.join(timeout);
         }
