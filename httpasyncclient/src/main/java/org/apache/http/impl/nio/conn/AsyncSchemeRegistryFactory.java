@@ -35,7 +35,7 @@ import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 public final class AsyncSchemeRegistryFactory {
 
     public static AsyncSchemeRegistry createDefault() {
-        AsyncSchemeRegistry registry = new AsyncSchemeRegistry();
+        final AsyncSchemeRegistry registry = new AsyncSchemeRegistry();
         registry.register(
                 new AsyncScheme("http", 80, null));
         registry.register(

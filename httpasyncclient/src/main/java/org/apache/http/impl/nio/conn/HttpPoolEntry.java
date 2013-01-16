@@ -52,7 +52,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
 
     @Override
     public boolean isExpired(final long now) {
-        boolean expired = super.isExpired(now);
+        final boolean expired = super.isExpired(now);
         if (expired && this.log.isDebugEnabled()) {
             this.log.debug("Connection " + this + " expired @ " + new Date(getExpiry()));
         }
@@ -60,7 +60,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
     }
 
     public ClientAsyncConnection getOperatedClientConnection() {
-        IOSession session = getConnection();
+        final IOSession session = getConnection();
         return (ClientAsyncConnection) session.getAttribute(IOEventDispatch.CONNECTION_KEY);
     }
 
@@ -68,7 +68,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
     public void close() {
         try {
             getOperatedClientConnection().shutdown();
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             if (this.log.isDebugEnabled()) {
                 this.log.debug("I/O error shutting down connection", ex);
             }
@@ -77,7 +77,7 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
 
     @Override
     public boolean isClosed() {
-        IOSession session = getConnection();
+        final IOSession session = getConnection();
         return session.isClosed();
     }
 

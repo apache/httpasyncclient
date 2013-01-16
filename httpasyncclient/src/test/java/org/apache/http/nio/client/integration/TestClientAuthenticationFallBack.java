@@ -119,7 +119,7 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -129,12 +129,12 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
@@ -157,12 +157,12 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
                 final HttpRequest request,
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
-            String creds = (String) context.getAttribute("creds");
+            final String creds = (String) context.getAttribute("creds");
             if (creds == null || !creds.equals("test:test")) {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
             } else {
                 response.setStatusCode(HttpStatus.SC_OK);
-                StringEntity entity = new StringEntity("success", Consts.ASCII);
+                final StringEntity entity = new StringEntity("success", Consts.ASCII);
                 response.setEntity(entity);
             }
         }
@@ -198,26 +198,26 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccess() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        HttpHost target = start(registry, null);
+        final HttpHost target = start(registry, null);
 
-        TestCredentialsProvider credsProvider = new TestCredentialsProvider(
+        final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
 
 
         this.httpclient.setCredentialsProvider(credsProvider);
 
-        HttpGet httpget = new HttpGet("/");
+        final HttpGet httpget = new HttpGet("/");
 
-        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
-        HttpResponse response = future.get();
+        final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        final HttpResponse response = future.get();
         Assert.assertNotNull(response);
-        HttpEntity entity = response.getEntity();
+        final HttpEntity entity = response.getEntity();
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertNotNull(entity);
         EntityUtils.consume(entity);
-        AuthScope authscope = credsProvider.getAuthScope();
+        final AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
     }

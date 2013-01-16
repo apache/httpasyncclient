@@ -80,7 +80,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
     protected abstract HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity);
 
     public HttpRequest generateRequest() throws IOException, HttpException {
-        BasicHttpEntity entity = new BasicHttpEntity();
+        final BasicHttpEntity entity = new BasicHttpEntity();
         entity.setChunked(false);
         entity.setContentLength(this.file.length());
         if (this.contentType != null) {
@@ -96,7 +96,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         if (this.fileChannel == null) {
-            FileInputStream in = new FileInputStream(this.file);
+            final FileInputStream in = new FileInputStream(this.file);
             this.fileChannel = in.getChannel();
             this.idx = 0;
         }

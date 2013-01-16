@@ -95,7 +95,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -105,24 +105,24 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
     @Test
     public void testConnectionTerminatedProcessingRequest() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
                     final HttpRequest request,
                     final HttpContext context) throws HttpException, IOException {
-                HttpConnection conn = (HttpConnection) context.getAttribute(
+                final HttpConnection conn = (HttpConnection) context.getAttribute(
                         ExecutionContext.HTTP_CONNECTION);
                 conn.shutdown();
                 return new BasicAsyncRequestConsumer();
@@ -132,18 +132,18 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
                     final HttpContext context) throws HttpException, IOException {
-                HttpResponse response = httpExchange.getResponse();
+                final HttpResponse response = httpExchange.getResponse();
                 response.setEntity(new NStringEntity("all is well", ContentType.TEXT_PLAIN));
                 httpExchange.submitResponse();
             }
 
         });
-        HttpHost target = start(registry, null);
-        HttpGet httpget = new HttpGet("/");
+        final HttpHost target = start(registry, null);
+        final HttpGet httpget = new HttpGet("/");
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
+        final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
             public void cancelled() {
                 latch.countDown();
@@ -165,7 +165,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
     @Test
     public void testConnectionTerminatedHandlingRequest() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
@@ -178,21 +178,21 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
                     final HttpContext context) throws HttpException, IOException {
-                HttpConnection conn = (HttpConnection) context.getAttribute(
+                final HttpConnection conn = (HttpConnection) context.getAttribute(
                         ExecutionContext.HTTP_CONNECTION);
                 conn.shutdown();
-                HttpResponse response = httpExchange.getResponse();
+                final HttpResponse response = httpExchange.getResponse();
                 response.setEntity(new NStringEntity("all is well", ContentType.TEXT_PLAIN));
                 httpExchange.submitResponse();
             }
 
         });
-        HttpHost target = start(registry, null);
-        HttpGet httpget = new HttpGet("/");
+        final HttpHost target = start(registry, null);
+        final HttpGet httpget = new HttpGet("/");
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
+        final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
             public void cancelled() {
                 latch.countDown();
@@ -214,7 +214,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
     @Test
     public void testConnectionTerminatedSendingResponse() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
@@ -227,7 +227,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
                     final HttpContext context) throws HttpException, IOException {
-                HttpResponse response = httpExchange.getResponse();
+                final HttpResponse response = httpExchange.getResponse();
                 response.setEntity(new NStringEntity("all is well", ContentType.TEXT_PLAIN));
                 httpExchange.submitResponse(new BasicAsyncResponseProducer(response) {
 
@@ -242,12 +242,12 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             }
 
         });
-        HttpHost target = start(registry, null);
-        HttpGet httpget = new HttpGet("/");
+        final HttpHost target = start(registry, null);
+        final HttpGet httpget = new HttpGet("/");
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
+        final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
             public void cancelled() {
                 latch.countDown();

@@ -100,7 +100,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -110,12 +110,12 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
@@ -130,7 +130,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
             response.setStatusCode(HttpStatus.SC_OK);
-            NStringEntity entity = new NStringEntity("Whatever");
+            final NStringEntity entity = new NStringEntity("Whatever");
             response.setEntity(entity);
         }
     }
@@ -140,52 +140,52 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         this.httpclient.setUserTokenHandler(new UserTokenHandler() {
 
             public Object getUserToken(final HttpContext context) {
-                Integer id = (Integer) context.getAttribute("user");
+                final Integer id = (Integer) context.getAttribute("user");
                 return id;
             }
 
         });
 
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
 
-        HttpHost target = start(registry, null);
+        final HttpHost target = start(registry, null);
 
-        int workerCount = 2;
-        int requestCount = 5;
+        final int workerCount = 2;
+        final int requestCount = 5;
 
-        HttpParams params = new BasicHttpParams();
+        final HttpParams params = new BasicHttpParams();
         HttpConnectionParams.setConnectionTimeout(params, 10);
 
-        HttpContext[] contexts = new HttpContext[workerCount];
-        HttpWorker[] workers = new HttpWorker[workerCount];
+        final HttpContext[] contexts = new HttpContext[workerCount];
+        final HttpWorker[] workers = new HttpWorker[workerCount];
         for (int i = 0; i < contexts.length; i++) {
-            HttpContext context = new BasicHttpContext();
-            Object token = Integer.valueOf(i);
+            final HttpContext context = new BasicHttpContext();
+            final Object token = Integer.valueOf(i);
             context.setAttribute("user", token);
             contexts[i] = context;
             workers[i] = new HttpWorker(context, requestCount, target, this.httpclient);
         }
 
-        for (HttpWorker worker : workers) {
+        for (final HttpWorker worker : workers) {
             worker.start();
         }
-        for (HttpWorker worker : workers) {
+        for (final HttpWorker worker : workers) {
             worker.join(10000);
         }
-        for (HttpWorker worker : workers) {
-            Exception ex = worker.getException();
+        for (final HttpWorker worker : workers) {
+            final Exception ex = worker.getException();
             if (ex != null) {
                 throw ex;
             }
             Assert.assertEquals(requestCount, worker.getCount());
         }
 
-        for (HttpContext context : contexts) {
-            Integer id = (Integer) context.getAttribute("user");
+        for (final HttpContext context : contexts) {
+            final Integer id = (Integer) context.getAttribute("user");
 
             for (int r = 0; r < requestCount; r++) {
-                Integer state = (Integer) context.getAttribute("r" + r);
+                final Integer state = (Integer) context.getAttribute("r" + r);
                 Assert.assertEquals(id, state);
             }
         }
@@ -227,8 +227,8 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         public void run() {
             try {
                 for (int r = 0; r < this.requestCount; r++) {
-                    HttpGet httpget = new HttpGet("/");
-                    Future<Object> future = this.httpclient.execute(
+                    final HttpGet httpget = new HttpGet("/");
+                    final Future<Object> future = this.httpclient.execute(
                             new BasicAsyncRequestProducer(this.target, httpget),
                             new AbstractAsyncResponseConsumer<Object>() {
 
@@ -246,13 +246,13 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
                                 protected void onContentReceived(
                                         final ContentDecoder decoder,
                                         final IOControl ioctrl) throws IOException {
-                                    ByteBuffer buf = ByteBuffer.allocate(2048);
+                                    final ByteBuffer buf = ByteBuffer.allocate(2048);
                                     decoder.read(buf);
                                 }
 
                                 @Override
                                 protected Object buildResult(final HttpContext context) throws Exception {
-                                    ManagedClientAsyncConnection conn = (ManagedClientAsyncConnection) context.getAttribute(
+                                    final ManagedClientAsyncConnection conn = (ManagedClientAsyncConnection) context.getAttribute(
                                             IOEventDispatch.CONNECTION_KEY);
                                     return conn.getState();
                                 }
@@ -265,11 +265,11 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
                             this.context,
                             null);
                     this.count++;
-                    Object state = future.get();
+                    final Object state = future.get();
                     this.context.setAttribute("r" + r, state);
                 }
 
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 this.exception = ex;
             }
         }
@@ -289,23 +289,23 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         });
 
-        int maxConn = 2;
+        final int maxConn = 2;
         // We build a client with 2 max active // connections, and 2 max per route.
         this.connMgr.setMaxTotal(maxConn);
         this.connMgr.setDefaultMaxPerRoute(maxConn);
 
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
 
-        HttpHost target = start(registry, null);
+        final HttpHost target = start(registry, null);
 
         // Bottom of the pool : a *keep alive* connection to Route 1.
-        HttpContext context1 = new BasicHttpContext();
+        final HttpContext context1 = new BasicHttpContext();
         context1.setAttribute("user", "stuff");
 
-        Future<HttpResponse> future1 = this.httpclient.execute(
+        final Future<HttpResponse> future1 = this.httpclient.execute(
                 target, new HttpGet("/"), context1, null);
-        HttpResponse response1 = future1.get();
+        final HttpResponse response1 = future1.get();
         Assert.assertNotNull(response1);
         Assert.assertEquals(200, response1.getStatusLine().getStatusCode());
 
@@ -317,12 +317,12 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         // Send a very simple HTTP get (it MUST be simple, no auth, no proxy, no 302, no 401, ...)
         // Send it to another route. Must be a keepalive.
-        HttpContext context2 = new BasicHttpContext();
+        final HttpContext context2 = new BasicHttpContext();
 
-        Future<HttpResponse> future2 = this.httpclient.execute(
+        final Future<HttpResponse> future2 = this.httpclient.execute(
                 new HttpHost("127.0.0.1", target.getPort(), target.getSchemeName()),
                 new HttpGet("/"), context2, null);
-        HttpResponse response2 = future2.get();
+        final HttpResponse response2 = future2.get();
         Assert.assertNotNull(response2);
         Assert.assertEquals(200, response2.getStatusLine().getStatusCode());
 
@@ -337,10 +337,10 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         // So the ConnPoolByRoute will need to kill one connection (it is maxed out globally).
         // The killed conn is the oldest, which means the first HTTPGet ([localhost][stuff]).
         // When this happens, the RouteSpecificPool becomes empty.
-        HttpContext context3 = new BasicHttpContext();
-        Future<HttpResponse> future3 = this.httpclient.execute(
+        final HttpContext context3 = new BasicHttpContext();
+        final Future<HttpResponse> future3 = this.httpclient.execute(
                 target, new HttpGet("/"), context3, null);
-        HttpResponse response3 = future3.get();
+        final HttpResponse response3 = future3.get();
         Assert.assertNotNull(response3);
         Assert.assertEquals(200, response3.getStatusLine().getStatusCode());
     }

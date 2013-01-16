@@ -130,7 +130,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     protected AbstractHttpAsyncClient(final IOReactorConfig config) throws IOReactorException {
         super();
-        DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
+        final DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
         defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
         this.connmgr = new PoolingClientAsyncConnectionManager(defaultioreactor);
         this.queue = new ConcurrentLinkedQueue<HttpAsyncRequestExecutionHandler<?>>();
@@ -141,7 +141,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     protected abstract BasicHttpProcessor createHttpProcessor();
 
     protected HttpContext createHttpContext() {
-        HttpContext context = new BasicHttpContext();
+        final HttpContext context = new BasicHttpContext();
         context.setAttribute(
                 ClientContext.SCHEME_REGISTRY,
                 getConnectionManager().getSchemeRegistry());
@@ -169,7 +169,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     protected AuthSchemeRegistry createAuthSchemeRegistry() {
-        AuthSchemeRegistry registry = new AuthSchemeRegistry();
+        final AuthSchemeRegistry registry = new AuthSchemeRegistry();
         registry.register(
                 AuthPolicy.BASIC,
                 new BasicSchemeFactory());
@@ -189,7 +189,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     protected CookieSpecRegistry createCookieSpecRegistry() {
-        CookieSpecRegistry registry = new CookieSpecRegistry();
+        final CookieSpecRegistry registry = new CookieSpecRegistry();
         registry.register(
                 CookiePolicy.BEST_MATCH,
                 new BestMatchSpecFactory());
@@ -384,15 +384,15 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     private synchronized final HttpProcessor getProtocolProcessor() {
         if (this.protocolProcessor == null) {
             // Get mutable HTTP processor
-            BasicHttpProcessor proc = getHttpProcessor();
+            final BasicHttpProcessor proc = getHttpProcessor();
             // and create an immutable copy of it
-            int reqc = proc.getRequestInterceptorCount();
-            HttpRequestInterceptor[] reqinterceptors = new HttpRequestInterceptor[reqc];
+            final int reqc = proc.getRequestInterceptorCount();
+            final HttpRequestInterceptor[] reqinterceptors = new HttpRequestInterceptor[reqc];
             for (int i = 0; i < reqc; i++) {
                 reqinterceptors[i] = proc.getRequestInterceptor(i);
             }
-            int resc = proc.getResponseInterceptorCount();
-            HttpResponseInterceptor[] resinterceptors = new HttpResponseInterceptor[resc];
+            final int resc = proc.getResponseInterceptorCount();
+            final HttpResponseInterceptor[] resinterceptors = new HttpResponseInterceptor[resc];
             for (int i = 0; i < resc; i++) {
                 resinterceptors[i] = proc.getResponseInterceptor(i);
             }
@@ -458,16 +458,16 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     private void doExecute() {
-        LoggingAsyncRequestExecutor handler = new LoggingAsyncRequestExecutor();
+        final LoggingAsyncRequestExecutor handler = new LoggingAsyncRequestExecutor();
         try {
-            IOEventDispatch ioEventDispatch = new DefaultHttpClientIODispatch(handler, getParams());
+            final IOEventDispatch ioEventDispatch = new DefaultHttpClientIODispatch(handler, getParams());
             this.connmgr.execute(ioEventDispatch);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);
         } finally {
             this.terminated = true;
             while (!this.queue.isEmpty()) {
-                HttpAsyncRequestExecutionHandler<?> exchangeHandler = this.queue.remove();
+                final HttpAsyncRequestExecutionHandler<?> exchangeHandler = this.queue.remove();
                 exchangeHandler.cancel();
             }
         }
@@ -492,7 +492,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     public void shutdown() throws InterruptedException {
         try {
             this.connmgr.shutdown(5000);
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             this.log.error("I/O error shutting down", ex);
         }
         if (this.reactorThread != null) {
@@ -508,11 +508,11 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         if (this.terminated) {
             throw new IllegalStateException("Client has been shut down");
         }
-        BasicFuture<T> future = new BasicFuture<T>(callback);
-        ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
+        final BasicFuture<T> future = new BasicFuture<T>(callback);
+        final ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
         DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
-            HttpContext defaultContext = createHttpContext();
+            final HttpContext defaultContext = createHttpContext();
             HttpContext execContext;
             if (context == null) {
                 execContext = defaultContext;
@@ -576,8 +576,8 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         HttpHost target;
         try {
             target = determineTarget(request);
-        } catch (ClientProtocolException ex) {
-            BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(callback);
+        } catch (final ClientProtocolException ex) {
+            final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(callback);
             future.failed(ex);
             return future;
         }
@@ -589,7 +589,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         // Otherwise, the null target is detected in the director.
         HttpHost target = null;
 
-        URI requestURI = request.getURI();
+        final URI requestURI = request.getURI();
         if (requestURI.isAbsolute()) {
             target = URIUtils.extractHost(requestURI);
             if (target == null) {

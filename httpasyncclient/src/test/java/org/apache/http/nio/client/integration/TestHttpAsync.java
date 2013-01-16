@@ -95,7 +95,7 @@ public class TestHttpAsync extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -105,17 +105,17 @@ public class TestHttpAsync extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
     private HttpHost start() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
         registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
@@ -123,104 +123,104 @@ public class TestHttpAsync extends HttpAsyncTestBase {
 
     @Test
     public void testSingleGet() throws Exception {
-        HttpHost target = start();
-        HttpGet httpget = new HttpGet("/random/2048");
-        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
-        HttpResponse response = future.get();
+        final HttpHost target = start();
+        final HttpGet httpget = new HttpGet("/random/2048");
+        final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        final HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     }
 
     @Test
     public void testSinglePost() throws Exception {
-        HttpHost target = start();
-        byte[] b1 = new byte[1024];
-        Random rnd = new Random(System.currentTimeMillis());
+        final HttpHost target = start();
+        final byte[] b1 = new byte[1024];
+        final Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
 
-        HttpPost httppost = new HttpPost("/echo/stuff");
+        final HttpPost httppost = new HttpPost("/echo/stuff");
         httppost.setEntity(new NByteArrayEntity(b1));
 
-        Future<HttpResponse> future = this.httpclient.execute(target, httppost, null);
-        HttpResponse response = future.get();
+        final Future<HttpResponse> future = this.httpclient.execute(target, httppost, null);
+        final HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-        HttpEntity entity = response.getEntity();
+        final HttpEntity entity = response.getEntity();
         Assert.assertNotNull(entity);
-        byte[] b2 = EntityUtils.toByteArray(entity);
+        final byte[] b2 = EntityUtils.toByteArray(entity);
         Assert.assertArrayEquals(b1, b2);
     }
 
     @Test
     public void testMultiplePostsOverMultipleConnections() throws Exception {
-        HttpHost target = start();
-        byte[] b1 = new byte[1024];
-        Random rnd = new Random(System.currentTimeMillis());
+        final HttpHost target = start();
+        final byte[] b1 = new byte[1024];
+        final Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
 
-        int reqCount = 20;
+        final int reqCount = 20;
 
         this.connMgr.setDefaultMaxPerRoute(reqCount);
         this.connMgr.setMaxTotal(100);
 
-        Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
+        final Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
-            HttpPost httppost = new HttpPost("/echo/stuff");
+            final HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
             queue.add(this.httpclient.execute(target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
-            Future<HttpResponse> future = queue.remove();
-            HttpResponse response = future.get();
+            final Future<HttpResponse> future = queue.remove();
+            final HttpResponse response = future.get();
             Assert.assertNotNull(response);
             Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-            HttpEntity entity = response.getEntity();
+            final HttpEntity entity = response.getEntity();
             Assert.assertNotNull(entity);
-            byte[] b2 = EntityUtils.toByteArray(entity);
+            final byte[] b2 = EntityUtils.toByteArray(entity);
             Assert.assertArrayEquals(b1, b2);
         }
     }
 
     @Test
     public void testMultiplePostsOverSingleConnection() throws Exception {
-        HttpHost target = start();
-        byte[] b1 = new byte[1024];
-        Random rnd = new Random(System.currentTimeMillis());
+        final HttpHost target = start();
+        final byte[] b1 = new byte[1024];
+        final Random rnd = new Random(System.currentTimeMillis());
         rnd.nextBytes(b1);
 
-        int reqCount = 20;
+        final int reqCount = 20;
 
         this.connMgr.setDefaultMaxPerRoute(1);
         this.connMgr.setMaxTotal(100);
 
-        Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
+        final Queue<Future<HttpResponse>> queue = new LinkedList<Future<HttpResponse>>();
 
         for (int i = 0; i < reqCount; i++) {
-            HttpPost httppost = new HttpPost("/echo/stuff");
+            final HttpPost httppost = new HttpPost("/echo/stuff");
             httppost.setEntity(new NByteArrayEntity(b1));
             queue.add(this.httpclient.execute(target, httppost, null));
         }
 
         while (!queue.isEmpty()) {
-            Future<HttpResponse> future = queue.remove();
-            HttpResponse response = future.get();
+            final Future<HttpResponse> future = queue.remove();
+            final HttpResponse response = future.get();
             Assert.assertNotNull(response);
             Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-            HttpEntity entity = response.getEntity();
+            final HttpEntity entity = response.getEntity();
             Assert.assertNotNull(entity);
-            byte[] b2 = EntityUtils.toByteArray(entity);
+            final byte[] b2 = EntityUtils.toByteArray(entity);
             Assert.assertArrayEquals(b1, b2);
         }
     }
 
     @Test
     public void testRequestFailure() throws Exception {
-        HttpHost target = start();
-        HttpGet httpget = new HttpGet("/random/2048");
-        HttpAsyncRequestProducer requestProducer = HttpAsyncMethods.create(target, httpget) ;
-        BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
+        final HttpHost target = start();
+        final HttpGet httpget = new HttpGet("/random/2048");
+        final HttpAsyncRequestProducer requestProducer = HttpAsyncMethods.create(target, httpget) ;
+        final BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
 
             @Override
             public void onContentReceived(final ContentDecoder decoder, final IOControl ioctrl)
@@ -229,12 +229,12 @@ public class TestHttpAsync extends HttpAsyncTestBase {
             }
 
         };
-        Future<HttpResponse> future = this.httpclient.execute(requestProducer, responseConsumer, null);
+        final Future<HttpResponse> future = this.httpclient.execute(requestProducer, responseConsumer, null);
         try {
             future.get();
             Assert.fail("ExecutionException expected");
-        } catch (ExecutionException ex) {
-            Throwable t = ex.getCause();
+        } catch (final ExecutionException ex) {
+            final Throwable t = ex.getCause();
             Assert.assertNotNull(t);
             Assert.assertTrue(t instanceof IOException);
             Assert.assertEquals("Kaboom", t.getMessage());

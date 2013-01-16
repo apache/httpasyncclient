@@ -80,12 +80,12 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
             throw new IllegalStateException("Byte buffer is null");
         }
         for (;;) {
-            int bytesRead = decoder.read(this.bbuf);
+            final int bytesRead = decoder.read(this.bbuf);
             if (bytesRead <= 0) {
                 break;
             }
             this.bbuf.flip();
-            boolean completed = decoder.isCompleted();
+            final boolean completed = decoder.isCompleted();
             CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
             handleDecodingResult(result, ioctrl);
             this.bbuf.compact();

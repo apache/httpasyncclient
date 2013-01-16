@@ -46,7 +46,7 @@ public class ZeroCopyPut extends BaseZeroCopyRequestProducer {
 
     @Override
     protected HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity) {
-        HttpPut httpput = new HttpPut(requestURI);
+        final HttpPut httpput = new HttpPut(requestURI);
         httpput.setEntity(entity);
         return httpput;
     }

@@ -125,7 +125,7 @@ public class PoolingClientAsyncConnectionManager
     }
 
     private String format(final HttpRoute route, final Object state) {
-        StringBuilder buf = new StringBuilder();
+        final StringBuilder buf = new StringBuilder();
         buf.append("[route: ").append(route).append("]");
         if (state != null) {
             buf.append("[state: ").append(state).append("]");
@@ -134,9 +134,9 @@ public class PoolingClientAsyncConnectionManager
     }
 
     private String formatStats(final HttpRoute route) {
-        StringBuilder buf = new StringBuilder();
-        PoolStats totals = this.pool.getTotalStats();
-        PoolStats stats = this.pool.getStats(route);
+        final StringBuilder buf = new StringBuilder();
+        final PoolStats totals = this.pool.getTotalStats();
+        final PoolStats stats = this.pool.getStats(route);
         buf.append("[total kept alive: ").append(totals.getAvailable()).append("; ");
         buf.append("route allocated: ").append(stats.getLeased() + stats.getAvailable());
         buf.append(" of ").append(stats.getMax()).append("; ");
@@ -146,10 +146,10 @@ public class PoolingClientAsyncConnectionManager
     }
 
     private String format(final HttpPoolEntry entry) {
-        StringBuilder buf = new StringBuilder();
+        final StringBuilder buf = new StringBuilder();
         buf.append("[id: ").append(entry.getId()).append("]");
         buf.append("[route: ").append(entry.getRoute()).append("]");
-        Object state = entry.getState();
+        final Object state = entry.getState();
         if (state != null) {
             buf.append("[state: ").append(state).append("]");
         }
@@ -171,7 +171,7 @@ public class PoolingClientAsyncConnectionManager
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
-        BasicFuture<ManagedClientAsyncConnection> future = new BasicFuture<ManagedClientAsyncConnection>(
+        final BasicFuture<ManagedClientAsyncConnection> future = new BasicFuture<ManagedClientAsyncConnection>(
                 callback);
         this.pool.lease(route, state, connectTimeout, tunit, new InternalPoolEntryCallback(future));
         return future;
@@ -191,8 +191,8 @@ public class PoolingClientAsyncConnectionManager
         if (tunit == null) {
             throw new IllegalArgumentException("Time unit may not be null");
         }
-        ManagedClientAsyncConnectionImpl managedConn = (ManagedClientAsyncConnectionImpl) conn;
-        ClientAsyncConnectionManager manager = managedConn.getManager();
+        final ManagedClientAsyncConnectionImpl managedConn = (ManagedClientAsyncConnectionImpl) conn;
+        final ClientAsyncConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
             throw new IllegalArgumentException("Connection not obtained from this manager");
         }
@@ -201,7 +201,7 @@ public class PoolingClientAsyncConnectionManager
         }
 
         synchronized (managedConn) {
-            HttpPoolEntry entry = managedConn.getPoolEntry();
+            final HttpPoolEntry entry = managedConn.getPoolEntry();
             if (entry == null) {
                 return;
             }
@@ -209,7 +209,7 @@ public class PoolingClientAsyncConnectionManager
                 if (managedConn.isOpen() && !managedConn.isMarkedReusable()) {
                     try {
                         managedConn.shutdown();
-                    } catch (IOException iox) {
+                    } catch (final IOException iox) {
                         if (this.log.isDebugEnabled()) {
                             this.log.debug("I/O exception shutting down released connection", iox);
                         }
@@ -296,7 +296,7 @@ public class PoolingClientAsyncConnectionManager
             if (log.isDebugEnabled()) {
                 log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
             }
-            ManagedClientAsyncConnection conn = new ManagedClientAsyncConnectionImpl(
+            final ManagedClientAsyncConnection conn = new ManagedClientAsyncConnectionImpl(
                     PoolingClientAsyncConnectionManager.this,
                     PoolingClientAsyncConnectionManager.this.connFactory,
                     entry);

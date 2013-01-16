@@ -81,10 +81,10 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
 
     @Test
     public void testAsync() throws Exception {
-        HttpHost target = start();
-        HttpGet httpget = new HttpGet("/random/2048");
-        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
-        HttpResponse response = future.get();
+        final HttpHost target = start();
+        final HttpGet httpget = new HttpGet("/random/2048");
+        final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        final HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
@@ -94,7 +94,7 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
     }
 
     private HttpHost start() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
         registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
@@ -102,7 +102,7 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
 
     private HttpHost start(final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -111,12 +111,12 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 

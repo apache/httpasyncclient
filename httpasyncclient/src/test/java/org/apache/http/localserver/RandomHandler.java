@@ -53,7 +53,7 @@ public class RandomHandler implements HttpRequestHandler {
             range = ("abcdefghijklmnopqrstuvwxyz" +
                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "0123456789"
                 ).getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException uex) {
+        } catch (final UnsupportedEncodingException uex) {
             // never, US-ASCII is guaranteed
         }
         RANGE = range;
@@ -79,14 +79,14 @@ public class RandomHandler implements HttpRequestHandler {
                        final HttpContext context)
         throws HttpException, IOException {
 
-        String method = request.getRequestLine().getMethod().toUpperCase(Locale.ENGLISH);
+        final String method = request.getRequestLine().getMethod().toUpperCase(Locale.ENGLISH);
         if (!"GET".equals(method) && !"HEAD".equals(method)) {
             throw new MethodNotSupportedException
                 (method + " not supported by " + getClass().getName());
         }
 
-        String uri = request.getRequestLine().getUri();
-        int  slash = uri.lastIndexOf('/');
+        final String uri = request.getRequestLine().getUri();
+        final int  slash = uri.lastIndexOf('/');
         int length = -1;
         if (slash < uri.length()-1) {
             try {
@@ -97,7 +97,7 @@ public class RandomHandler implements HttpRequestHandler {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     response.setReasonPhrase("LENGTH " + length);
                 }
-            } catch (NumberFormatException nfx) {
+            } catch (final NumberFormatException nfx) {
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 response.setReasonPhrase(nfx.toString());
             }
@@ -107,7 +107,7 @@ public class RandomHandler implements HttpRequestHandler {
         }
 
         if (length >= 0) {
-            byte[] data = new byte[length];
+            final byte[] data = new byte[length];
             for (int i = 0; i < length; i++) {
                 double value = 0.0;
                 // we get 5 random characters out of one random value
@@ -115,11 +115,11 @@ public class RandomHandler implements HttpRequestHandler {
                     value = Math.random();
                 }
                 value = value * RANGE.length;
-                int d = (int) value;
+                final int d = (int) value;
                 value = value - d;
                 data[i] = RANGE[d];
             }
-            NByteArrayEntity bae = new NByteArrayEntity(data, ContentType.DEFAULT_TEXT);
+            final NByteArrayEntity bae = new NByteArrayEntity(data, ContentType.DEFAULT_TEXT);
             response.setEntity(bae);
         }
     }

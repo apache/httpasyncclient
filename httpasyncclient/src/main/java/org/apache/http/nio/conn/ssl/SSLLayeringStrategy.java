@@ -75,25 +75,25 @@ public class SSLLayeringStrategy implements LayeringStrategy {
             final SecureRandom random,
             final TrustStrategy trustStrategy)
                 throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
-        String algo = algorithm != null ? algorithm : TLS;
-        KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
+        final String algo = algorithm != null ? algorithm : TLS;
+        final KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
                 KeyManagerFactory.getDefaultAlgorithm());
         kmfactory.init(keystore, keystorePassword != null ? keystorePassword.toCharArray(): null);
-        KeyManager[] keymanagers =  kmfactory.getKeyManagers();
-        TrustManagerFactory tmfactory = TrustManagerFactory.getInstance(
+        final KeyManager[] keymanagers =  kmfactory.getKeyManagers();
+        final TrustManagerFactory tmfactory = TrustManagerFactory.getInstance(
                 TrustManagerFactory.getDefaultAlgorithm());
         tmfactory.init(truststore);
-        TrustManager[] trustmanagers = tmfactory.getTrustManagers();
+        final TrustManager[] trustmanagers = tmfactory.getTrustManagers();
         if (trustmanagers != null && trustStrategy != null) {
             for (int i = 0; i < trustmanagers.length; i++) {
-                TrustManager tm = trustmanagers[i];
+                final TrustManager tm = trustmanagers[i];
                 if (tm instanceof X509TrustManager) {
                     trustmanagers[i] = new TrustManagerDecorator(
                             (X509TrustManager) tm, trustStrategy);
                 }
             }
         }
-        SSLContext sslcontext = SSLContext.getInstance(algo);
+        final SSLContext sslcontext = SSLContext.getInstance(algo);
         sslcontext.init(keymanagers, trustmanagers, random);
         return sslcontext;
     }
@@ -101,7 +101,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     private static SSLContext createDefaultSSLContext() {
         try {
             return createSSLContext(TLS, null, null, null, null, null);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new IllegalStateException("Failure initializing default SSL context", ex);
         }
     }
@@ -187,7 +187,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     }
 
     public SSLIOSession layer(final IOSession iosession) {
-        SSLIOSession ssliosession = new SSLIOSession(iosession, SSLMode.CLIENT, this.sslContext,
+        final SSLIOSession ssliosession = new SSLIOSession(iosession, SSLMode.CLIENT, this.sslContext,
                 new InternalSSLSetupHandler());
         iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
         return ssliosession;
@@ -197,7 +197,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     }
     protected void verifySession(final IOSession iosession,
                           final SSLSession sslsession) throws SSLException {
-        InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
+        final InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
         hostnameVerifier.verify(address.getHostName(), sslsession);
     }
 

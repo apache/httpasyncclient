@@ -65,7 +65,7 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
             throw new IllegalStateException("Byte buffer is null");
         }
         for (;;) {
-            int bytesRead = decoder.read(this.bbuf);
+            final int bytesRead = decoder.read(this.bbuf);
             if (bytesRead <= 0) {
                 break;
             }

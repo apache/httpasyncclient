@@ -101,7 +101,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     @Override
     protected T buildResult(final HttpContext context) throws Exception {
-        FileEntity entity = new FileEntity(this.file);
+        final FileEntity entity = new FileEntity(this.file);
         entity.setContentType(this.response.getFirstHeader(HTTP.CONTENT_TYPE));
         this.response.setEntity(entity);
         return process(this.response, this.file, this.contentType);
@@ -112,7 +112,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
         if (this.fileChannel != null) {
             try {
                 this.fileChannel.close();
-            } catch (IOException ignore) {
+            } catch (final IOException ignore) {
             }
             this.fileChannel = null;
         }

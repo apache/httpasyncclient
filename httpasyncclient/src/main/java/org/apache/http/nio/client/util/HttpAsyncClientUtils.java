@@ -60,7 +60,7 @@ public class HttpAsyncClientUtils {
         if (httpAsyncClient != null) {
             try {
                 httpAsyncClient.shutdown();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
             }
         }
     }

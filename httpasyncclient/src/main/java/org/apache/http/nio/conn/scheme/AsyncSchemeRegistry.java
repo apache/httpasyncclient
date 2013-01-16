@@ -62,7 +62,7 @@ public final class AsyncSchemeRegistry {
      *          if the scheme with the given name is not registered
      */
     public final AsyncScheme getScheme(final String name) {
-        AsyncScheme found = get(name);
+        final AsyncScheme found = get(name);
         if (found == null) {
             throw new IllegalStateException
                 ("Scheme '"+name+"' not registered.");
@@ -103,7 +103,7 @@ public final class AsyncSchemeRegistry {
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
-        AsyncScheme found = registeredSchemes.get(name);
+        final AsyncScheme found = registeredSchemes.get(name);
         return found;
     }
 
@@ -122,7 +122,7 @@ public final class AsyncSchemeRegistry {
             throw new IllegalArgumentException("Scheme must not be null.");
         }
 
-        AsyncScheme old = registeredSchemes.put(sch.getName(), sch);
+        final AsyncScheme old = registeredSchemes.put(sch.getName(), sch);
         return old;
     }
 
@@ -141,7 +141,7 @@ public final class AsyncSchemeRegistry {
 
         // leave it to the caller to use the correct name - all lowercase
         //name = name.toLowerCase();
-        AsyncScheme gone = registeredSchemes.remove(name);
+        final AsyncScheme gone = registeredSchemes.remove(name);
         return gone;
     }
 

@@ -179,25 +179,25 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             return;
         }
         this.closed = true;
-        ManagedClientAsyncConnection localConn = this.managedConn;
+        final ManagedClientAsyncConnection localConn = this.managedConn;
         if (localConn != null) {
             if (this.log.isDebugEnabled()) {
                 this.log.debug("[exchange: " + this.id + "] aborting connection " + localConn);
             }
             try {
                 localConn.abortConnection();
-            } catch (IOException ioex) {
+            } catch (final IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
             }
         }
         try {
             this.requestProducer.close();
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             this.log.debug("I/O error closing request producer", ex);
         }
         try {
             this.responseConsumer.close();
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             this.log.debug("I/O error closing response consumer", ex);
         }
     }
@@ -210,8 +210,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.localContext.setAttribute(ClientContext.TARGET_AUTH_STATE, this.targetAuthState);
             this.localContext.setAttribute(ClientContext.PROXY_AUTH_STATE, this.proxyAuthState);
 
-            HttpHost target = this.requestProducer.getTarget();
-            HttpRequest request = this.requestProducer.generateRequest();
+            final HttpHost target = this.requestProducer.getTarget();
+            final HttpRequest request = this.requestProducer.generateRequest();
             if (request instanceof AbortableHttpRequest) {
                 ((AbortableHttpRequest) request).setReleaseTrigger(new ConnectionReleaseTrigger() {
 
@@ -225,13 +225,13 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 });
             }
             this.params = new ClientParamsStack(null, this.clientParams, request.getParams(), null);
-            RequestWrapper wrapper = wrapRequest(request);
+            final RequestWrapper wrapper = wrapRequest(request);
             wrapper.setParams(this.params);
-            HttpRoute route = determineRoute(target, wrapper, this.localContext);
+            final HttpRoute route = determineRoute(target, wrapper, this.localContext);
             this.mainRequest = new RoutedRequest(wrapper, route);
             this.requestContentProduced = false;
             requestConnection();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             failed(ex);
         }
     }
@@ -241,11 +241,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     public synchronized HttpRequest generateRequest() throws IOException, HttpException {
-        HttpRoute route = this.mainRequest.getRoute();
+        final HttpRoute route = this.mainRequest.getRoute();
         if (!this.routeEstablished) {
             int step;
             do {
-                HttpRoute fact = this.managedConn.getRoute();
+                final HttpRoute fact = this.managedConn.getRoute();
                 step = this.routeDirector.nextStep(route, fact);
                 switch (step) {
                 case HttpRouteDirector.CONNECT_TARGET:
@@ -255,7 +255,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     if (this.log.isDebugEnabled()) {
                         this.log.debug("[exchange: " + this.id + "] Tunnel required");
                     }
-                    HttpRequest connect = createConnectRequest(route);
+                    final HttpRequest connect = createConnectRequest(route);
                     this.currentRequest = wrapRequest(connect);
                     this.currentRequest.setParams(this.params);
                     break;
@@ -281,7 +281,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (target == null) {
             target = route.getTargetHost();
         }
-        HttpHost proxy = route.getProxyHost();
+        final HttpHost proxy = route.getProxyHost();
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
         this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
@@ -289,7 +289,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (this.currentRequest == null) {
             this.currentRequest = this.mainRequest.getRequest();
 
-            String userinfo = this.currentRequest.getURI().getUserInfo();
+            final String userinfo = this.currentRequest.getURI().getUserInfo();
             if (userinfo != null) {
                 this.targetAuthState.update(
                         new BasicScheme(), new UsernamePasswordCredentials(userinfo));
@@ -352,10 +352,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.currentResponse = response;
         this.currentResponse.setParams(this.params);
 
-        int status = this.currentResponse.getStatusLine().getStatusCode();
+        final int status = this.currentResponse.getStatusLine().getStatusCode();
 
         if (!this.routeEstablished) {
-            String method = this.currentRequest.getMethod();
+            final String method = this.currentRequest.getMethod();
             if (method.equalsIgnoreCase("CONNECT") && status == HttpStatus.SC_OK) {
                 this.managedConn.tunnelTarget(this.params);
             } else {
@@ -410,7 +410,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             try {
                 this.managedConn.getContext().removeAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER);
                 this.managedConn.releaseConnection();
-            } catch (IOException ioex) {
+            } catch (final IOException ioex) {
                 this.log.debug("I/O error releasing connection", ioex);
             }
             this.managedConn = null;
@@ -441,7 +441,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 return;
             }
             if (this.managedConn.isOpen()) {
-                long duration = this.keepaliveStrategy.getKeepAliveDuration(
+                final long duration = this.keepaliveStrategy.getKeepAliveDuration(
                         this.currentResponse, this.localContext);
                 if (this.log.isDebugEnabled()) {
                     String s;
@@ -482,8 +482,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.log.debug("[exchange: " + this.id + "] Response processed");
                 }
                 releaseConnection();
-                T result = this.responseConsumer.getResult();
-                Exception ex = this.responseConsumer.getException();
+                final T result = this.responseConsumer.getResult();
+                final Exception ex = this.responseConsumer.getException();
                 if (ex == null) {
                     this.resultCallback.completed(result, this);
                 } else {
@@ -491,8 +491,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 }
             } else {
                 if (this.followup != null) {
-                    HttpRoute actualRoute = this.mainRequest.getRoute();
-                    HttpRoute newRoute = this.followup.getRoute();
+                    final HttpRoute actualRoute = this.mainRequest.getRoute();
+                    final HttpRoute newRoute = this.followup.getRoute();
                     if (!actualRoute.equals(newRoute)) {
                         releaseConnection();
                     }
@@ -510,7 +510,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.followup = null;
             this.currentRequest = null;
             this.currentResponse = null;
-        } catch (RuntimeException runex) {
+        } catch (final RuntimeException runex) {
             failed(runex);
             throw runex;
         }
@@ -521,10 +521,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             this.log.debug("[exchange: " + this.id + "] Cancelled");
         }
         try {
-            boolean cancelled = this.responseConsumer.cancel();
+            final boolean cancelled = this.responseConsumer.cancel();
 
-            T result = this.responseConsumer.getResult();
-            Exception ex = this.responseConsumer.getException();
+            final T result = this.responseConsumer.getResult();
+            final Exception ex = this.responseConsumer.getException();
             if (ex != null) {
                 this.resultCallback.failed(ex, this);
             } else if (result != null) {
@@ -533,7 +533,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 this.resultCallback.cancelled(this);
             }
             return cancelled;
-        } catch (RuntimeException runex) {
+        } catch (final RuntimeException runex) {
             this.resultCallback.failed(runex, this);
             throw runex;
         } finally {
@@ -563,7 +563,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 conn.releaseConnection();
                 return;
             }
-            HttpRoute route = this.mainRequest.getRoute();
+            final HttpRoute route = this.mainRequest.getRoute();
             if (!conn.isOpen()) {
                 conn.open(route, this.localContext, this.params);
             }
@@ -573,9 +573,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             if (!conn.isOpen()) {
                 throw new ConnectionClosedException("Connection closed");
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             failed(ex);
-        } catch (RuntimeException runex) {
+        } catch (final RuntimeException runex) {
             failed(runex);
             throw runex;
         }
@@ -620,12 +620,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     private void requestConnection() {
-        HttpRoute route = this.mainRequest.getRoute();
+        final HttpRoute route = this.mainRequest.getRoute();
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Request connection for " + route);
         }
-        long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
-        Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
+        final long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
+        final Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
         this.connmgr.leaseConnection(
                 route, userToken,
                 connectTimeout, TimeUnit.MILLISECONDS,
@@ -660,7 +660,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             if (route.getProxyHost() != null && !route.isTunnelled()) {
                 // Make sure the request URI is absolute
                 if (!uri.isAbsolute()) {
-                    HttpHost target = route.getTargetHost();
+                    final HttpHost target = route.getTargetHost();
                     uri = URIUtils.rewriteURI(uri, target);
                     request.setURI(uri);
                 }
@@ -671,7 +671,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     request.setURI(uri);
                 }
             }
-        } catch (URISyntaxException ex) {
+        } catch (final URISyntaxException ex) {
             throw new ProtocolException("Invalid URI: " + request.getRequestLine().getUri(), ex);
         }
     }
@@ -689,27 +689,27 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         // see RFC 2817, section 5.2 and
         // INTERNET-DRAFT: Tunneling TCP based protocols through
         // Web proxy servers
-        HttpHost target = route.getTargetHost();
-        String host = target.getHostName();
+        final HttpHost target = route.getTargetHost();
+        final String host = target.getHostName();
         int port = target.getPort();
         if (port < 0) {
-            AsyncSchemeRegistry registry = getSchemeRegistry(this.localContext);
-            AsyncScheme scheme = registry.getScheme(target.getSchemeName());
+            final AsyncSchemeRegistry registry = getSchemeRegistry(this.localContext);
+            final AsyncScheme scheme = registry.getScheme(target.getSchemeName());
             port = scheme.getDefaultPort();
         }
-        StringBuilder buffer = new StringBuilder(host.length() + 6);
+        final StringBuilder buffer = new StringBuilder(host.length() + 6);
         buffer.append(host);
         buffer.append(':');
         buffer.append(Integer.toString(port));
-        ProtocolVersion ver = HttpProtocolParams.getVersion(this.params);
-        HttpRequest req = new BasicHttpRequest("CONNECT", buffer.toString(), ver);
+        final ProtocolVersion ver = HttpProtocolParams.getVersion(this.params);
+        final HttpRequest req = new BasicHttpRequest("CONNECT", buffer.toString(), ver);
         return req;
     }
 
     private RoutedRequest handleResponse() throws HttpException {
         RoutedRequest followup = null;
         if (HttpClientParams.isAuthenticating(this.params)) {
-            CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
+            final CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
                     ClientContext.CREDS_PROVIDER);
             if (credsProvider != null) {
                 followup = handleTargetChallenge(credsProvider);
@@ -734,7 +734,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private RoutedRequest handleConnectResponse() throws HttpException {
         RoutedRequest followup = null;
         if (HttpClientParams.isAuthenticating(this.params)) {
-            CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
+            final CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
                     ClientContext.CREDS_PROVIDER);
             if (credsProvider != null) {
                 followup = handleProxyChallenge(credsProvider);
@@ -750,26 +750,26 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (this.redirectStrategy.isRedirected(
                 this.currentRequest, this.currentResponse, this.localContext)) {
 
-            HttpRoute route = this.mainRequest.getRoute();
-            RequestWrapper request = this.mainRequest.getRequest();
+            final HttpRoute route = this.mainRequest.getRoute();
+            final RequestWrapper request = this.mainRequest.getRequest();
 
-            int maxRedirects = this.params.getIntParameter(ClientPNames.MAX_REDIRECTS, 100);
+            final int maxRedirects = this.params.getIntParameter(ClientPNames.MAX_REDIRECTS, 100);
             if (this.redirectCount >= maxRedirects) {
                 throw new RedirectException("Maximum redirects ("
                         + maxRedirects + ") exceeded");
             }
             this.redirectCount++;
 
-            HttpUriRequest redirect = this.redirectStrategy.getRedirect(
+            final HttpUriRequest redirect = this.redirectStrategy.getRedirect(
                     this.currentRequest, this.currentResponse, this.localContext);
-            HttpRequest orig = request.getOriginal();
+            final HttpRequest orig = request.getOriginal();
             redirect.setHeaders(orig.getAllHeaders());
 
-            URI uri = redirect.getURI();
+            final URI uri = redirect.getURI();
             if (uri.getHost() == null) {
                 throw new ProtocolException("Redirect URI does not specify a valid host name: " + uri);
             }
-            HttpHost newTarget = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
+            final HttpHost newTarget = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
 
             // Reset auth states if redirecting to another host
             if (!route.getTargetHost().equals(newTarget)) {
@@ -777,7 +777,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.log.debug("[exchange: " + this.id + "] Resetting target auth state");
                 }
                 this.targetAuthState.reset();
-                AuthScheme authScheme = this.proxyAuthState.getAuthScheme();
+                final AuthScheme authScheme = this.proxyAuthState.getAuthScheme();
                 if (authScheme != null && authScheme.isConnectionBased()) {
                     if (this.log.isDebugEnabled()) {
                         this.log.debug("[exchange: " + this.id + "] Resetting proxy auth state");
@@ -786,10 +786,10 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 }
             }
 
-            RequestWrapper newRequest = wrapRequest(redirect);
+            final RequestWrapper newRequest = wrapRequest(redirect);
             newRequest.setParams(this.params);
 
-            HttpRoute newRoute = determineRoute(newTarget, newRequest, this.localContext);
+            final HttpRoute newRoute = determineRoute(newTarget, newRequest, this.localContext);
 
             if (this.log.isDebugEnabled()) {
                 this.log.debug("[exchange: " + this.id + "] Redirecting to '" + uri + "' via " + newRoute);
@@ -801,7 +801,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private RoutedRequest handleTargetChallenge(
             final CredentialsProvider credsProvider) throws HttpException {
-        HttpRoute route = this.mainRequest.getRoute();
+        final HttpRoute route = this.mainRequest.getRoute();
         HttpHost target = (HttpHost) this.localContext.getAttribute(
                 ExecutionContext.HTTP_TARGET_HOST);
         if (target == null) {
@@ -822,8 +822,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     private RoutedRequest handleProxyChallenge(
             final CredentialsProvider credsProvider) throws HttpException {
-        HttpRoute route = this.mainRequest.getRoute();
-        HttpHost proxy = route.getProxyHost();
+        final HttpRoute route = this.mainRequest.getRoute();
+        final HttpHost proxy = route.getProxyHost();
         if (this.authenticator.isAuthenticationRequested(proxy, this.currentResponse,
                 this.proxyAuthStrategy, this.proxyAuthState, this.localContext)) {
             if (this.authenticator.authenticate(proxy, this.currentResponse,

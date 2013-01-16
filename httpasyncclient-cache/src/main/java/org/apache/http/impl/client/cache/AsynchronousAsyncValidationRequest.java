@@ -87,7 +87,7 @@ class AsynchronousAsyncValidationRequest implements Runnable {
                             }
                         }
                     });
-        } catch (ProtocolException pe) {
+        } catch (final ProtocolException pe) {
             this.log.error("ProtocolException thrown during asynchronous revalidation: " + pe);
         } finally {
             this.parent.markComplete(this.identifier);

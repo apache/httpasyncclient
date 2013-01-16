@@ -98,7 +98,7 @@ public abstract class HttpAsyncTestBase {
 
     public void initClient() throws Exception {
         this.ioreactor = new DefaultConnectingIOReactor();
-        AsyncSchemeRegistry schemeRegistry = new AsyncSchemeRegistry();
+        final AsyncSchemeRegistry schemeRegistry = new AsyncSchemeRegistry();
         schemeRegistry.register(new AsyncScheme("http", 80, null));
         this.connMgr = new PoolingClientAsyncConnectionManager(this.ioreactor, schemeRegistry);
         this.httpclient = new DefaultHttpAsyncClient(this.connMgr);

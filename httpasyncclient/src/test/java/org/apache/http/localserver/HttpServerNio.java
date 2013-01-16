@@ -63,7 +63,7 @@ public class HttpServerNio {
     }
 
     private void execute(final NHttpServerEventHandler serviceHandler) throws IOException {
-        IOEventDispatch ioEventDispatch = new DefaultHttpServerIODispatch(serviceHandler,
+        final IOEventDispatch ioEventDispatch = new DefaultHttpServerIODispatch(serviceHandler,
                 this.connFactory);
         this.ioReactor.execute(ioEventDispatch);
     }
@@ -112,7 +112,7 @@ public class HttpServerNio {
         this.ioReactor.shutdown();
         try {
             join(500);
-        } catch (InterruptedException ignore) {
+        } catch (final InterruptedException ignore) {
         }
     }
 
@@ -131,7 +131,7 @@ public class HttpServerNio {
         public void run() {
             try {
                 execute(this.serviceHandler);
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 this.ex = ex;
             }
         }

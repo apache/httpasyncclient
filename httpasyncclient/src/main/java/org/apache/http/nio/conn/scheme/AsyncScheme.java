@@ -80,7 +80,7 @@ public final class AsyncScheme {
     @Override
     public final String toString() {
         if (stringRep == null) {
-            StringBuilder buffer = new StringBuilder();
+            final StringBuilder buffer = new StringBuilder();
             buffer.append(this.name);
             buffer.append(':');
             buffer.append(Integer.toString(this.defaultPort));
@@ -95,7 +95,7 @@ public final class AsyncScheme {
             return true;
         }
         if (obj instanceof AsyncScheme) {
-            AsyncScheme that = (AsyncScheme) obj;
+            final AsyncScheme that = (AsyncScheme) obj;
             return this.name.equals(that.name)
                 && this.defaultPort == that.defaultPort
                 && this.strategy.equals(that.strategy);

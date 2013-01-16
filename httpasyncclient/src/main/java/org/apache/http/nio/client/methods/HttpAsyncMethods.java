@@ -67,7 +67,7 @@ public final class HttpAsyncMethods {
         if (request == null) {
             throw new IllegalArgumentException("HTTP request may not be null");
         }
-        HttpHost target = URIUtils.extractHost(request.getURI());
+        final HttpHost target = URIUtils.extractHost(request.getURI());
         return new RequestProducerImpl(target, request);
     }
 
@@ -115,10 +115,10 @@ public final class HttpAsyncMethods {
             final URI requestURI,
             final String content,
             final ContentType contentType) throws UnsupportedEncodingException {
-        HttpPost httppost = new HttpPost(requestURI);
-        NStringEntity entity = new NStringEntity(content, contentType);
+        final HttpPost httppost = new HttpPost(requestURI);
+        final NStringEntity entity = new NStringEntity(content, contentType);
         httppost.setEntity(entity);
-        HttpHost target = URIUtils.extractHost(requestURI);
+        final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httppost, entity);
     }
 
@@ -133,9 +133,9 @@ public final class HttpAsyncMethods {
             final URI requestURI,
             final byte[] content,
             final ContentType contentType) {
-        HttpPost httppost = new HttpPost(requestURI);
-        NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
-        HttpHost target = URIUtils.extractHost(requestURI);
+        final HttpPost httppost = new HttpPost(requestURI);
+        final NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
+        final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httppost, entity);
     }
 
@@ -150,10 +150,10 @@ public final class HttpAsyncMethods {
             final URI requestURI,
             final String content,
             final ContentType contentType) throws UnsupportedEncodingException {
-        HttpPut httpput = new HttpPut(requestURI);
-        NStringEntity entity = new NStringEntity(content, contentType);
+        final HttpPut httpput = new HttpPut(requestURI);
+        final NStringEntity entity = new NStringEntity(content, contentType);
         httpput.setEntity(entity);
-        HttpHost target = URIUtils.extractHost(requestURI);
+        final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httpput, entity);
     }
 
@@ -168,9 +168,9 @@ public final class HttpAsyncMethods {
             final URI requestURI,
             final byte[] content,
             final ContentType contentType) {
-        HttpPut httpput = new HttpPut(requestURI);
-        NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
-        HttpHost target = URIUtils.extractHost(requestURI);
+        final HttpPut httpput = new HttpPut(requestURI);
+        final NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
+        final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httpput, entity);
     }
 

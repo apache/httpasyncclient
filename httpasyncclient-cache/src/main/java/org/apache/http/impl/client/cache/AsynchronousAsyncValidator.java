@@ -103,16 +103,16 @@ class AsynchronousAsyncValidator {
     public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequest request,
             final HttpContext context, final HttpCacheEntry entry) {
         // getVariantURI will fall back on getURI if no variants exist
-        String uri = this.cacheKeyGenerator.getVariantURI(target, request, entry);
+        final String uri = this.cacheKeyGenerator.getVariantURI(target, request, entry);
 
         if (!this.queued.contains(uri)) {
-            AsynchronousAsyncValidationRequest asyncRevalidationRequest = new AsynchronousAsyncValidationRequest(
+            final AsynchronousAsyncValidationRequest asyncRevalidationRequest = new AsynchronousAsyncValidationRequest(
                     this, this.cachingAsyncClient, target, request, context, entry, uri);
 
             try {
                 this.executor.execute(asyncRevalidationRequest);
                 this.queued.add(uri);
-            } catch (RejectedExecutionException ree) {
+            } catch (final RejectedExecutionException ree) {
                 this.log.debug("Revalidation for [" + uri + "] not scheduled: " + ree);
             }
         }

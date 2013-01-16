@@ -73,17 +73,17 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         if (target == null) {
             throw new IllegalStateException("Target host may be null");
         }
-        InetAddress local = ConnRouteParams.getLocalAddress(request.getParams());
-        HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
+        final InetAddress local = ConnRouteParams.getLocalAddress(request.getParams());
+        final HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
         AsyncScheme scheme;
         try {
-            AsyncSchemeRegistry registry = getSchemeRegistry(context);
+            final AsyncSchemeRegistry registry = getSchemeRegistry(context);
             scheme = registry.getScheme(target);
-        } catch (IllegalStateException ex) {
+        } catch (final IllegalStateException ex) {
             throw new HttpException(ex.getMessage());
         }
-        LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
-        boolean secure = layeringStrategy != null && layeringStrategy.isSecure();
+        final LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+        final boolean secure = layeringStrategy != null && layeringStrategy.isSecure();
         if (proxy == null) {
             route = new HttpRoute(target, local, secure);
         } else {

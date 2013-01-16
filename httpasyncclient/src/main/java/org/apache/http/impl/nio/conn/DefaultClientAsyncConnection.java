@@ -85,8 +85,8 @@ public class DefaultClientAsyncConnection
     protected void onResponseReceived(final HttpResponse response) {
         if (response != null && this.headerlog.isDebugEnabled()) {
             this.headerlog.debug(this.id + " << " + response.getStatusLine().toString());
-            Header[] headers = response.getAllHeaders();
-            for (Header header : headers) {
+            final Header[] headers = response.getAllHeaders();
+            for (final Header header : headers) {
                 this.headerlog.debug(this.id + " << " + header.toString());
             }
         }
@@ -96,8 +96,8 @@ public class DefaultClientAsyncConnection
     protected void onRequestSubmitted(final HttpRequest request) {
         if (request != null && this.headerlog.isDebugEnabled()) {
             this.headerlog.debug(this.id + " >> " + request.getRequestLine().toString());
-            Header[] headers = request.getAllHeaders();
-            for (Header header : headers) {
+            final Header[] headers = request.getAllHeaders();
+            for (final Header header : headers) {
                 this.headerlog.debug(this.id + " >> " + header.toString());
             }
         }
@@ -105,7 +105,7 @@ public class DefaultClientAsyncConnection
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder();
+        final StringBuilder buf = new StringBuilder();
         buf.append(this.id);
         buf.append(" [");
         switch (this.status) {

@@ -92,7 +92,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -102,17 +102,17 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
     private HttpHost start() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
         registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
@@ -148,24 +148,24 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
 
     @Test
     public void testByteConsumer() throws Exception {
-        HttpHost target = start();
+        final HttpHost target = start();
         for (int i = 0; i < 5; i++) {
-            HttpAsyncRequestProducer httpget = HttpAsyncMethods.createGet(target.toURI() + "/random/20480");
-            AsyncByteConsumer<Long> consumer = new ByteCountingConsumer();
-            Future<Long> future = this.httpclient.execute(httpget, consumer, null);
-            Long count = future.get();
+            final HttpAsyncRequestProducer httpget = HttpAsyncMethods.createGet(target.toURI() + "/random/20480");
+            final AsyncByteConsumer<Long> consumer = new ByteCountingConsumer();
+            final Future<Long> future = this.httpclient.execute(httpget, consumer, null);
+            final Long count = future.get();
             Assert.assertEquals(20480, count.longValue());
         }
     }
 
     @Test
     public void testByteConsumerSmallBufffer() throws Exception {
-        HttpHost target = start();
+        final HttpHost target = start();
         for (int i = 0; i < 5; i++) {
-            HttpAsyncRequestProducer httpget = HttpAsyncMethods.createGet(target.toURI() + "/random/20480");
-            AsyncByteConsumer<Long> consumer = new ByteCountingConsumer(512);
-            Future<Long> future = this.httpclient.execute(httpget, consumer, null);
-            Long count = future.get();
+            final HttpAsyncRequestProducer httpget = HttpAsyncMethods.createGet(target.toURI() + "/random/20480");
+            final AsyncByteConsumer<Long> consumer = new ByteCountingConsumer(512);
+            final Future<Long> future = this.httpclient.execute(httpget, consumer, null);
+            final Long count = future.get();
             Assert.assertEquals(20480, count.longValue());
         }
     }
@@ -208,62 +208,62 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
 
     @Test
     public void testCharConsumer() throws Exception {
-        HttpHost target = start();
-        StringBuilder sb = new StringBuilder();
+        final HttpHost target = start();
+        final StringBuilder sb = new StringBuilder();
         for (int i= 0; i < 25; i++) {
             sb.append("blah blah blah blah\r\n");
             sb.append("yada yada yada yada\r\n");
         }
-        String s = sb.toString();
+        final String s = sb.toString();
 
         for (int i = 0; i < 5; i++) {
-            HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
+            final HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
                     target.toURI() + "/echo/stuff", s,
                     ContentType.create("text/plain", Consts.ASCII));
-            AsyncCharConsumer<String> consumer = new BufferingCharConsumer();
-            Future<String> future = this.httpclient.execute(httppost, consumer, null);
-            String result = future.get();
+            final AsyncCharConsumer<String> consumer = new BufferingCharConsumer();
+            final Future<String> future = this.httpclient.execute(httppost, consumer, null);
+            final String result = future.get();
             Assert.assertEquals(s, result);
         }
     }
 
     @Test
     public void testCharConsumerSmallBufffer() throws Exception {
-        HttpHost target = start();
-        StringBuilder sb = new StringBuilder();
+        final HttpHost target = start();
+        final StringBuilder sb = new StringBuilder();
         for (int i= 0; i < 25; i++) {
             sb.append("blah blah blah blah\r\n");
             sb.append("yada yada yada yada\r\n");
         }
-        String s = sb.toString();
+        final String s = sb.toString();
 
         for (int i = 0; i < 5; i++) {
-            HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
+            final HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
                     target.toURI() + "/echo/stuff", s,
                     ContentType.create("text/plain", Consts.ASCII));
-            AsyncCharConsumer<String> consumer = new BufferingCharConsumer(512);
-            Future<String> future = this.httpclient.execute(httppost, consumer, null);
-            String result = future.get();
+            final AsyncCharConsumer<String> consumer = new BufferingCharConsumer(512);
+            final Future<String> future = this.httpclient.execute(httppost, consumer, null);
+            final String result = future.get();
             Assert.assertEquals(s, result);
         }
     }
 
     @Test
     public void testResourceReleaseOnSuccess() throws Exception {
-        HttpHost target = start();
-        StringBuilder sb = new StringBuilder();
+        final HttpHost target = start();
+        final StringBuilder sb = new StringBuilder();
         for (int i= 0; i < 25; i++) {
             sb.append("blah blah blah blah\r\n");
             sb.append("yada yada yada yada\r\n");
         }
-        String s = sb.toString();
+        final String s = sb.toString();
 
-        HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
+        final HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
                 target.toURI() + "/echo/stuff", s,
                 ContentType.create("text/plain", Consts.ASCII));
-        BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
-        Future<String> future = this.httpclient.execute(httppost, consumer, null);
-        String result = future.get();
+        final BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
+        final Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        final String result = future.get();
         Assert.assertEquals(s, result);
         Mockito.verify(consumer).buildResult(Mockito.any(HttpContext.class));
         Mockito.verify(consumer).releaseResources();
@@ -271,20 +271,20 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
 
     @Test
     public void testResourceReleaseOnException() throws Exception {
-        HttpHost target = start();
-        HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
+        final HttpHost target = start();
+        final HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
                 target.toURI() + "/echo/stuff", "stuff",
                 ContentType.create("text/plain", Consts.ASCII));
-        AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
+        final AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
         Mockito.doThrow(new IOException("Kaboom")).when(consumer).onCharReceived(
                 Mockito.any(CharBuffer.class), Mockito.any(IOControl.class));
 
-        Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        final Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {
             future.get();
             Assert.fail("ExecutionException expected");
-        } catch (ExecutionException ex) {
-            Throwable t = ex.getCause();
+        } catch (final ExecutionException ex) {
+            final Throwable t = ex.getCause();
             Assert.assertNotNull(t);
             Assert.assertTrue(t instanceof IOException);
             Assert.assertEquals("Kaboom", t.getMessage());
@@ -294,19 +294,19 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
 
     @Test
     public void testResourceReleaseOnBuildFailure() throws Exception {
-        HttpHost target = start();
-        HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
+        final HttpHost target = start();
+        final HttpAsyncRequestProducer httppost = HttpAsyncMethods.createPost(
                 target.toURI() + "/echo/stuff", "stuff",
                 ContentType.create("text/plain", Consts.ASCII));
-        BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
+        final BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
         Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult(Mockito.any(HttpContext.class));
 
-        Future<String> future = this.httpclient.execute(httppost, consumer, null);
+        final Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {
             future.get();
             Assert.fail("ExecutionException expected");
-        } catch (ExecutionException ex) {
-            Throwable t = ex.getCause();
+        } catch (final ExecutionException ex) {
+            final Throwable t = ex.getCause();
             Assert.assertNotNull(t);
             Assert.assertTrue(t instanceof HttpException);
             Assert.assertEquals("Kaboom", t.getMessage());

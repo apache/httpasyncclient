@@ -72,10 +72,10 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
         if (firsthop == null) {
             firsthop = route.getTargetHost();
         }
-        String hostname = firsthop.getHostName();
+        final String hostname = firsthop.getHostName();
         int port = firsthop.getPort();
         if (port < 0) {
-            AsyncScheme scheme = this.schemeRegistry.getScheme(firsthop);
+            final AsyncScheme scheme = this.schemeRegistry.getScheme(firsthop);
             port = scheme.resolvePort(port);
         }
         return new InetSocketAddress(hostname, port);
@@ -83,7 +83,7 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
 
     @Override
     protected HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-        String id = Long.toString(COUNTER.getAndIncrement());
+        final String id = Long.toString(COUNTER.getAndIncrement());
         return new HttpPoolEntry(this.log, id, route, session, this.connTimeToLive, this.tunit);
     }
 

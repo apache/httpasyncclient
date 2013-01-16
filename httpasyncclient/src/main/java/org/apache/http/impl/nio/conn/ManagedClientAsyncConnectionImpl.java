@@ -79,7 +79,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     }
 
     HttpPoolEntry detach() {
-        HttpPoolEntry local = this.poolEntry;
+        final HttpPoolEntry local = this.poolEntry;
         this.poolEntry = null;
         return local;
     }
@@ -89,25 +89,25 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     }
 
     private ClientAsyncConnection getConnection() {
-        HttpPoolEntry local = this.poolEntry;
+        final HttpPoolEntry local = this.poolEntry;
         if (local == null) {
             return null;
         }
-        IOSession session = local.getConnection();
+        final IOSession session = local.getConnection();
         return (ClientAsyncConnection) session.getAttribute(IOEventDispatch.CONNECTION_KEY);
     }
 
     private ClientAsyncConnection ensureConnection() {
-        HttpPoolEntry local = this.poolEntry;
+        final HttpPoolEntry local = this.poolEntry;
         if (local == null) {
             throw new ConnectionShutdownException();
         }
-        IOSession session = local.getConnection();
+        final IOSession session = local.getConnection();
         return (ClientAsyncConnection) session.getAttribute(IOEventDispatch.CONNECTION_KEY);
     }
 
     private HttpPoolEntry ensurePoolEntry() {
-        HttpPoolEntry local = this.poolEntry;
+        final HttpPoolEntry local = this.poolEntry;
         if (local == null) {
             throw new ConnectionShutdownException();
         }
@@ -115,21 +115,21 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     }
 
     public void close() throws IOException {
-        ClientAsyncConnection conn = getConnection();
+        final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
             conn.close();
         }
     }
 
     public void shutdown() throws IOException {
-        ClientAsyncConnection conn = getConnection();
+        final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
             conn.shutdown();
         }
     }
 
     public boolean isOpen() {
-        ClientAsyncConnection conn = getConnection();
+        final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
             return conn.isOpen();
         } else {
@@ -142,113 +142,113 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     }
 
     public void setSocketTimeout(final int timeout) {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.setSocketTimeout(timeout);
     }
 
     public int getSocketTimeout() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getSocketTimeout();
     }
 
     public HttpConnectionMetrics getMetrics() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getMetrics();
     }
 
     public InetAddress getLocalAddress() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getLocalAddress();
     }
 
     public int getLocalPort() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getLocalPort();
     }
 
     public InetAddress getRemoteAddress() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getRemoteAddress();
     }
 
     public int getRemotePort() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getRemotePort();
     }
 
     public int getStatus() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getStatus();
     }
 
     public HttpRequest getHttpRequest() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getHttpRequest();
     }
 
     public HttpResponse getHttpResponse() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getHttpResponse();
     }
 
     public HttpContext getContext() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getContext();
     }
 
     public void requestInput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.requestInput();
     }
 
     public void suspendInput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.suspendInput();
     }
 
     public void requestOutput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.requestOutput();
     }
 
     public void suspendOutput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.suspendOutput();
     }
 
     public void submitRequest(final HttpRequest request) throws IOException, HttpException {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.submitRequest(request);
     }
 
     public boolean isRequestSubmitted() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.isRequestSubmitted();
     }
 
     public void resetOutput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.resetOutput();
     }
 
     public void resetInput() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         conn.resetInput();
     }
 
     public boolean isSecure() {
-        ClientAsyncConnection conn = ensureConnection();
+        final ClientAsyncConnection conn = ensureConnection();
         return conn.getIOSession() instanceof SSLIOSession;
     }
 
     public HttpRoute getRoute() {
-        HttpPoolEntry entry = ensurePoolEntry();
+        final HttpPoolEntry entry = ensurePoolEntry();
         return entry.getEffectiveRoute();
     }
 
     public SSLSession getSSLSession() {
-        ClientAsyncConnection conn = ensureConnection();
-        IOSession iosession = conn.getIOSession();
+        final ClientAsyncConnection conn = ensureConnection();
+        final IOSession iosession = conn.getIOSession();
         if (iosession instanceof SSLIOSession) {
             return ((SSLIOSession) iosession).getSSLSession();
         } else {
@@ -257,12 +257,12 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     }
 
     public Object getState() {
-        HttpPoolEntry entry = ensurePoolEntry();
+        final HttpPoolEntry entry = ensurePoolEntry();
         return entry.getState();
     }
 
     public void setState(final Object state) {
-        HttpPoolEntry entry = ensurePoolEntry();
+        final HttpPoolEntry entry = ensurePoolEntry();
         entry.setState(state);
     }
 
@@ -299,25 +299,25 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
             final HttpRoute route,
             final HttpContext context,
             final HttpParams params) throws IOException {
-        HttpPoolEntry entry = ensurePoolEntry();
-        RouteTracker tracker = entry.getTracker();
+        final HttpPoolEntry entry = ensurePoolEntry();
+        final RouteTracker tracker = entry.getTracker();
         if (tracker.isConnected()) {
             throw new IllegalStateException("Connection already open");
         }
 
-        HttpHost target = route.getTargetHost();
-        HttpHost proxy = route.getProxyHost();
+        final HttpHost target = route.getTargetHost();
+        final HttpHost proxy = route.getProxyHost();
         IOSession iosession = entry.getConnection();
 
         if (proxy == null) {
-            AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
-            LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+            final AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
+            final LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
                 iosession = layeringStrategy.layer(iosession);
             }
         }
 
-        ClientAsyncConnection conn = this.connFactory.create(
+        final ClientAsyncConnection conn = this.connFactory.create(
                 "http-outgoing-" + entry.getId(),
                 iosession,
                 params);
@@ -332,8 +332,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
     public synchronized void tunnelProxy(
             final HttpHost next, final HttpParams params) throws IOException {
-        HttpPoolEntry entry = ensurePoolEntry();
-        RouteTracker tracker = entry.getTracker();
+        final HttpPoolEntry entry = ensurePoolEntry();
+        final RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -342,8 +342,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
     public synchronized void tunnelTarget(
             final HttpParams params) throws IOException {
-        HttpPoolEntry entry = ensurePoolEntry();
-        RouteTracker tracker = entry.getTracker();
+        final HttpPoolEntry entry = ensurePoolEntry();
+        final RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -355,8 +355,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
     public synchronized void layerProtocol(
             final HttpContext context, final HttpParams params) throws IOException {
-        HttpPoolEntry entry = ensurePoolEntry();
-        RouteTracker tracker = entry.getTracker();
+        final HttpPoolEntry entry = ensurePoolEntry();
+        final RouteTracker tracker = entry.getTracker();
         if (!tracker.isConnected()) {
             throw new IllegalStateException("Connection not open");
         }
@@ -366,15 +366,15 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         if (tracker.isLayered()) {
             throw new IllegalStateException("Multiple protocol layering not supported");
         }
-        HttpHost target = tracker.getTargetHost();
-        AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
-        LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
+        final HttpHost target = tracker.getTargetHost();
+        final AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
+        final LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
         if (layeringStrategy == null) {
             throw new IllegalStateException(scheme.getName() +
                     " scheme does not provider support for protocol layering");
         }
-        IOSession iosession = entry.getConnection();
-        ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
+        final IOSession iosession = entry.getConnection();
+        final ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
                 IOEventDispatch.CONNECTION_KEY);
         conn.upgrade((SSLIOSession) layeringStrategy.layer(iosession));
         tracker.layerProtocol(layeringStrategy.isSecure());
@@ -393,12 +393,12 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
             return;
         }
         this.reusable = false;
-        IOSession iosession = this.poolEntry.getConnection();
-        ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
+        final IOSession iosession = this.poolEntry.getConnection();
+        final ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
                 IOEventDispatch.CONNECTION_KEY);
         try {
             conn.shutdown();
-        } catch (IOException ignore) {
+        } catch (final IOException ignore) {
         }
         this.manager.releaseConnection(this, this.duration, TimeUnit.MILLISECONDS);
         this.poolEntry = null;

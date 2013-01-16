@@ -46,7 +46,7 @@ public class ZeroCopyPost extends BaseZeroCopyRequestProducer {
 
     @Override
     protected HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity) {
-        HttpPost httppost = new HttpPost(requestURI);
+        final HttpPost httppost = new HttpPost(requestURI);
         httppost.setEntity(entity);
         return httppost;
     }

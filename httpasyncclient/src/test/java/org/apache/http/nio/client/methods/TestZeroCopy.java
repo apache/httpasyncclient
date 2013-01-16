@@ -103,7 +103,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -113,12 +113,12 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
@@ -135,12 +135,12 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @BeforeClass
     public static void createSrcFile() throws Exception {
-        File tmpdir = FileUtils.getTempDirectory();
+        final File tmpdir = FileUtils.getTempDirectory();
         TEST_FILE = new File(tmpdir, "src.test");
-        FileWriterWithEncoding out = new FileWriterWithEncoding(TEST_FILE, ASCII);
+        final FileWriterWithEncoding out = new FileWriterWithEncoding(TEST_FILE, ASCII);
         try {
             for (int i = 0; i < 500; i++) {
-                for (String line: TEXT) {
+                for (final String line: TEXT) {
                     out.write(line);
                     out.write("\r\n");
                 }
@@ -176,9 +176,9 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
         @Override
         protected HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity) {
-            HttpPost httppost = new HttpPost(requestURI);
+            final HttpPost httppost = new HttpPost(requestURI);
             if (this.forceChunking) {
-                BasicHttpEntity chunkedEntity = new BasicHttpEntity();
+                final BasicHttpEntity chunkedEntity = new BasicHttpEntity();
                 chunkedEntity.setChunked(true);
                 httppost.setEntity(chunkedEntity);
             } else {
@@ -229,19 +229,19 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
             boolean ok = true;
 
-            InputStream instream = requestEntity.getContent();
+            final InputStream instream = requestEntity.getContent();
             try {
-                ContentType contentType = ContentType.getOrDefault(requestEntity);
+                final ContentType contentType = ContentType.getOrDefault(requestEntity);
                 Charset charset = contentType.getCharset();
                 if (charset == null) {
                     charset = Consts.ISO_8859_1;
                 }
-                LineIterator it = IOUtils.lineIterator(instream, charset.name());
+                final LineIterator it = IOUtils.lineIterator(instream, charset.name());
                 int count = 0;
                 while (it.hasNext()) {
-                    String line = it.next();
-                    int i = count % TEXT.length;
-                    String expected = TEXT[i];
+                    final String line = it.next();
+                    final int i = count % TEXT.length;
+                    final String expected = TEXT[i];
                     if (!line.equals(expected)) {
                         ok = false;
                         break;
@@ -252,7 +252,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
                 instream.close();
             }
             if (ok) {
-                NFileEntity responseEntity = new NFileEntity(TEST_FILE,
+                final NFileEntity responseEntity = new NFileEntity(TEST_FILE,
                         ContentType.create("text/plian"));
                 if (this.forceChunking) {
                     responseEntity.setChunked(true);
@@ -266,26 +266,26 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @Test
     public void testTwoWayZeroCopy() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new TestHandler(false)));
-        HttpHost target = start(registry, null);
+        final HttpHost target = start(registry, null);
 
-        File tmpdir = FileUtils.getTempDirectory();
+        final File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", false);
-        TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
-        Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
-        Integer status = future.get();
+        final TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", false);
+        final TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
+        final Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
+        final Integer status = future.get();
         Assert.assertNotNull(status);
         Assert.assertEquals(HttpStatus.SC_OK, status.intValue());
-        InputStream instream = new FileInputStream(this.tmpfile);
+        final InputStream instream = new FileInputStream(this.tmpfile);
         try {
-            LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
+            final LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
             int count = 0;
             while (it.hasNext()) {
-                String line = it.next();
-                int i = count % TEXT.length;
-                String expected = TEXT[i];
+                final String line = it.next();
+                final int i = count % TEXT.length;
+                final String expected = TEXT[i];
                 Assert.assertEquals(expected, line);
                 count++;
             }
@@ -296,25 +296,25 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @Test
     public void testZeroCopyFallback() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new TestHandler(true)));
-        HttpHost target = start(registry, null);
-        File tmpdir = FileUtils.getTempDirectory();
+        final HttpHost target = start(registry, null);
+        final File tmpdir = FileUtils.getTempDirectory();
         this.tmpfile = new File(tmpdir, "dst.test");
-        TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", true);
-        TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
-        Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
-        Integer status = future.get();
+        final TestZeroCopyPost httppost = new TestZeroCopyPost(target.toURI() + "/bounce", true);
+        final TestZeroCopyConsumer consumer = new TestZeroCopyConsumer(this.tmpfile);
+        final Future<Integer> future = this.httpclient.execute(httppost, consumer, null);
+        final Integer status = future.get();
         Assert.assertNotNull(status);
         Assert.assertEquals(HttpStatus.SC_OK, status.intValue());
-        InputStream instream = new FileInputStream(this.tmpfile);
+        final InputStream instream = new FileInputStream(this.tmpfile);
         try {
-            LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
+            final LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
             int count = 0;
             while (it.hasNext()) {
-                String line = it.next();
-                int i = count % TEXT.length;
-                String expected = TEXT[i];
+                final String line = it.next();
+                final int i = count % TEXT.length;
+                final String expected = TEXT[i];
                 Assert.assertEquals(expected, line);
                 count++;
             }

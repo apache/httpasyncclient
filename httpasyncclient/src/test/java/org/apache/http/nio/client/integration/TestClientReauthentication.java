@@ -127,7 +127,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
     private HttpHost start(
             final HttpAsyncRequestHandlerResolver requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        HttpAsyncService serviceHandler = new HttpAsyncService(
+        final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
@@ -137,12 +137,12 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
         this.server.start(serviceHandler);
         this.httpclient.start();
 
-        ListenerEndpoint endpoint = this.server.getListenerEndpoint();
+        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
         endpoint.waitFor();
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
         return target;
     }
 
@@ -166,7 +166,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
                 final HttpRequest request,
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
-            String creds = (String) context.getAttribute("creds");
+            final String creds = (String) context.getAttribute("creds");
             if (creds == null || !creds.equals("test:test")) {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
             } else {
@@ -175,7 +175,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
                     response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
                 } else {
                     response.setStatusCode(HttpStatus.SC_OK);
-                    StringEntity entity = new StringEntity("success", Consts.ASCII);
+                    final StringEntity entity = new StringEntity("success", Consts.ASCII);
                     response.setEntity(entity);
                 }
             }
@@ -212,14 +212,14 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccess() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        HttpHost target = start(registry, null);
+        final HttpHost target = start(registry, null);
 
-        TestCredentialsProvider credsProvider = new TestCredentialsProvider(
+        final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
 
-        BasicSchemeFactory myBasicAuthSchemeFactory = new BasicSchemeFactory() {
+        final BasicSchemeFactory myBasicAuthSchemeFactory = new BasicSchemeFactory() {
 
             @Override
             public AuthScheme newInstance(final HttpParams params) {
@@ -235,7 +235,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
         };
 
-        TargetAuthenticationStrategy myAuthStrategy = new TargetAuthenticationStrategy() {
+        final TargetAuthenticationStrategy myAuthStrategy = new TargetAuthenticationStrategy() {
 
             @Override
             protected boolean isCachable(final AuthScheme authScheme) {
@@ -248,15 +248,15 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
         this.httpclient.getAuthSchemes().register("MyBasic", myBasicAuthSchemeFactory);
         this.httpclient.setCredentialsProvider(credsProvider);
 
-        HttpContext context = new BasicHttpContext();
+        final HttpContext context = new BasicHttpContext();
         for (int i = 0; i < 10; i++) {
-            HttpGet httpget = new HttpGet("/");
+            final HttpGet httpget = new HttpGet("/");
             httpget.getParams().setParameter(AllClientPNames.TARGET_AUTH_PREF,
                     Collections.singletonList("MyBasic"));
-            Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
-            HttpResponse response = future.get();
+            final Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
+            final HttpResponse response = future.get();
             Assert.assertNotNull(response);
-            HttpEntity entity = response.getEntity();
+            final HttpEntity entity = response.getEntity();
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
             Assert.assertNotNull(entity);
             EntityUtils.consume(entity);
