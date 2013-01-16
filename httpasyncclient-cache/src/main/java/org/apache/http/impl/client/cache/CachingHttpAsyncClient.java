@@ -556,8 +556,8 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                         long age = this.validityPolicy.getCurrentAgeSecs(entry, now);
                         long lifetime = this.validityPolicy.getFreshnessLifetimeSecs(entry);
                         if (age - lifetime > maxstale) {
-							return true;
-						}
+                            return true;
+                        }
                     } catch (NumberFormatException nfe) {
                         return true;
                     }
@@ -617,16 +617,16 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         RequestLine line = request.getRequestLine();
 
         if (!HeaderConstants.OPTIONS_METHOD.equals(line.getMethod())) {
-			return false;
-		}
+            return false;
+        }
 
         if (!"*".equals(line.getUri())) {
-			return false;
-		}
+            return false;
+        }
 
         if (!"0".equals(request.getFirstHeader(HeaderConstants.MAX_FORWARDS).getValue())) {
-			return false;
-		}
+            return false;
+        }
 
         return true;
     }
@@ -668,8 +668,8 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
                 Date respDate = DateUtils.parseDate(responseDateHeader.getValue());
                 if (respDate.before(entryDate)) {
-					return true;
-				}
+                    return true;
+                }
             } catch (DateParseException e) {
                 // either backend response or cached entry did not have a valid
                 // Date header, so we can't tell if they are out of order
@@ -980,16 +980,16 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             // nop
         }
         if (existing == null) {
-			return false;
-		}
+            return false;
+        }
         Header entryDateHeader = existing.getFirstHeader("Date");
         if (entryDateHeader == null) {
-			return false;
-		}
+            return false;
+        }
         Header responseDateHeader = backendResponse.getFirstHeader("Date");
         if (responseDateHeader == null) {
-			return false;
-		}
+            return false;
+        }
         try {
             Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
             Date responseDate = DateUtils.parseDate(responseDateHeader.getValue());
