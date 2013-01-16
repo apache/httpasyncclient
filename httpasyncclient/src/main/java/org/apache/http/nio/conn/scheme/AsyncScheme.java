@@ -92,8 +92,8 @@ public final class AsyncScheme {
     @Override
     public final boolean equals(final Object obj) {
         if (this == obj) {
-			return true;
-		}
+            return true;
+        }
         if (obj instanceof AsyncScheme) {
             AsyncScheme that = (AsyncScheme) obj;
             return this.name.equals(that.name)
