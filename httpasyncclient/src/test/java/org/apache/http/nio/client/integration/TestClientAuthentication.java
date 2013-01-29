@@ -60,13 +60,17 @@ import org.apache.http.localserver.BasicAuthTokenExtractor;
 import org.apache.http.localserver.RequestBasicAuth;
 import org.apache.http.localserver.ResponseBasicUnauthorized;
 import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.nio.protocol.BasicAsyncRequestConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncResponseProducer;
 import org.apache.http.nio.protocol.HttpAsyncExchange;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
+import org.apache.http.nio.protocol.HttpAsyncRequestConsumer;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
 import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
 import org.apache.http.nio.protocol.HttpAsyncService;
@@ -75,6 +79,7 @@ import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
@@ -173,6 +178,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             final String creds = (String) context.getAttribute("creds");
             if (creds == null || !creds.equals("test:test")) {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
+                response.setEntity(new NStringEntity("Unauthorized"));
             } else {
                 response.setStatusCode(HttpStatus.SC_OK);
                 final NStringEntity entity = new NStringEntity("success", Consts.ASCII);
@@ -345,6 +351,67 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         Assert.assertNotNull(response);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         final AuthScope authscope = credsProvider.getAuthScope();
+        Assert.assertNotNull(authscope);
+        Assert.assertEquals("test realm", authscope.getRealm());
+    }
+
+    public class FaultyRequestHandler implements HttpAsyncRequestHandler<HttpRequest> {
+
+        private final HttpRequestHandler handler;
+
+        public FaultyRequestHandler(final HttpRequestHandler handler) {
+            super();
+            if (handler == null) {
+                throw new IllegalArgumentException("Request handler may not be null");
+            }
+            this.handler = handler;
+        }
+
+        public HttpAsyncRequestConsumer<HttpRequest> processRequest(final HttpRequest request,
+                final HttpContext context) {
+            return new BasicAsyncRequestConsumer();
+        }
+
+        public void handle(
+                final HttpRequest request,
+                final HttpAsyncExchange httpexchange,
+                final HttpContext context) throws HttpException, IOException {
+            HttpResponse response = httpexchange.getResponse();
+            this.handler.handle(request, httpexchange.getResponse(), context);
+            httpexchange.submitResponse(new BasicAsyncResponseProducer(response) {
+
+                @Override
+                public void responseCompleted(final HttpContext context) {
+                    super.responseCompleted(context);
+                    NHttpConnection conn = (NHttpConnection)context.getAttribute(
+                        ExecutionContext.HTTP_CONNECTION);
+                    try {
+                        conn.shutdown();
+                    } catch (IOException e) {
+                    }
+                }
+
+            });
+        }
+
+    }
+
+    @Test
+    public void testBasicAuthenticationFaultyPersistentConnection() throws Exception {
+        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        registry.register("*", new FaultyRequestHandler(new AuthHandler(true)));
+        HttpHost target = start(registry, null);
+
+        TestCredentialsProvider credsProvider = new TestCredentialsProvider(
+                new UsernamePasswordCredentials("test", "test"));
+        this.httpclient.setCredentialsProvider(credsProvider);
+
+        HttpGet httpget = new HttpGet("/");
+        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
+        AuthScope authscope = credsProvider.getAuthScope();
         Assert.assertNotNull(authscope);
         Assert.assertEquals("test realm", authscope.getRealm());
     }

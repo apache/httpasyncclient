@@ -36,6 +36,7 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
+import org.apache.http.protocol.HttpContext;
 
 class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
 
@@ -126,6 +127,17 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             this.log.debug(conn + " Timeout");
         }
         super.timeout(conn);
+    }
+
+    @Override
+    public void endOfInput(final NHttpClientConnection conn) throws IOException {
+        super.endOfInput(conn);
+        HttpContext context = conn.getContext();
+        DefaultAsyncRequestDirector<?> handler = (DefaultAsyncRequestDirector<?>) context.getAttribute(
+            HTTP_HANDLER);
+        if (handler != null && !handler.isDone()) {
+            handler.endOfStream();
+        }
     }
 
 }

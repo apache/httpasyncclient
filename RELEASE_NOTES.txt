@@ -1,5 +1,9 @@
 Changes since 4.0 Beta 3
 
+* [HTTPASYNC-34] HttpAsyncClient fails to re-start request execution if the opposite end 
+  prematurely terminates persistent connection. 
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-28] PoolEntry's expiry information is never updated.
   Contributed by Daniel Kulp <dkulp at apache.org>
 

@@ -119,6 +119,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private final long id;
 
     private volatile boolean closed;
+    private volatile InternalFutureCallback connRequestCallback;
     private volatile ManagedClientAsyncConnection managedConn;
 
     private RoutedRequest mainRequest;
@@ -557,6 +558,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Connection allocated: " + conn);
         }
+        this.connRequestCallback = null;
         try {
             this.managedConn = conn;
             if (this.closed) {
@@ -585,6 +587,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] connection request failed");
         }
+        this.connRequestCallback = null;
         try {
             this.resultCallback.failed(ex, this);
         } finally {
@@ -596,6 +599,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Connection request cancelled");
         }
+        this.connRequestCallback = null;
         try {
             this.resultCallback.cancelled(this);
         } finally {
@@ -626,10 +630,23 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
         final long connectTimeout = HttpConnectionParams.getConnectionTimeout(this.params);
         final Object userToken = this.localContext.getAttribute(ClientContext.USER_TOKEN);
+        this.connRequestCallback = new InternalFutureCallback();
         this.connmgr.leaseConnection(
                 route, userToken,
                 connectTimeout, TimeUnit.MILLISECONDS,
-                new InternalFutureCallback());
+                this.connRequestCallback);
+    }
+
+    public synchronized void endOfStream() {
+        if (this.managedConn != null) {
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("[exchange: " + this.id + "] Unexpected end of data stream");
+            }
+            releaseConnection();
+            if (this.connRequestCallback == null) {
+                requestConnection();
+            }
+        }
     }
 
     protected HttpRoute determineRoute(
