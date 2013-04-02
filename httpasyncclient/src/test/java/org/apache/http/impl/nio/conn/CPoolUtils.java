@@ -24,43 +24,17 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.impl.nio.client;
+package org.apache.http.impl.nio.conn;
 
-import java.util.Queue;
+import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.NHttpClientConnection;
+import org.apache.http.nio.conn.ManagedNHttpClientConnection;
+import org.apache.http.pool.PoolEntry;
 
-import org.apache.http.concurrent.BasicFuture;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
+public class CPoolUtils {
 
-@Deprecated
-class DefaultResultCallback<T> implements ResultCallback<T> {
-
-    private final BasicFuture<T> future;
-    private final Queue<HttpAsyncRequestExecutionHandler<?>> queue;
-
-    DefaultResultCallback(
-            final BasicFuture<T> future, final Queue<HttpAsyncRequestExecutionHandler<?>> queue) {
-        super();
-        this.future = future;
-        this.queue = queue;
-    }
-
-    public void completed(final T result, final HttpAsyncRequestExecutionHandler<T> handler) {
-        this.future.completed(result);
-        this.queue.remove(handler);
-    }
-
-    public void failed(final Exception ex, final HttpAsyncRequestExecutionHandler<T> handler) {
-        this.future.failed(ex);
-        this.queue.remove(handler);
-    }
-
-    public void cancelled(final HttpAsyncRequestExecutionHandler<T> handler) {
-        this.future.cancel(true);
-        this.queue.remove(handler);
-    }
-
-    public boolean isDone() {
-        return this.future.isDone();
+    public static PoolEntry<HttpRoute, ManagedNHttpClientConnection> getPoolEntry(final NHttpClientConnection managedConn) {
+        return CPoolProxy.getPoolEntry(managedConn);
     }
 
 }

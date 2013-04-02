@@ -50,6 +50,7 @@ import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.ConfigData;
+import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.InternalAddressResolver;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.InternalConnectionFactory;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
@@ -644,6 +645,72 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         internalConnFactory.create(route, iosession);
 
         Mockito.verify(connFactory).create(iosession, ConnectionConfig.DEFAULT);
+    }
+
+    @Test
+    public void testResolveLocalAddress() throws Exception {
+        final InternalAddressResolver addressResolver = new InternalAddressResolver(
+                schemePortResolver, dnsResolver);
+
+        final HttpHost target = new HttpHost("localhost");
+        final byte[] ip = new byte[] {10, 0, 0, 10};
+        final HttpRoute route = new HttpRoute(target, InetAddress.getByAddress(ip), false);
+        final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveLocalAddress(route);
+
+        Assert.assertNotNull(address);
+        Assert.assertEquals(InetAddress.getByAddress(ip), address.getAddress());
+        Assert.assertEquals(0, address.getPort());
+    }
+
+    @Test
+    public void testResolveLocalAddressNull() throws Exception {
+        final InternalAddressResolver addressResolver = new InternalAddressResolver(
+                schemePortResolver, dnsResolver);
+
+        final HttpHost target = new HttpHost("localhost");
+        final HttpRoute route = new HttpRoute(target);
+        final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveLocalAddress(route);
+
+        Assert.assertNull(address);
+    }
+
+    @Test
+    public void testResolveRemoteAddress() throws Exception {
+        final InternalAddressResolver addressResolver = new InternalAddressResolver(
+                schemePortResolver, dnsResolver);
+
+        final HttpHost target = new HttpHost("somehost");
+        final HttpRoute route = new HttpRoute(target);
+
+        final byte[] ip = new byte[] {10, 0, 0, 10};
+        Mockito.when(schemePortResolver.resolve(target)).thenReturn(123);
+        Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {InetAddress.getByAddress(ip)});
+
+        final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveRemoteAddress(route);
+
+        Assert.assertNotNull(address);
+        Assert.assertEquals(InetAddress.getByAddress(ip), address.getAddress());
+        Assert.assertEquals(123, address.getPort());
+    }
+
+    @Test
+    public void testResolveRemoteAddressViaProxy() throws Exception {
+        final InternalAddressResolver addressResolver = new InternalAddressResolver(
+                schemePortResolver, dnsResolver);
+
+        final HttpHost target = new HttpHost("somehost");
+        final HttpHost proxy = new HttpHost("someproxy");
+        final HttpRoute route = new HttpRoute(target, null, proxy, false);
+
+        final byte[] ip = new byte[] {10, 0, 0, 10};
+        Mockito.when(schemePortResolver.resolve(proxy)).thenReturn(8888);
+        Mockito.when(dnsResolver.resolve("someproxy")).thenReturn(new InetAddress[] {InetAddress.getByAddress(ip)});
+
+        final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveRemoteAddress(route);
+
+        Assert.assertNotNull(address);
+        Assert.assertEquals(InetAddress.getByAddress(ip), address.getAddress());
+        Assert.assertEquals(8888, address.getPort());
     }
 
 }

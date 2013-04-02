@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.http.ConnectionClosedException;
-import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -39,6 +38,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpExecutionAware;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.Cancellable;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
@@ -48,52 +48,45 @@ import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
+import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.ExecutionContext;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpProcessor;
+import org.apache.http.protocol.HttpCoreContext;
 
-class DefaultRequestExectionHandlerImpl<T>
-    implements HttpAsyncRequestExecutionHandler<T>, InternalConnManager, Cancellable {
+class DefaultClientExchangeHandlerImpl<T>
+    implements HttpAsyncClientExchangeHandler, InternalConnManager, Cancellable {
 
     private final Log log;
 
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
     private final HttpClientContext localContext;
-    private final ResultCallback<T> resultCallback;
+    private final BasicFuture<T> resultFuture;
     private final NHttpClientConnectionManager connmgr;
-    private final HttpProcessor httppocessor;
-    private final ConnectionReuseStrategy reuseStrategy;
     private final InternalClientExec exec;
     private final InternalState state;
 
     private volatile boolean closed;
+    private volatile boolean completed;
 
     private volatile NHttpClientConnection managedConn;
 
-    public DefaultRequestExectionHandlerImpl(
+    public DefaultClientExchangeHandlerImpl(
             final Log log,
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpClientContext localContext,
-            final ResultCallback<T> callback,
+            final BasicFuture<T> resultFuture,
             final NHttpClientConnectionManager connmgr,
-            final HttpProcessor httppocessor,
-            final ConnectionReuseStrategy reuseStrategy,
             final InternalClientExec exec) {
         super();
         this.log = log;
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.localContext = localContext;
-        this.resultCallback = callback;
+        this.resultFuture = resultFuture;
         this.connmgr = connmgr;
-        this.httppocessor = httppocessor;
-        this.reuseStrategy = reuseStrategy;
         this.exec = exec;
         this.state = new InternalState(requestProducer, responseConsumer, localContext);
     }
@@ -127,8 +120,8 @@ class DefaultRequestExectionHandlerImpl<T>
         requestConnection();
     }
 
-    public HttpHost getTarget() {
-        return this.requestProducer.getTarget();
+    public boolean isDone() {
+        return this.completed;
     }
 
     public synchronized HttpRequest generateRequest() throws IOException, HttpException {
@@ -140,16 +133,8 @@ class DefaultRequestExectionHandlerImpl<T>
         this.exec.produceContent(this.state, encoder, ioctrl);
     }
 
-    public void requestCompleted(final HttpContext context) {
+    public void requestCompleted() {
         this.exec.requestCompleted(this.state);
-    }
-
-    public boolean isRepeatable() {
-        return this.requestProducer.isRepeatable();
-    }
-
-    public void resetRequest() throws IOException {
-        this.requestProducer.resetRequest();
     }
 
     public synchronized void responseReceived(
@@ -162,34 +147,41 @@ class DefaultRequestExectionHandlerImpl<T>
         this.exec.consumeContent(this.state, decoder, ioctrl);
     }
 
-    public synchronized void responseCompleted(final HttpContext context) {
-        if (this.resultCallback.isDone()) {
+    public synchronized void responseCompleted() throws IOException, HttpException {
+        if (this.resultFuture.isDone()) {
+            this.completed = true;
+            releaseConnection();
             return;
         }
-        try {
-            this.exec.responseCompleted(this.state, this);
-        } catch (final HttpException ex) {
-            failed(ex);
-        }
+        this.exec.responseCompleted(this.state, this);
+
         if (this.state.getFinalResponse() != null) {
             releaseConnection();
             final T result = this.responseConsumer.getResult();
             final Exception ex = this.responseConsumer.getException();
             if (ex == null) {
-                this.resultCallback.completed(result, this);
+                this.resultFuture.completed(result);
             } else {
-                this.resultCallback.failed(ex, this);
+                this.resultFuture.failed(ex);
             }
+            this.completed = true;
         } else {
+            if (this.managedConn != null &&!this.managedConn.isOpen()) {
+                releaseConnection();
+            }
             if (this.managedConn != null) {
-                if (!this.managedConn.isOpen()) {
-                    reopenConnection();
-                } else {
-                    this.managedConn.requestOutput();
-                }
+                this.managedConn.requestOutput();
             } else {
                 requestConnection();
             }
+        }
+    }
+
+    public void inputTerminated() {
+        if (!this.completed) {
+            requestConnection();
+        } else {
+            close();
         }
     }
 
@@ -237,7 +229,7 @@ class DefaultRequestExectionHandlerImpl<T>
             this.responseConsumer.failed(ex);
         } finally {
             try {
-                this.resultCallback.failed(ex, this);
+                this.resultFuture.failed(ex);
             } finally {
                 close();
             }
@@ -254,43 +246,19 @@ class DefaultRequestExectionHandlerImpl<T>
             final T result = this.responseConsumer.getResult();
             final Exception ex = this.responseConsumer.getException();
             if (ex != null) {
-                this.resultCallback.failed(ex, this);
+                this.resultFuture.failed(ex);
             } else if (result != null) {
-                this.resultCallback.completed(result, this);
+                this.resultFuture.completed(result);
             } else {
-                this.resultCallback.cancelled(this);
+                this.resultFuture.cancel();
             }
             return cancelled;
         } catch (final RuntimeException runex) {
-            this.resultCallback.failed(runex, this);
+            this.resultFuture.failed(runex);
             throw runex;
         } finally {
             close();
         }
-    }
-
-    public boolean isDone() {
-        return this.resultCallback.isDone();
-    }
-
-    public T getResult() {
-        return this.responseConsumer.getResult();
-    }
-
-    public Exception getException() {
-        return this.responseConsumer.getException();
-    }
-
-    public HttpContext getContext() {
-        return this.localContext;
-    }
-
-    public HttpProcessor getHttpProcessor() {
-        return this.httppocessor;
-    }
-
-    public ConnectionReuseStrategy getConnectionReuseStrategy() {
-        return this.reuseStrategy;
     }
 
     private synchronized void connectionAllocated(final NHttpClientConnection managedConn) {
@@ -307,7 +275,7 @@ class DefaultRequestExectionHandlerImpl<T>
                 return;
             }
 
-            this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, managedConn);
+            this.localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, managedConn);
             this.state.setRouteEstablished(this.connmgr.isRouteComplete(managedConn));
             if (!this.state.isRouteEstablished()) {
                 this.state.setRouteTracker(new RouteTracker(this.state.getRoute()));
@@ -325,31 +293,12 @@ class DefaultRequestExectionHandlerImpl<T>
         }
     }
 
-    private synchronized void connectionReopened(final NHttpClientConnection managedConn) {
-        try {
-            if (this.log.isDebugEnabled()) {
-                this.log.debug("[exchange: " + this.state.getId() + "] Connection re-opened: " + managedConn);
-            }
-            this.managedConn = managedConn;
-            this.state.setValidDuration(0);
-            this.state.setNonReusable();
-            this.state.setRouteEstablished(false);
-            this.state.setRouteTracker(new RouteTracker(this.state.getRoute()));
-
-            this.managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-            this.managedConn.requestOutput();
-        } catch (final RuntimeException runex) {
-            failed(runex);
-            throw runex;
-        }
-    }
-
     private synchronized void connectionRequestFailed(final Exception ex) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.state.getId() + "] connection request failed");
         }
         try {
-            this.resultCallback.failed(ex, this);
+            this.resultFuture.failed(ex);
         } finally {
             close();
         }
@@ -360,7 +309,7 @@ class DefaultRequestExectionHandlerImpl<T>
             this.log.debug("[exchange: " + this.state.getId() + "] Connection request cancelled");
         }
         try {
-            this.resultCallback.cancelled(this);
+            this.resultFuture.cancel();
         } finally {
             close();
         }
@@ -382,34 +331,6 @@ class DefaultRequestExectionHandlerImpl<T>
 
                     public void completed(final NHttpClientConnection managedConn) {
                         connectionAllocated(managedConn);
-                    }
-
-                    public void failed(final Exception ex) {
-                        connectionRequestFailed(ex);
-                    }
-
-                    public void cancelled() {
-                        connectionRequestCancelled();
-                    }
-
-                });
-    }
-
-    private void reopenConnection() {
-        if (this.log.isDebugEnabled()) {
-            this.log.debug("[exchange: " + this.state.getId() + "] Re-open connection for " +
-                this.state.getRoute());
-        }
-        final HttpRoute route = this.state.getRoute();
-        final RequestConfig config = this.localContext.getRequestConfig();
-        this.connmgr.connect(
-                this.managedConn,
-                route,
-                config.getConnectTimeout(),
-                new FutureCallback<NHttpClientConnection>() {
-
-                    public void completed(final NHttpClientConnection managedConn) {
-                        connectionReopened(managedConn);
                     }
 
                     public void failed(final Exception ex) {

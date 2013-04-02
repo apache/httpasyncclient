@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.client;
 
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
 
+@Deprecated
 interface ResultCallback<T> {
 
     void completed(T result, HttpAsyncRequestExecutionHandler<T> handler);

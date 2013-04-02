@@ -76,14 +76,17 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HttpCoreContext;
+import org.apache.http.protocol.HttpProcessor;
 
 class MainClientExec implements InternalClientExec {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
+    private final HttpProcessor httpProcessor;
     private final HttpRoutePlanner routePlanner;
+    private final ConnectionReuseStrategy connReuseStrategy;
     private final ConnectionKeepAliveStrategy keepaliveStrategy;
     private final AuthenticationStrategy targetAuthStrategy;
     private final AuthenticationStrategy proxyAuthStrategy;
@@ -94,8 +97,9 @@ class MainClientExec implements InternalClientExec {
 
     public MainClientExec(
             final NHttpClientConnectionManager connmgr,
+            final HttpProcessor httpProcessor,
             final HttpRoutePlanner routePlanner,
-            final ConnectionReuseStrategy reuseStrategy,
+            final ConnectionReuseStrategy connReuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy,
             final RedirectStrategy redirectStrategy,
             final AuthenticationStrategy targetAuthStrategy,
@@ -103,7 +107,9 @@ class MainClientExec implements InternalClientExec {
             final UserTokenHandler userTokenHandler) {
         super();
         this.connmgr = connmgr;
+        this.httpProcessor = httpProcessor;
         this.routePlanner = routePlanner;
+        this.connReuseStrategy = connReuseStrategy;
         this.keepaliveStrategy = keepaliveStrategy;
         this.redirectStrategy = redirectStrategy;
         this.targetAuthStrategy = targetAuthStrategy;
@@ -264,6 +270,10 @@ class MainClientExec implements InternalClientExec {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
+        final HttpClientContext context = state.getLocalContext();
+        context.setAttribute(HttpCoreContext.HTTP_RESPONSE, response);
+        this.httpProcessor.process(response, context);
+
         state.setCurrentResponse(response);
 
         if (!state.isRouteEstablished()) {
@@ -311,11 +321,11 @@ class MainClientExec implements InternalClientExec {
 
     public void responseCompleted(
             final InternalState state,
-            final InternalConnManager connManager) throws HttpException {
+            final InternalConnManager connManager) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpResponse currentResponse = state.getCurrentResponse();
 
-        if (connManager.getConnection().isOpen()) {
+        if (this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
             final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
                     currentResponse, localContext);
             if (this.log.isDebugEnabled()) {
@@ -334,6 +344,7 @@ class MainClientExec implements InternalClientExec {
                 this.log.debug("[exchange: " + state.getId() + "] Connection cannot be kept alive");
             }
             state.setNonReusable();
+            connManager.releaseConnection();
             final AuthState proxyAuthState = localContext.getProxyAuthState();
             if (proxyAuthState.getState() == AuthProtocolState.SUCCESS
                     && proxyAuthState.getAuthScheme() != null
@@ -444,7 +455,7 @@ class MainClientExec implements InternalClientExec {
         }
     }
 
-    private void prepareRequest(final InternalState state) throws HttpException {
+    private void prepareRequest(final InternalState state) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpRequestWrapper currentRequest = state.getCurrentRequest();
         final HttpRoute route = state.getRoute();
@@ -483,8 +494,10 @@ class MainClientExec implements InternalClientExec {
         // Re-write request URI if needed
         rewriteRequestURI(state);
 
-        localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
+        localContext.setAttribute(HttpCoreContext.HTTP_REQUEST, currentRequest);
+        localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, target);
         localContext.setAttribute(ClientContext.ROUTE, route);
+        this.httpProcessor.process(currentRequest, localContext);
     }
 
     private HttpRequest createConnectRequest(final HttpRoute route) {
@@ -525,33 +538,12 @@ class MainClientExec implements InternalClientExec {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
-            final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
-            if (credsProvider != null) {
-                final HttpRoute route = state.getRoute();
-                final HttpResponse currentResponse = state.getCurrentResponse();
-                HttpHost target = localContext.getTargetHost();
-                if (target == null) {
-                    target = route.getTargetHost();
-                }
-                if (target.getPort() < 0) {
-                    target = new HttpHost(
-                            target.getHostName(),
-                            route.getTargetHost().getPort(),
-                            target.getSchemeName());
-                }
-                final AuthState targetAuthState = localContext.getTargetAuthState();
-                if (this.authenticator.isAuthenticationRequested(target, currentResponse,
-                        this.targetAuthStrategy, targetAuthState, localContext)) {
-                    return this.authenticator.handleAuthChallenge(target, currentResponse,
-                            this.targetAuthStrategy, targetAuthState, localContext);
-                }
-                final HttpHost proxy = route.getProxyHost();
-                final AuthState proxyAuthState = localContext.getProxyAuthState();
-                if (this.authenticator.isAuthenticationRequested(proxy, currentResponse,
-                        this.proxyAuthStrategy, proxyAuthState, localContext)) {
-                    return this.authenticator.handleAuthChallenge(proxy, currentResponse,
-                            this.proxyAuthStrategy, proxyAuthState, localContext);
-                }
+            if (needAuthentication(state)) {
+                // discard previous auth headers
+                final HttpRequest currentRequest = state.getCurrentRequest();
+                currentRequest.removeHeaders(AUTH.WWW_AUTH_RESP);
+                currentRequest.removeHeaders(AUTH.PROXY_AUTH_RESP);
+                return true;
             }
         }
         if (config.isRedirectsEnabled()) {
@@ -567,6 +559,39 @@ class MainClientExec implements InternalClientExec {
                     localContext);
                 state.setRedirect(redirect);
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean needAuthentication(final InternalState state) throws HttpException {
+        final HttpClientContext localContext = state.getLocalContext();
+        final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
+        if (credsProvider != null) {
+            final HttpRoute route = state.getRoute();
+            final HttpResponse currentResponse = state.getCurrentResponse();
+            HttpHost target = localContext.getTargetHost();
+            if (target == null) {
+                target = route.getTargetHost();
+            }
+            if (target.getPort() < 0) {
+                target = new HttpHost(
+                        target.getHostName(),
+                        route.getTargetHost().getPort(),
+                        target.getSchemeName());
+            }
+            final AuthState targetAuthState = localContext.getTargetAuthState();
+            if (this.authenticator.isAuthenticationRequested(target, currentResponse,
+                    this.targetAuthStrategy, targetAuthState, localContext)) {
+                return this.authenticator.handleAuthChallenge(target, currentResponse,
+                        this.targetAuthStrategy, targetAuthState, localContext);
+            }
+            final HttpHost proxy = route.getProxyHost();
+            final AuthState proxyAuthState = localContext.getProxyAuthState();
+            if (this.authenticator.isAuthenticationRequested(proxy, currentResponse,
+                    this.proxyAuthStrategy, proxyAuthState, localContext)) {
+                return this.authenticator.handleAuthChallenge(proxy, currentResponse,
+                        this.proxyAuthStrategy, proxyAuthState, localContext);
             }
         }
         return false;

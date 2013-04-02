@@ -33,22 +33,23 @@ import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.client.util.HttpAsyncClientUtils;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
-import org.apache.http.params.HttpParams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,7 +60,7 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
     @Before
     public void setUp() throws Exception {
         initServer();
-        initClient();
+        initConnectionManager();
     }
 
     @After
@@ -70,8 +71,8 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(params);
+            final ConnectionConfig config) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(config);
     }
 
     @Override
@@ -94,20 +95,25 @@ public class TestHttpAsyncClientUtils extends HttpAsyncTestBase {
     }
 
     private HttpHost start() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
         registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
         return start(registry, null);
     }
 
-    private HttpHost start(final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+    private HttpHost start(final HttpAsyncRequestHandlerMapper requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
-                requestHandlerResolver, expectationVerifier,
-                this.serverParams);
+                requestHandlerResolver,
+                expectationVerifier);
+
+        this.httpclient = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr)
+                .build();
+
         this.server.start(serviceHandler);
         this.httpclient.start();
 

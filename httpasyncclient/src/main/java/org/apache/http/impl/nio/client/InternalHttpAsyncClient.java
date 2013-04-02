@@ -27,13 +27,10 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthState;
 import org.apache.http.client.CookieStore;
@@ -47,7 +44,6 @@ import org.apache.http.config.Lookup;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -55,7 +51,6 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpProcessor;
 
 @SuppressWarnings("deprecation")
 class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
@@ -63,23 +58,18 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
-    private final HttpProcessor httpProcessor;
-    private final ConnectionReuseStrategy reuseStrategy;
     private final InternalClientExec exec;
     private final Lookup<CookieSpecProvider> cookieSpecRegistry;
     private final Lookup<AuthSchemeProvider> authSchemeRegistry;
     private final CookieStore cookieStore;
     private final CredentialsProvider credentialsProvider;
     private final RequestConfig defaultConfig;
-    private final Queue<HttpAsyncRequestExecutionHandler<?>> queue;
     private final Thread reactorThread;
 
     private volatile IOReactorStatus status;
 
     public InternalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
-            final HttpProcessor httpProcessor,
-            final ConnectionReuseStrategy reuseStrategy,
             final InternalClientExec exec,
             final Lookup<CookieSpecProvider> cookieSpecRegistry,
             final Lookup<AuthSchemeProvider> authSchemeRegistry,
@@ -88,15 +78,12 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             final RequestConfig defaultConfig) {
         super();
         this.connmgr = connmgr;
-        this.httpProcessor = httpProcessor;
-        this.reuseStrategy = reuseStrategy;
         this.exec = exec;
         this.cookieSpecRegistry = cookieSpecRegistry;
         this.authSchemeRegistry = authSchemeRegistry;
         this.cookieStore = cookieStore;
         this.credentialsProvider = credentialsProvider;
         this.defaultConfig = defaultConfig;
-        this.queue = new ConcurrentLinkedQueue<HttpAsyncRequestExecutionHandler<?>>();
         this.reactorThread = new Thread() {
 
             @Override
@@ -116,10 +103,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             this.log.error("I/O reactor terminated abnormally", ex);
         } finally {
             this.status = IOReactorStatus.SHUT_DOWN;
-            while (!this.queue.isEmpty()) {
-                final HttpAsyncRequestExecutionHandler<?> exchangeHandler = this.queue.remove();
-                exchangeHandler.cancel();
-            }
         }
     }
 
@@ -127,6 +110,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         return this.status;
     }
 
+    @Override
     public void start() {
         this.status = IOReactorStatus.ACTIVE;
         this.reactorThread.start();
@@ -189,22 +173,18 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
                     "I/O reactor status: " + this.status);
         }
         final BasicFuture<T> future = new BasicFuture<T>(callback);
-        final ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
         setupContext(localcontext);
 
-        final DefaultRequestExectionHandlerImpl<T> handler = new DefaultRequestExectionHandlerImpl<T>(
+        final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
             responseConsumer,
             localcontext,
-            resultCallback,
+            future,
             this.connmgr,
-            this.httpProcessor,
-            this.reuseStrategy,
             this.exec);
-        this.queue.add(handler);
         try {
             handler.start();
         } catch (final Exception ex) {

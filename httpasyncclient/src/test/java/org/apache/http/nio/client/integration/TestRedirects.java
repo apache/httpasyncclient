@@ -29,6 +29,7 @@ package org.apache.http.nio.client.integration;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -49,10 +50,12 @@ import org.apache.http.ProtocolVersion;
 import org.apache.http.client.CircularRedirectException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.RedirectException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.cookie.SM;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
@@ -61,6 +64,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.HttpServerNio;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.message.BasicHeader;
@@ -68,16 +72,14 @@ import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.junit.After;
 import org.junit.Assert;
@@ -92,7 +94,10 @@ public class TestRedirects extends HttpAsyncTestBase {
     @Before
     public void setUp() throws Exception {
         initServer();
-        initClient();
+        initConnectionManager();
+        this.httpclient = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr)
+                .build();
     }
 
     @After
@@ -103,8 +108,8 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(params);
+            final ConnectionConfig config) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(config);
     }
 
     @Override
@@ -113,15 +118,14 @@ public class TestRedirects extends HttpAsyncTestBase {
     }
 
     private HttpHost start(
-            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
                 requestHandlerResolver,
-                expectationVerifier,
-                this.serverParams);
+                expectationVerifier);
         this.server.start(serviceHandler);
         this.httpclient.start();
 
@@ -150,7 +154,7 @@ public class TestRedirects extends HttpAsyncTestBase {
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
             final HttpInetConnection conn = (HttpInetConnection) context.getAttribute(
-                    ExecutionContext.HTTP_CONNECTION);
+                    HttpCoreContext.HTTP_CONNECTION);
             final ProtocolVersion ver = request.getRequestLine().getProtocolVersion();
             final String uri = request.getRequestLine().getUri();
             if (uri.equals("/oldlocation/")) {
@@ -260,7 +264,7 @@ public class TestRedirects extends HttpAsyncTestBase {
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
             final HttpInetConnection conn = (HttpInetConnection) context.getAttribute(
-                    ExecutionContext.HTTP_CONNECTION);
+                    HttpCoreContext.HTTP_CONNECTION);
             String redirectUrl = this.url;
             if (!this.absolute) {
                 redirectUrl = this.schemeName + "://localhost:" + conn.getLocalPort() + redirectUrl;
@@ -283,12 +287,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect300() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MULTIPLE_CHOICES)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -296,8 +300,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_MULTIPLE_CHOICES, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/oldlocation/", reqWrapper.getRequestLine().getUri());
@@ -305,12 +308,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect301() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_PERMANENTLY)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -318,10 +321,8 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -330,12 +331,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect302() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -343,10 +344,8 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -355,7 +354,7 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect302NoLocation() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new HttpRequestHandler() {
 
             public void handle(
@@ -368,7 +367,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         }));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -376,10 +375,8 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_MOVED_TEMPORARILY, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/oldlocation/", reqWrapper.getRequestLine().getUri());
@@ -388,12 +385,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect303() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_SEE_OTHER)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -401,10 +398,8 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -413,12 +408,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect304() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_NOT_MODIFIED)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -426,8 +421,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_NOT_MODIFIED, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/oldlocation/", reqWrapper.getRequestLine().getUri());
@@ -435,12 +429,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect305() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_USE_PROXY)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -448,8 +442,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_USE_PROXY, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/oldlocation/", reqWrapper.getRequestLine().getUri());
@@ -457,12 +450,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testBasicRedirect307() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_TEMPORARY_REDIRECT)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -470,10 +463,8 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -482,14 +473,16 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test(expected=ExecutionException.class)
     public void testMaxRedirectCheck() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new CircularRedirectService()));
         final HttpHost target = start(registry, null);
 
-        this.httpclient.getParams().setBooleanParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, true);
-        this.httpclient.getParams().setIntParameter(ClientPNames.MAX_REDIRECTS, 5);
+        final RequestConfig config = RequestConfig.custom()
+                .setCircularRedirectsAllowed(true)
+                .setMaxRedirects(5).build();
 
         final HttpGet httpget = new HttpGet("/circular-oldlocation/");
+        httpget.setConfig(config);
         try {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
@@ -501,15 +494,17 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test(expected=ExecutionException.class)
     public void testCircularRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new CircularRedirectService()));
         final HttpHost target = start(registry, null);
 
-        this.httpclient.getParams().setBooleanParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, false);
-        this.httpclient.getParams().setBooleanParameter(ClientPNames.REJECT_RELATIVE_REDIRECT, false);
+        final RequestConfig config = RequestConfig.custom()
+                .setCircularRedirectsAllowed(false)
+                .setRelativeRedirectsAllowed(true)
+                .build();
 
         final HttpGet httpget = new HttpGet("/circular-oldlocation/");
-
+        httpget.setConfig(config);
         try {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
@@ -521,12 +516,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testPostNoRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpPost httppost = new HttpPost("/oldlocation/");
         httppost.setEntity(new NStringEntity("stuff"));
@@ -535,8 +530,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_MOVED_TEMPORARILY, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/oldlocation/", reqWrapper.getRequestLine().getUri());
@@ -545,12 +539,12 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testPostRedirectSeeOther() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_SEE_OTHER)));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpPost httppost = new HttpPost("/oldlocation/");
         httppost.setEntity(new NStringEntity("stuff"));
@@ -559,8 +553,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -569,24 +562,25 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testRelativeRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService()));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
-        this.httpclient.getParams().setBooleanParameter(
-                ClientPNames.REJECT_RELATIVE_REDIRECT, false);
+        final RequestConfig config = RequestConfig.custom()
+                .setRelativeRedirectsAllowed(true)
+                .build();
+
         final HttpGet httpget = new HttpGet("/oldlocation/");
+        httpget.setConfig(config);
 
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/relativelocation/", reqWrapper.getRequestLine().getUri());
@@ -595,24 +589,25 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testRelativeRedirect2() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService2()));
         final HttpHost target = start(registry, null);
 
-        final HttpContext context = new BasicHttpContext();
+        final HttpClientContext context = HttpClientContext.create();
 
-        this.httpclient.getParams().setBooleanParameter(
-                ClientPNames.REJECT_RELATIVE_REDIRECT, false);
+        final RequestConfig config = RequestConfig.custom()
+                .setRelativeRedirectsAllowed(true)
+                .build();
+
         final HttpGet httpget = new HttpGet("/test/oldlocation");
+        httpget.setConfig(config);
 
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
-        final HttpHost host = (HttpHost) context.getAttribute(
-                ExecutionContext.HTTP_TARGET_HOST);
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/test/relativelocation", reqWrapper.getRequestLine().getUri());
@@ -621,14 +616,16 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test(expected=ExecutionException.class)
     public void testRejectRelativeRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new RelativeRedirectService()));
         final HttpHost target = start(registry, null);
 
-        this.httpclient.getParams().setBooleanParameter(
-                ClientPNames.REJECT_RELATIVE_REDIRECT, true);
-        final HttpGet httpget = new HttpGet("/oldlocation/");
+        final RequestConfig config = RequestConfig.custom()
+                .setRelativeRedirectsAllowed(false)
+                .build();
 
+        final HttpGet httpget = new HttpGet("/oldlocation/");
+        httpget.setConfig(config);
         try {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
@@ -640,7 +637,7 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test(expected=ExecutionException.class)
     public void testRejectBogusRedirectLocation() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BogusRedirectService(getSchemeName(), "xxx://bogus", true)));
         final HttpHost target = start(registry, null);
@@ -651,14 +648,14 @@ public class TestRedirects extends HttpAsyncTestBase {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
         } catch (final ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof HttpException);
+            Assert.assertTrue(e.getCause() instanceof UnknownHostException);
             throw e;
         }
     }
 
     @Test(expected=ExecutionException.class)
     public void testRejectInvalidRedirectLocation() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BogusRedirectService(getSchemeName(), "/newlocation/?p=I have spaces", false)));
         final HttpHost target = start(registry, null);
@@ -675,13 +672,14 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testRedirectWithCookie() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
         final HttpHost target = start(registry, null);
 
         final CookieStore cookieStore = new BasicCookieStore();
-        this.httpclient.setCookieStore(cookieStore);
+        final HttpClientContext context = HttpClientContext.create();
+        context.setCookieStore(cookieStore);
 
         final BasicClientCookie cookie = new BasicClientCookie("name", "value");
         cookie.setDomain(target.getHostName());
@@ -689,15 +687,13 @@ public class TestRedirects extends HttpAsyncTestBase {
 
         cookieStore.addCookie(cookie);
 
-        final HttpContext context = new BasicHttpContext();
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -708,17 +704,21 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testDefaultHeadersRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(
                 new BasicRedirectService(getSchemeName(), HttpStatus.SC_MOVED_TEMPORARILY)));
-        final HttpHost target = start(registry, null);
-
-        final HttpContext context = new BasicHttpContext();
 
         final List<Header> defaultHeaders = new ArrayList<Header>(1);
         defaultHeaders.add(new BasicHeader(HTTP.USER_AGENT, "my-test-client"));
 
-        this.httpclient.getParams().setParameter(ClientPNames.DEFAULT_HEADERS, defaultHeaders);
+        this.httpclient = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr)
+                .setDefaultHeaders(defaultHeaders)
+                .build();
+
+        final HttpHost target = start(registry, null);
+
+        final HttpClientContext context = HttpClientContext.create();
 
         final HttpGet httpget = new HttpGet("/oldlocation/");
 
@@ -726,9 +726,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
 
-
-        final HttpRequest reqWrapper = (HttpRequest) context.getAttribute(
-                ExecutionContext.HTTP_REQUEST);
+        final HttpRequest reqWrapper = context.getRequest();
 
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
@@ -769,23 +767,23 @@ public class TestRedirects extends HttpAsyncTestBase {
 
     @Test
     public void testCrossSiteRedirect() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("/random/*", new BasicAsyncRequestHandler(
                 new RandomHandler()));
         final HttpHost redirectTarget = start(registry, null);
 
-        final HttpAsyncRequestHandlerRegistry registry2 = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry2 = new UriHttpAsyncRequestHandlerMapper();
         registry2.register("/redirect/*", new BasicAsyncRequestHandler(
                 new CrossSiteRedirectService(redirectTarget)));
-        final HttpServerNio secondServer = new HttpServerNio(createServerConnectionFactory(this.serverParams));
+        final HttpServerNio secondServer = new HttpServerNio(this.serverReactorConfig,
+                createServerConnectionFactory(this.serverConnectionConfig));
         secondServer.setExceptionHandler(new SimpleIOReactorExceptionHandler());
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
                 registry2,
-                null,
-                this.serverParams);
+                null);
         secondServer.start(serviceHandler);
         try {
             final ListenerEndpoint endpoint2 = secondServer.getListenerEndpoint();
@@ -797,7 +795,7 @@ public class TestRedirects extends HttpAsyncTestBase {
 
             final Queue<Future<HttpResponse>> queue = new ConcurrentLinkedQueue<Future<HttpResponse>>();
             for (int i = 0; i < 4; i++) {
-                final HttpContext context = new BasicHttpContext();
+                final HttpClientContext context = HttpClientContext.create();
                 final HttpGet httpget = new HttpGet("/redirect/anywhere");
                 queue.add(this.httpclient.execute(initialTarget, httpget, context, null));
             }

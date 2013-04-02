@@ -35,6 +35,7 @@ import org.apache.http.impl.nio.DefaultHttpServerIODispatch;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.reactor.DefaultListeningIOReactor;
 import org.apache.http.impl.nio.reactor.ExceptionEvent;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.NHttpServerEventHandler;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -52,9 +53,10 @@ public class HttpServerNio {
     private ListenerEndpoint endpoint;
 
     public HttpServerNio(
+            final IOReactorConfig ioReactorConfig,
             final NHttpConnectionFactory<DefaultNHttpServerConnection> connFactory) throws IOException {
         super();
-        this.ioReactor = new DefaultListeningIOReactor();
+        this.ioReactor = new DefaultListeningIOReactor(ioReactorConfig);
         this.connFactory = connFactory;
     }
 

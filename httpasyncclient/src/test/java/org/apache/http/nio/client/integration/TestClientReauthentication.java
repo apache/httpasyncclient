@@ -28,7 +28,7 @@ package org.apache.http.nio.client.integration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -44,12 +44,16 @@ import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AUTH;
 import org.apache.http.auth.AuthScheme;
+import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.params.AllClientPNames;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
@@ -58,16 +62,16 @@ import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.TargetAuthenticationStrategy;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.RequestBasicAuth;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
@@ -87,7 +91,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
     @Before
     public void setUp() throws Exception {
         initServer();
-        initClient();
+        initConnectionManager();
     }
 
     @After
@@ -115,8 +119,8 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(params);
+            final ConnectionConfig config) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(config);
     }
 
     @Override
@@ -125,15 +129,14 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
     }
 
     private HttpHost start(
-            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
                 requestHandlerResolver,
-                expectationVerifier,
-                this.serverParams);
+                expectationVerifier);
         this.server.start(serviceHandler);
         this.httpclient.start();
 
@@ -212,17 +215,13 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccess() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
-
-        final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
-                new UsernamePasswordCredentials("test", "test"));
 
         final BasicSchemeFactory myBasicAuthSchemeFactory = new BasicSchemeFactory() {
 
             @Override
-            public AuthScheme newInstance(final HttpParams params) {
+            public AuthScheme create(final HttpContext context) {
                 return new BasicScheme() {
 
                     @Override
@@ -244,15 +243,27 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
 
         };
 
-        this.httpclient.setTargetAuthenticationStrategy(myAuthStrategy);
-        this.httpclient.getAuthSchemes().register("MyBasic", myBasicAuthSchemeFactory);
-        this.httpclient.setCredentialsProvider(credsProvider);
+        final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
+                new UsernamePasswordCredentials("test", "test"));
+
+        final RequestConfig config = RequestConfig.custom()
+            .setTargetPreferredAuthSchemes(Arrays.asList("MyBasic"))
+            .build();
+        final Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create()
+            .register("MyBasic", myBasicAuthSchemeFactory)
+            .build();
+        this.httpclient = HttpAsyncClients.custom()
+            .setDefaultAuthSchemeRegistry(authSchemeRegistry)
+            .setTargetAuthenticationStrategy(myAuthStrategy)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpContext context = new BasicHttpContext();
         for (int i = 0; i < 10; i++) {
             final HttpGet httpget = new HttpGet("/");
-            httpget.getParams().setParameter(AllClientPNames.TARGET_AUTH_PREF,
-                    Collections.singletonList("MyBasic"));
+            httpget.setConfig(config);
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, context, null);
             final HttpResponse response = future.get();
             Assert.assertNotNull(response);

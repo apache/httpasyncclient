@@ -27,19 +27,23 @@
 package org.apache.http.nio.client.integration;
 
 import org.apache.http.SSLTestContexts;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
+import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.conn.scheme.AsyncScheme;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
-import org.apache.http.params.HttpParams;
+import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
 
 public class TestHttpsAsync extends TestHttpAsync {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new SSLNHttpServerConnectionFactory(SSLTestContexts.createServerSSLContext(), null, params);
+            final ConnectionConfig config) throws Exception {
+        return new SSLNHttpServerConnectionFactory(SSLTestContexts.createServerSSLContext(), null, config);
     }
 
     @Override
@@ -48,10 +52,12 @@ public class TestHttpsAsync extends TestHttpAsync {
     }
 
     @Override
-    public void initClient() throws Exception {
-        super.initClient();
-        this.connMgr.getSchemeRegistry().register(new AsyncScheme("https", 443,
-                new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext())));
+    public void initConnectionManager() throws Exception {
+        final Registry<SchemeLayeringStrategy> schemereg = RegistryBuilder.<SchemeLayeringStrategy>create()
+            .register("https", new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext()))
+            .build();
+        this.clientIOReactor = new DefaultConnectingIOReactor(this.clientReactorConfig);
+        this.connMgr = new PoolingNHttpClientConnectionManager(this.clientIOReactor, schemereg);
     }
 
 }

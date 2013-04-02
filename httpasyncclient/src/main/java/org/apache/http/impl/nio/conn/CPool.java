@@ -26,18 +26,16 @@
  */
 package org.apache.http.impl.nio.conn;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHost;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.pool.AbstractNIOConnPool;
 import org.apache.http.nio.pool.NIOConnFactory;
+import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 
 @ThreadSafe
@@ -51,9 +49,10 @@ class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection,
     public CPool(
             final ConnectingIOReactor ioreactor,
             final NIOConnFactory<HttpRoute, ManagedNHttpClientConnection> connFactory,
+            final SocketAddressResolver<HttpRoute> addressResolver,
             final int defaultMaxPerRoute, final int maxTotal,
             final long timeToLive, final TimeUnit tunit) {
-        super(ioreactor, connFactory, defaultMaxPerRoute, maxTotal);
+        super(ioreactor, connFactory, addressResolver, defaultMaxPerRoute, maxTotal);
         this.timeToLive = timeToLive;
         this.tunit = tunit;
     }
@@ -61,22 +60,6 @@ class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection,
     @Override
     protected CPoolEntry createEntry(final HttpRoute route, final ManagedNHttpClientConnection conn) {
         return new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.tunit);
-    }
-
-    @Override
-    protected SocketAddress resolveLocalAddress(final HttpRoute route) {
-        return new InetSocketAddress(route.getLocalAddress(), 0);
-    }
-
-    @Override
-    protected SocketAddress resolveRemoteAddress(final HttpRoute route) {
-        HttpHost firsthop = route.getProxyHost();
-        if (firsthop == null) {
-            firsthop = route.getTargetHost();
-        }
-        final String hostname = firsthop.getHostName();
-        final int port = firsthop.getPort();
-        return new InetSocketAddress(hostname, port);
     }
 
 }

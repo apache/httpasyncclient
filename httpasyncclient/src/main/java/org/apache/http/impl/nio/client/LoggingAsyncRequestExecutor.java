@@ -80,7 +80,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
     @Override
     public void inputReady(
             final NHttpClientConnection conn,
-            final ContentDecoder decoder) throws IOException {
+            final ContentDecoder decoder) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Input ready");
         }
@@ -93,7 +93,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
     @Override
     public void outputReady(
             final NHttpClientConnection conn,
-            final ContentEncoder encoder) throws IOException {
+            final ContentEncoder encoder) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Output ready");
         }

@@ -72,7 +72,7 @@ class ManagedNHttpClientConnectionImpl
             final ContentLengthStrategy outgoingContentStrategy,
             final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory,
             final NHttpMessageParserFactory<HttpResponse> responseParserFactory) {
-        super(iosession, buffersize, allocator, chardecoder, charencoder, constraints,
+        super(iosession, buffersize, buffersize, allocator, chardecoder, charencoder, constraints,
                 incomingContentStrategy, outgoingContentStrategy,
                 requestWriterFactory, responseParserFactory);
         this.id = id;

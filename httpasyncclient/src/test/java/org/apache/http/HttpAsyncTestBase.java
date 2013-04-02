@@ -29,19 +29,15 @@ package org.apache.http;
 
 import java.io.IOException;
 
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.impl.nio.conn.PoolingClientAsyncConnectionManager;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.localserver.HttpServerNio;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.conn.scheme.AsyncScheme;
-import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.reactor.IOReactorExceptionHandler;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.ResponseConnControl;
@@ -52,15 +48,18 @@ import org.junit.After;
 
 public abstract class HttpAsyncTestBase {
 
-    protected HttpParams serverParams;
     protected HttpServerNio server;
+    protected IOReactorConfig serverReactorConfig;
+    protected ConnectionConfig serverConnectionConfig;
     protected HttpProcessor serverHttpProc;
-    protected DefaultConnectingIOReactor ioreactor;
-    protected PoolingClientAsyncConnectionManager connMgr;
-    protected DefaultHttpAsyncClient httpclient;
+    protected DefaultConnectingIOReactor clientIOReactor;
+    protected IOReactorConfig clientReactorConfig;
+    protected ConnectionConfig clientrConnectionConfig;
+    protected PoolingNHttpClientConnectionManager connMgr;
+    protected CloseableHttpAsyncClient httpclient;
 
     protected abstract NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            HttpParams params) throws Exception;
+            ConnectionConfig config) throws Exception;
 
     protected abstract String getSchemeName();
 
@@ -79,42 +78,26 @@ public abstract class HttpAsyncTestBase {
     }
 
     public void initServer() throws Exception {
-        this.serverParams = new SyncBasicHttpParams();
-        this.serverParams
-            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
-            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
-            .setBooleanParameter(CoreConnectionPNames.STALE_CONNECTION_CHECK, false)
-            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
-            .setParameter(CoreProtocolPNames.ORIGIN_SERVER, "TEST-SERVER/1.1");
-        this.server = new HttpServerNio(createServerConnectionFactory(this.serverParams));
+        this.server = new HttpServerNio(
+                this.serverReactorConfig, createServerConnectionFactory(this.serverConnectionConfig));
         this.server.setExceptionHandler(new SimpleIOReactorExceptionHandler());
         this.serverHttpProc = new ImmutableHttpProcessor(new HttpResponseInterceptor[] {
                 new ResponseDate(),
-                new ResponseServer(),
+                new ResponseServer("TEST-SERVER/1.1"),
                 new ResponseContent(),
                 new ResponseConnControl()
         });
     }
 
-    public void initClient() throws Exception {
-        this.ioreactor = new DefaultConnectingIOReactor();
-        final AsyncSchemeRegistry schemeRegistry = new AsyncSchemeRegistry();
-        schemeRegistry.register(new AsyncScheme("http", 80, null));
-        this.connMgr = new PoolingClientAsyncConnectionManager(this.ioreactor, schemeRegistry);
-        this.httpclient = new DefaultHttpAsyncClient(this.connMgr);
-        this.httpclient.getParams()
-            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
-            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 60000)
-            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
-            .setBooleanParameter(CoreConnectionPNames.STALE_CONNECTION_CHECK, false)
-            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true)
-            .setParameter(CoreProtocolPNames.USER_AGENT, "TEST-CLIENT/1.1");
-    }
+    public void initConnectionManager() throws Exception {
+        this.clientIOReactor = new DefaultConnectingIOReactor(this.clientReactorConfig);
+        this.connMgr = new PoolingNHttpClientConnectionManager(this.clientIOReactor);
+     }
 
     @After
     public void shutDownClient() throws Exception {
         if (this.httpclient != null) {
-            this.httpclient.shutdown();
+            this.httpclient.close();
         }
     }
 

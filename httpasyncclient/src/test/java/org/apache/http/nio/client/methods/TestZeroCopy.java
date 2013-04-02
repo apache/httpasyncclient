@@ -49,23 +49,24 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NFileEntity;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.junit.After;
@@ -80,7 +81,10 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     @Before
     public void setUp() throws Exception {
         initServer();
-        initClient();
+        initConnectionManager();
+        this.httpclient = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr)
+                .build();
     }
 
     @After
@@ -91,8 +95,8 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(params);
+            final ConnectionConfig config) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(config);
     }
 
     @Override
@@ -101,15 +105,14 @@ public class TestZeroCopy extends HttpAsyncTestBase {
     }
 
     private HttpHost start(
-            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
                 requestHandlerResolver,
-                expectationVerifier,
-                this.serverParams);
+                expectationVerifier);
         this.server.start(serviceHandler);
         this.httpclient.start();
 
@@ -266,7 +269,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @Test
     public void testTwoWayZeroCopy() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new TestHandler(false)));
         final HttpHost target = start(registry, null);
 
@@ -296,7 +299,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     @Test
     public void testZeroCopyFallback() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new TestHandler(true)));
         final HttpHost target = start(registry, null);
         final File tmpdir = FileUtils.getTempDirectory();

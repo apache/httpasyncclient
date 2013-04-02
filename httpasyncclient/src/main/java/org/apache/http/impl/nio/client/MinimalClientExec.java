@@ -56,7 +56,7 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HttpCoreContext;
 
 class MinimalClientExec implements InternalClientExec {
 
@@ -115,7 +115,7 @@ class MinimalClientExec implements InternalClientExec {
             host = target;
         }
 
-        localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, host);
+        localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, host);
         localContext.setAttribute(ClientContext.ROUTE, route);
     }
 

@@ -66,6 +66,6 @@ interface InternalClientExec {
 
     void responseCompleted(
             InternalState state,
-            InternalConnManager connManager) throws HttpException;
+            InternalConnManager connManager) throws IOException, HttpException;
 
 }

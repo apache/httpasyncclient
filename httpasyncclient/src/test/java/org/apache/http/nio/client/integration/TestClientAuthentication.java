@@ -47,39 +47,35 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.TargetAuthenticationStrategy;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.BasicAuthTokenExtractor;
 import org.apache.http.localserver.RequestBasicAuth;
 import org.apache.http.localserver.ResponseBasicUnauthorized;
 import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.nio.NHttpConnection;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.nio.protocol.BasicAsyncRequestConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncResponseProducer;
 import org.apache.http.nio.protocol.HttpAsyncExchange;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestConsumer;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandler;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerRegistry;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerResolver;
+import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.nio.reactor.ListenerEndpoint;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
@@ -99,7 +95,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
     @Before
     public void setUp() throws Exception {
         initServer();
-        initClient();
+        initConnectionManager();
     }
 
     @After
@@ -127,8 +123,8 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Override
     protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final HttpParams params) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(params);
+            final ConnectionConfig config) throws Exception {
+        return new DefaultNHttpServerConnectionFactory(config);
     }
 
     @Override
@@ -137,15 +133,14 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
     }
 
     private HttpHost start(
-            final HttpAsyncRequestHandlerResolver requestHandlerResolver,
+            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
                 new DefaultConnectionReuseStrategy(),
                 new DefaultHttpResponseFactory(),
                 requestHandlerResolver,
-                expectationVerifier,
-                this.serverParams);
+                expectationVerifier);
         this.server.start(serviceHandler);
         this.httpclient.start();
 
@@ -178,7 +173,6 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             final String creds = (String) context.getAttribute("creds");
             if (creds == null || !creds.equals("test:test")) {
                 response.setStatusCode(HttpStatus.SC_UNAUTHORIZED);
-                response.setEntity(new NStringEntity("Unauthorized"));
             } else {
                 response.setStatusCode(HttpStatus.SC_OK);
                 final NStringEntity entity = new NStringEntity("success", Consts.ASCII);
@@ -278,12 +272,16 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationNoCreds() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(null);
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpGet httpget = new HttpGet("/");
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
@@ -297,13 +295,17 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationFailure() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "all-wrong"));
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpGet httpget = new HttpGet("/");
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
@@ -317,13 +319,17 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccess() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpGet httpget = new HttpGet("/");
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
@@ -337,13 +343,17 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccessNonPersistentConnection() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler(false)));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpGet httpget = new HttpGet("/");
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
@@ -355,78 +365,21 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         Assert.assertEquals("test realm", authscope.getRealm());
     }
 
-    public class FaultyRequestHandler implements HttpAsyncRequestHandler<HttpRequest> {
-
-        private final HttpRequestHandler handler;
-
-        public FaultyRequestHandler(final HttpRequestHandler handler) {
-            super();
-            if (handler == null) {
-                throw new IllegalArgumentException("Request handler may not be null");
-            }
-            this.handler = handler;
-        }
-
-        public HttpAsyncRequestConsumer<HttpRequest> processRequest(final HttpRequest request,
-                final HttpContext context) {
-            return new BasicAsyncRequestConsumer();
-        }
-
-        public void handle(
-                final HttpRequest request,
-                final HttpAsyncExchange httpexchange,
-                final HttpContext context) throws HttpException, IOException {
-            HttpResponse response = httpexchange.getResponse();
-            this.handler.handle(request, httpexchange.getResponse(), context);
-            httpexchange.submitResponse(new BasicAsyncResponseProducer(response) {
-
-                @Override
-                public void responseCompleted(final HttpContext context) {
-                    super.responseCompleted(context);
-                    NHttpConnection conn = (NHttpConnection)context.getAttribute(
-                        ExecutionContext.HTTP_CONNECTION);
-                    try {
-                        conn.shutdown();
-                    } catch (IOException e) {
-                    }
-                }
-
-            });
-        }
-
-    }
-
-    @Test
-    public void testBasicAuthenticationFaultyPersistentConnection() throws Exception {
-        HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
-        registry.register("*", new FaultyRequestHandler(new AuthHandler(true)));
-        HttpHost target = start(registry, null);
-
-        TestCredentialsProvider credsProvider = new TestCredentialsProvider(
-                new UsernamePasswordCredentials("test", "test"));
-        this.httpclient.setCredentialsProvider(credsProvider);
-
-        HttpGet httpget = new HttpGet("/");
-        Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
-        HttpResponse response = future.get();
-        Assert.assertNotNull(response);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
-        AuthScope authscope = credsProvider.getAuthScope();
-        Assert.assertNotNull(authscope);
-        Assert.assertEquals("test realm", authscope.getRealm());
-    }
-
     @Test
     public void testBasicAuthenticationSuccessWithNonRepeatableExpectContinue() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
         final AuthExpectationVerifier expectationVerifier = new AuthExpectationVerifier();
-        final HttpHost target = start(registry, expectationVerifier);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
 
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, expectationVerifier);
 
         final HttpPut httpput = new HttpPut("/");
 
@@ -440,7 +393,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         };
 
         httpput.setEntity(entity);
-        httpput.getParams().setBooleanParameter(CoreProtocolPNames.USE_EXPECT_CONTINUE, true);
+        httpput.setConfig(RequestConfig.custom().setExpectContinueEnabled(true).build());
 
         final Future<HttpResponse> future = this.httpclient.execute(target, httpput, null);
         final HttpResponse response = future.get();
@@ -450,14 +403,18 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test(expected=ExecutionException.class)
     public void testBasicAuthenticationFailureWithNonRepeatableEntityExpectContinueOff() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
 
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpPut httpput = new HttpPut("/");
 
@@ -471,7 +428,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         };
 
         httpput.setEntity(requestEntity);
-        httpput.getParams().setBooleanParameter(CoreProtocolPNames.USE_EXPECT_CONTINUE, false);
+        httpput.setConfig(RequestConfig.custom().setExpectContinueEnabled(false).build());
 
         try {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpput, null);
@@ -486,14 +443,18 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationSuccessOnRepeatablePost() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final TestCredentialsProvider credsProvider = new TestCredentialsProvider(
                 new UsernamePasswordCredentials("test", "test"));
 
-        this.httpclient.setCredentialsProvider(credsProvider);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpPost httppost = new HttpPost("/");
         httppost.setEntity(new NStringEntity("some important stuff", Consts.ISO_8859_1));
@@ -509,9 +470,8 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testBasicAuthenticationCredentialsCaching() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
-        final HttpHost target = start(registry, null);
 
         final BasicCredentialsProvider credsProvider = new BasicCredentialsProvider();
         credsProvider.setCredentials(AuthScope.ANY,
@@ -519,8 +479,13 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
         final TestTargetAuthenticationStrategy authStrategy = new TestTargetAuthenticationStrategy();
 
-        this.httpclient.setCredentialsProvider(credsProvider);
-        this.httpclient.setTargetAuthenticationStrategy(authStrategy);
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .setTargetAuthenticationStrategy(authStrategy)
+            .setDefaultCredentialsProvider(credsProvider)
+            .build();
+
+        final HttpHost target = start(registry, null);
 
         final HttpContext context = new BasicHttpContext();
 
@@ -541,9 +506,15 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testAuthenticationUserinfoInRequestSuccess() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
+
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .build();
+
         final HttpHost target = start(registry, null);
+
         final HttpGet httpget = new HttpGet("http://test:test@" +  target.toHostString() + "/");
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
         final HttpResponse response = future.get();
@@ -556,9 +527,15 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
     @Test
     public void testAuthenticationUserinfoInRequestFailure() throws Exception {
-        final HttpAsyncRequestHandlerRegistry registry = new HttpAsyncRequestHandlerRegistry();
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
         registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
+
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .build();
+
         final HttpHost target = start(registry, null);
+
         final HttpGet httpget = new HttpGet("http://test:all-wrong@" +  target.toHostString() + "/");
 
         final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);

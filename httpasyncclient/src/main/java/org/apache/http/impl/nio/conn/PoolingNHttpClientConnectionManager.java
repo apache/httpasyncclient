@@ -29,6 +29,7 @@ package org.apache.http.impl.nio.conn;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,6 +58,7 @@ import org.apache.http.nio.conn.NHttpConnectionFactory;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
 import org.apache.http.nio.pool.NIOConnFactory;
+import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
@@ -139,6 +141,7 @@ public class PoolingNHttpClientConnectionManager
         this.configData = new ConfigData();
         this.pool = new CPool(ioreactor,
             new InternalConnectionFactory(this.configData, connFactory),
+            new InternalAddressResolver(schemePortResolver, dnsResolver),
             2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
         this.layeringStrategyRegistry = layeringStrategyRegistry;
         this.schemePortResolver = schemePortResolver != null ? schemePortResolver :
@@ -588,4 +591,40 @@ public class PoolingNHttpClientConnectionManager
 
     }
 
+    static class InternalAddressResolver implements SocketAddressResolver<HttpRoute> {
+
+        private final SchemePortResolver schemePortResolver;
+        private final DnsResolver dnsResolver;
+
+        public InternalAddressResolver(
+                final SchemePortResolver schemePortResolver,
+                final DnsResolver dnsResolver) {
+            super();
+            this.schemePortResolver = schemePortResolver != null ? schemePortResolver :
+                DefaultSchemePortResolver.INSTANCE;
+            this.dnsResolver = dnsResolver != null ? dnsResolver :
+                    SystemDefaultDnsResolver.INSTANCE;
+        }
+
+        public SocketAddress resolveLocalAddress(final HttpRoute route) throws IOException {
+            return route.getLocalAddress() != null ? new InetSocketAddress(route.getLocalAddress(), 0) : null;
+        }
+
+        public SocketAddress resolveRemoteAddress(final HttpRoute route) throws IOException {
+            final HttpHost host;
+            if (route.getProxyHost() != null) {
+                host = route.getProxyHost();
+            } else {
+                host = route.getTargetHost();
+            }
+            final int port = this.schemePortResolver.resolve(host);
+            try {
+                final InetAddress[] addresses = this.dnsResolver.resolve(host.getHostName());
+                return new InetSocketAddress(addresses[0], port);
+            } catch (final UnknownHostException ex) {
+                return new InetSocketAddress(host.getHostName(), port);
+            }
+        }
+
+    }
 }
