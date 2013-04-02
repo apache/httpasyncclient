@@ -30,6 +30,7 @@ import java.util.Locale;
 
 import org.apache.http.util.LangUtils;
 
+@Deprecated
 public final class AsyncScheme {
 
     /** The name of this scheme, in lowercase. (e.g. http, https) */

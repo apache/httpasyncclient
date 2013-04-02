@@ -32,6 +32,7 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.reactor.IOSession;
 
+@Deprecated
 class HttpNIOConnPoolFactory implements NIOConnFactory<HttpRoute, IOSession> {
 
     public IOSession create(final HttpRoute route, final IOSession session) throws IOException {

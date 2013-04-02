@@ -41,6 +41,7 @@ import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.protocol.HttpContext;
 
+@Deprecated
 public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
 
     private final AsyncSchemeRegistry schemeRegistry;

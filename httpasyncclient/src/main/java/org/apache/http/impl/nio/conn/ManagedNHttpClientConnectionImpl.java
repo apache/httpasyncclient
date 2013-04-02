@@ -26,56 +26,89 @@
  */
 package org.apache.http.impl.nio.conn;
 
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+
+import javax.net.ssl.SSLSession;
+
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseFactory;
+import org.apache.http.config.MessageConstraints;
+import org.apache.http.entity.ContentLengthStrategy;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
-import org.apache.http.nio.conn.ClientAsyncConnection;
+import org.apache.http.nio.NHttpMessageParserFactory;
+import org.apache.http.nio.NHttpMessageWriterFactory;
+import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
-import org.apache.http.params.HttpParams;
+import org.apache.http.util.Args;
+import org.apache.http.util.Asserts;
 
-@Deprecated
-public class DefaultClientAsyncConnection
-                    extends DefaultNHttpClientConnection implements ClientAsyncConnection {
+class ManagedNHttpClientConnectionImpl
+                    extends DefaultNHttpClientConnection implements ManagedNHttpClientConnection {
 
-    private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
-    private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
+    private final Log headerlog;
+    private final Log wirelog;
     private final Log log;
 
     private final String id;
     private IOSession original;
 
-    public DefaultClientAsyncConnection(
+    public ManagedNHttpClientConnectionImpl(
             final String id,
+            final Log log,
+            final Log headerlog,
+            final Log wirelog,
             final IOSession iosession,
-            final HttpResponseFactory responseFactory,
+            final int buffersize,
             final ByteBufferAllocator allocator,
-            final HttpParams params) {
-        super(iosession, responseFactory, allocator, params);
+            final CharsetDecoder chardecoder,
+            final CharsetEncoder charencoder,
+            final MessageConstraints constraints,
+            final ContentLengthStrategy incomingContentStrategy,
+            final ContentLengthStrategy outgoingContentStrategy,
+            final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory,
+            final NHttpMessageParserFactory<HttpResponse> responseParserFactory) {
+        super(iosession, buffersize, allocator, chardecoder, charencoder, constraints,
+                incomingContentStrategy, outgoingContentStrategy,
+                requestWriterFactory, responseParserFactory);
         this.id = id;
+        this.log = log;
+        this.headerlog = headerlog;
+        this.wirelog = wirelog;
         this.original = iosession;
-        this.log = LogFactory.getLog(iosession.getClass());
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
+            super.bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
         }
     }
 
-    public void upgrade(final IOSession iosession) {
+    @Override
+    public void bind(final IOSession iosession) {
+        Args.notNull(iosession, "I/O session");
+        Asserts.check(!iosession.isClosed(), "I/O session is closed");
+        this.status = ACTIVE;
         this.original = iosession;
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
             this.log.debug(this.id + " Upgrade session " + iosession);
-            bind(new LoggingIOSession(iosession, this.id, this.headerlog, this.wirelog));
+            super.bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
         } else {
-            bind(iosession);
+            super.bind(iosession);
         }
     }
 
     public IOSession getIOSession() {
         return this.original;
+    }
+
+    public SSLSession getSSLSession() {
+        if (this.original instanceof SSLIOSession) {
+            return ((SSLIOSession) this.original).getSSLSession();
+        } else {
+            return null;
+        }
     }
 
     public String getId() {

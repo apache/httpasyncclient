@@ -34,74 +34,48 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseFactory;
 import org.apache.http.config.ConnectionConfig;
-import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.nio.codecs.DefaultHttpRequestWriterFactory;
 import org.apache.http.impl.nio.codecs.DefaultHttpResponseParserFactory;
-import org.apache.http.message.BasicLineParser;
 import org.apache.http.nio.NHttpMessageParserFactory;
-import org.apache.http.nio.conn.ClientAsyncConnection;
-import org.apache.http.nio.conn.ClientAsyncConnectionFactory;
+import org.apache.http.nio.NHttpMessageWriterFactory;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
-import org.apache.http.params.HttpParams;
 
-@Deprecated
-public class DefaultClientAsyncConnectionFactory
-    implements ClientAsyncConnectionFactory, NHttpConnectionFactory<ManagedNHttpClientConnection> {
+public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFactory<ManagedNHttpClientConnection> {
 
     private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
     private final Log wirelog = LogFactory.getLog("org.apache.http.wire");
     private final Log log = LogFactory.getLog(ManagedNHttpClientConnectionImpl.class);
 
-    public static final DefaultClientAsyncConnectionFactory INSTANCE = new DefaultClientAsyncConnectionFactory(null, null);
-
     private static AtomicLong COUNTER = new AtomicLong();
 
-    private final HttpResponseFactory responseFactory;
-    private final NHttpMessageParserFactory<HttpResponse> responseParserFactory;
-    private final ByteBufferAllocator allocator;
+    public static final ManagedNHttpClientConnectionFactory INSTANCE = new ManagedNHttpClientConnectionFactory();
 
-    public DefaultClientAsyncConnectionFactory(
+    private final ByteBufferAllocator allocator;
+    private final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory;
+    private final NHttpMessageParserFactory<HttpResponse> responseParserFactory;
+
+    public ManagedNHttpClientConnectionFactory(
+            final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory,
             final NHttpMessageParserFactory<HttpResponse> responseParserFactory,
             final ByteBufferAllocator allocator) {
         super();
-        this.responseFactory = createHttpResponseFactory();
+        this.requestWriterFactory = requestWriterFactory != null ? requestWriterFactory :
+            DefaultHttpRequestWriterFactory.INSTANCE;
         this.responseParserFactory = responseParserFactory != null ? responseParserFactory :
             DefaultHttpResponseParserFactory.INSTANCE;
         this.allocator = allocator != null ? allocator : HeapByteBufferAllocator.INSTANCE;
     }
 
-    public DefaultClientAsyncConnectionFactory() {
-        super();
-        this.responseFactory = createHttpResponseFactory();
-        this.responseParserFactory = new DefaultHttpResponseParserFactory(
-            BasicLineParser.INSTANCE, this.responseFactory);
-        this.allocator = createByteBufferAllocator();
-    }
-
-    @Deprecated
-    public ClientAsyncConnection create(
-            final String id,
-            final IOSession iosession,
-            final HttpParams params) {
-        return new DefaultClientAsyncConnection(
-                id, iosession, this.responseFactory, this.allocator, params);
-    }
-
-    @Deprecated
-    protected ByteBufferAllocator createByteBufferAllocator() {
-        return HeapByteBufferAllocator.INSTANCE;
-    }
-
-    @Deprecated
-    protected HttpResponseFactory createHttpResponseFactory() {
-        return DefaultHttpResponseFactory.INSTANCE;
+    public ManagedNHttpClientConnectionFactory() {
+        this(null, null, null);
     }
 
     public ManagedNHttpClientConnection create(
@@ -130,8 +104,12 @@ public class DefaultClientAsyncConnectionFactory
                 iosession,
                 8 * 1024,
                 this.allocator,
-                chardecoder, charencoder, config.getMessageConstraints(),
-                null, null, null,
+                chardecoder,
+                charencoder,
+                config.getMessageConstraints(),
+                null,
+                null,
+                this.requestWriterFactory,
                 this.responseParserFactory);
         iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
         return conn;

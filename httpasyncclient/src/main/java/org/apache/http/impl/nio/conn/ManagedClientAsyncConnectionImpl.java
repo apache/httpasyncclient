@@ -54,6 +54,7 @@ import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
+@Deprecated
 class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
     private final ClientAsyncConnectionManager manager;

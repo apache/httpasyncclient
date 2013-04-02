@@ -46,6 +46,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
@@ -61,7 +62,11 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     public static final String SSLV2 = "SSLv2";
 
     public static SSLLayeringStrategy getDefaultStrategy() {
-        return new SSLLayeringStrategy();
+        return new SSLLayeringStrategy(SSLSocketFactory.createDefaultSSLContext());
+    }
+
+    public static SSLLayeringStrategy getSystemDefaultStrategy() {
+        return new SSLLayeringStrategy(SSLSocketFactory.createSystemSSLContext());
     }
 
     private final SSLContext sslContext;
@@ -96,14 +101,6 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         final SSLContext sslcontext = SSLContext.getInstance(algo);
         sslcontext.init(keymanagers, trustmanagers, random);
         return sslcontext;
-    }
-
-    private static SSLContext createDefaultSSLContext() {
-        try {
-            return createSSLContext(TLS, null, null, null, null, null);
-        } catch (final Exception ex) {
-            throw new IllegalStateException("Failure initializing default SSL context", ex);
-        }
     }
 
     public SSLLayeringStrategy(
@@ -178,10 +175,6 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         this(sslContext, new BrowserCompatHostnameVerifier());
     }
 
-    private SSLLayeringStrategy() {
-        this(createDefaultSSLContext());
-    }
-
     public boolean isSecure() {
         return true;
     }
@@ -195,6 +188,7 @@ public class SSLLayeringStrategy implements LayeringStrategy {
 
     protected void initializeEngine(final SSLEngine engine) {
     }
+
     protected void verifySession(final IOSession iosession,
                           final SSLSession sslsession) throws SSLException {
         final InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();

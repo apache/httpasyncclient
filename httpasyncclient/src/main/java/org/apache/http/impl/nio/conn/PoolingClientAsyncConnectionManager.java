@@ -46,6 +46,7 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.pool.ConnPoolControl;
 import org.apache.http.pool.PoolStats;
 
+@Deprecated
 public class PoolingClientAsyncConnectionManager
                               implements ClientAsyncConnectionManager, ConnPoolControl<HttpRoute> {
 

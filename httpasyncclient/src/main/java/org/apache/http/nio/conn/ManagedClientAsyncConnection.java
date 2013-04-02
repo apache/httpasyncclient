@@ -37,6 +37,7 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
+@Deprecated
 public interface ManagedClientAsyncConnection
     extends HttpRoutedConnection, NHttpClientConnection, ConnectionReleaseTrigger {
 

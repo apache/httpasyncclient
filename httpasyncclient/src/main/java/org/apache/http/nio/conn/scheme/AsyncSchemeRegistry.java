@@ -38,6 +38,7 @@ import org.apache.http.HttpHost;
  * Schemes are identified by lowercase names.
  *
  */
+@Deprecated
 public final class AsyncSchemeRegistry {
 
     /** The available schemes in this registry. */

@@ -29,37 +29,38 @@ package org.apache.http.impl.nio.conn;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.nio.conn.scheme.AsyncScheme;
-import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
+import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.pool.AbstractNIOConnPool;
+import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.nio.reactor.IOSession;
 
-@Deprecated
-class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPoolEntry> {
+@ThreadSafe
+class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection, CPoolEntry> {
 
-    private static final AtomicLong COUNTER = new AtomicLong(1);
+    private final Log log = LogFactory.getLog(CPool.class);
 
-    private final Log log;
-    private final AsyncSchemeRegistry schemeRegistry;
-    private final long connTimeToLive;
+    private final long timeToLive;
     private final TimeUnit tunit;
 
-    HttpNIOConnPool(
-            final Log log,
+    public CPool(
             final ConnectingIOReactor ioreactor,
-            final AsyncSchemeRegistry schemeRegistry,
-            final long connTimeToLive, final TimeUnit tunit) {
-        super(ioreactor, new HttpNIOConnPoolFactory(), 2, 20);
-        this.log = log;
-        this.schemeRegistry = schemeRegistry;
-        this.connTimeToLive = connTimeToLive;
+            final NIOConnFactory<HttpRoute, ManagedNHttpClientConnection> connFactory,
+            final int defaultMaxPerRoute, final int maxTotal,
+            final long timeToLive, final TimeUnit tunit) {
+        super(ioreactor, connFactory, defaultMaxPerRoute, maxTotal);
+        this.timeToLive = timeToLive;
         this.tunit = tunit;
+    }
+
+    @Override
+    protected CPoolEntry createEntry(final HttpRoute route, final ManagedNHttpClientConnection conn) {
+        return new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.tunit);
     }
 
     @Override
@@ -74,18 +75,8 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
             firsthop = route.getTargetHost();
         }
         final String hostname = firsthop.getHostName();
-        int port = firsthop.getPort();
-        if (port < 0) {
-            final AsyncScheme scheme = this.schemeRegistry.getScheme(firsthop);
-            port = scheme.resolvePort(port);
-        }
+        final int port = firsthop.getPort();
         return new InetSocketAddress(hostname, port);
-    }
-
-    @Override
-    protected HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
-        final String id = Long.toString(COUNTER.getAndIncrement());
-        return new HttpPoolEntry(this.log, id, route, session, this.connTimeToLive, this.tunit);
     }
 
 }

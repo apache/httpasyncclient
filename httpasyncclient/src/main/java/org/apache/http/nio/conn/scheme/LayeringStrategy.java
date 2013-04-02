@@ -30,6 +30,7 @@ import org.apache.http.nio.reactor.IOSession;
 
 public interface LayeringStrategy {
 
+    @Deprecated
     boolean isSecure();
 
     IOSession layer(IOSession iosession);

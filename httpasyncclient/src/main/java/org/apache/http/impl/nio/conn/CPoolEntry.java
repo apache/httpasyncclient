@@ -31,24 +31,43 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.routing.RouteTracker;
-import org.apache.http.nio.conn.ClientAsyncConnection;
-import org.apache.http.nio.reactor.IOEventDispatch;
-import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.pool.PoolEntry;
 
-@Deprecated
-class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
+@ThreadSafe
+class CPoolEntry extends PoolEntry<HttpRoute, ManagedNHttpClientConnection> {
 
     private final Log log;
-    private final RouteTracker tracker;
+    private volatile boolean routeComplete;
 
-    HttpPoolEntry(final Log log, final String id, final HttpRoute route, final IOSession session,
+    public CPoolEntry(
+            final Log log,
+            final String id,
+            final HttpRoute route,
+            final ManagedNHttpClientConnection conn,
             final long timeToLive, final TimeUnit tunit) {
-        super(id, route, session, timeToLive, tunit);
+        super(id, route, conn, timeToLive, tunit);
         this.log = log;
-        this.tracker = new RouteTracker(route);
+    }
+
+    public boolean isRouteComplete() {
+        return this.routeComplete;
+    }
+
+    public void markRouteComplete() {
+        this.routeComplete = true;
+    }
+
+    public void closeConnection() throws IOException {
+        final ManagedNHttpClientConnection conn = getConnection();
+        conn.close();
+    }
+
+    public void shutdownConnection() throws IOException {
+        final ManagedNHttpClientConnection conn = getConnection();
+        conn.shutdown();
     }
 
     @Override
@@ -60,38 +79,19 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
         return expired;
     }
 
-    public ClientAsyncConnection getOperatedClientConnection() {
-        final IOSession session = getConnection();
-        return (ClientAsyncConnection) session.getAttribute(IOEventDispatch.CONNECTION_KEY);
+    @Override
+    public boolean isClosed() {
+        final ManagedNHttpClientConnection conn = getConnection();
+        return !conn.isOpen();
     }
 
     @Override
     public void close() {
         try {
-            getOperatedClientConnection().shutdown();
+            closeConnection();
         } catch (final IOException ex) {
-            if (this.log.isDebugEnabled()) {
-                this.log.debug("I/O error shutting down connection", ex);
-            }
+            this.log.debug("I/O error closing connection", ex);
         }
-    }
-
-    @Override
-    public boolean isClosed() {
-        final IOSession session = getConnection();
-        return session.isClosed();
-    }
-
-    HttpRoute getPlannedRoute() {
-        return super.getRoute();
-    }
-
-    RouteTracker getTracker() {
-        return this.tracker;
-    }
-
-    HttpRoute getEffectiveRoute() {
-        return this.tracker.toRoute();
     }
 
 }

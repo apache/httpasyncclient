@@ -34,6 +34,7 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.conn.scheme.AsyncSchemeRegistry;
 import org.apache.http.nio.reactor.IOReactor;
 
+@Deprecated
 public interface ClientAsyncConnectionManager extends IOReactor {
 
     AsyncSchemeRegistry getSchemeRegistry();
