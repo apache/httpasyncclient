@@ -24,30 +24,13 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.examples.nio.client;
+package org.apache.http.nio.conn.ssl;
 
-import java.util.concurrent.Future;
+import org.apache.http.HttpHost;
+import org.apache.http.nio.reactor.IOSession;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
+public interface SchemeLayeringStrategy {
 
-public class AsyncClientHttpExchange {
-
-    public static void main(final String[] args) throws Exception {
-        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
-        httpclient.start();
-        try {
-            final HttpGet request = new HttpGet("http://www.apache.org/");
-            final Future<HttpResponse> future = httpclient.execute(request, null);
-            final HttpResponse response = future.get();
-            System.out.println("Response: " + response.getStatusLine());
-            System.out.println("Shutting down");
-        } finally {
-            httpclient.close();
-        }
-        System.out.println("Done");
-    }
+    IOSession layer(HttpHost host, IOSession iosession);
 
 }

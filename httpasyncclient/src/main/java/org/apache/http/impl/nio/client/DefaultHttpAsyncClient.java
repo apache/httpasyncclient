@@ -50,6 +50,7 @@ import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
 import org.apache.http.util.VersionInfo;
 
+@Deprecated
 public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
 
     public DefaultHttpAsyncClient(final ClientAsyncConnectionManager connmgr) {

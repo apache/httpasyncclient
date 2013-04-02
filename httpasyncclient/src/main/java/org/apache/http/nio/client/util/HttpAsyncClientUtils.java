@@ -26,6 +26,9 @@
  */
 package org.apache.http.nio.client.util;
 
+import java.io.IOException;
+
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.nio.client.HttpAsyncClient;
 
 /**
@@ -56,6 +59,16 @@ public class HttpAsyncClientUtils {
      * @param httpAsyncClient
      *            the HttpAsyncClient to close, may be null or already closed.
      */
+    public static void closeQuietly(final CloseableHttpAsyncClient httpAsyncClient) {
+        if (httpAsyncClient != null) {
+            try {
+                httpAsyncClient.close();
+            } catch (final IOException e) {
+            }
+        }
+    }
+
+    @Deprecated
     public static void closeQuietly(final HttpAsyncClient httpAsyncClient) {
         if (httpAsyncClient != null) {
             try {

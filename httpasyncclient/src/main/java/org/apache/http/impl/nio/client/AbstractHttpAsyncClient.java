@@ -98,9 +98,10 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 
+@Deprecated
 public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
-    private final Log log = LogFactory.getLog(getClass());;
+    private final Log log = LogFactory.getLog(getClass());
     private final ClientAsyncConnectionManager connmgr;
     private final Queue<HttpAsyncRequestExecutionHandler<?>> queue;
 

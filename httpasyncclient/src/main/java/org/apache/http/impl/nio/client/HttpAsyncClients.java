@@ -24,30 +24,28 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.examples.nio.client;
 
-import java.util.concurrent.Future;
+package org.apache.http.impl.nio.client;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.annotation.Immutable;
 
-public class AsyncClientHttpExchange {
+@Immutable
+public class HttpAsyncClients {
 
-    public static void main(final String[] args) throws Exception {
-        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
-        httpclient.start();
-        try {
-            final HttpGet request = new HttpGet("http://www.apache.org/");
-            final Future<HttpResponse> future = httpclient.execute(request, null);
-            final HttpResponse response = future.get();
-            System.out.println("Response: " + response.getStatusLine());
-            System.out.println("Shutting down");
-        } finally {
-            httpclient.close();
-        }
-        System.out.println("Done");
+    private HttpAsyncClients() {
+        super();
+    }
+
+    public static HttpAsyncClientBuilder custom() {
+        return HttpAsyncClientBuilder.create();
+    }
+
+    public static CloseableHttpAsyncClient createDefault() {
+        return HttpAsyncClientBuilder.create().build();
+    }
+
+    public static CloseableHttpAsyncClient createSystem() {
+        return HttpAsyncClientBuilder.create().useSystemProperties().build();
     }
 
 }

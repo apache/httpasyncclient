@@ -51,11 +51,11 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.conn.DefaultSchemePortResolver;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
+import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.scheme.LayeringStrategy;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
+import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
 import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -76,12 +76,12 @@ public class PoolingNHttpClientConnectionManager
     private final ConnectingIOReactor ioreactor;
     private final ConfigData configData;
     private final CPool pool;
-    private final Registry<LayeringStrategy> layeringStrategyRegistry;
+    private final Registry<SchemeLayeringStrategy> layeringStrategyRegistry;
     private final SchemePortResolver schemePortResolver;
     private final DnsResolver dnsResolver;
 
-    private static Registry<LayeringStrategy> getDefaultRegistry() {
-        return RegistryBuilder.<LayeringStrategy>create()
+    private static Registry<SchemeLayeringStrategy> getDefaultRegistry() {
+        return RegistryBuilder.<SchemeLayeringStrategy>create()
                 .register("https", SSLLayeringStrategy.getDefaultStrategy())
                 .build();
     }
@@ -92,7 +92,7 @@ public class PoolingNHttpClientConnectionManager
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final Registry<LayeringStrategy> layeringStrategyRegistry) {
+            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry) {
         this(ioreactor, null, layeringStrategyRegistry, null);
     }
 
@@ -112,14 +112,14 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<LayeringStrategy> layeringStrategyRegistry) {
+            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry) {
         this(ioreactor, connFactory, layeringStrategyRegistry, null);
     }
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<LayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
             final DnsResolver dnsResolver) {
         this(ioreactor, connFactory, layeringStrategyRegistry, null, dnsResolver,
             -1, TimeUnit.MILLISECONDS);
@@ -128,7 +128,7 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<LayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
             final long timeToLive, final TimeUnit tunit) {
@@ -150,7 +150,7 @@ public class PoolingNHttpClientConnectionManager
     PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final CPool pool,
-            final Registry<LayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
             final long timeToLive, final TimeUnit tunit) {
@@ -343,13 +343,13 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final LayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
+        final SchemeLayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
                 host.getSchemeName());
         if (layeringStrategy != null) {
             synchronized (managedConn) {
                 final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
                 final ManagedNHttpClientConnection conn = entry.getConnection();
-                final IOSession currentSession = layeringStrategy.layer(conn.getIOSession());
+                final IOSession currentSession = layeringStrategy.layer(host, conn.getIOSession());
                 conn.bind(currentSession);
             }
         }
@@ -362,13 +362,13 @@ public class PoolingNHttpClientConnectionManager
         Args.notNull(managedConn, "Managed connection");
         Args.notNull(route, "HTTP route");
         final HttpHost host  = route.getTargetHost();
-        final LayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
+        final SchemeLayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
             host.getSchemeName());
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
             final ManagedNHttpClientConnection conn = entry.getConnection();
             Asserts.check(layeringStrategy != null, "Layering is not supported for this scheme");
-            final IOSession currentSession = layeringStrategy.layer(conn.getIOSession());
+            final IOSession currentSession = layeringStrategy.layer(host, conn.getIOSession());
             conn.bind(currentSession);
         }
     }

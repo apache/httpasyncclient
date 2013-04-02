@@ -33,22 +33,22 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncClient;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.client.methods.ZeroCopyConsumer;
 import org.apache.http.nio.client.methods.ZeroCopyPost;
 
 public class ZeroCopyHttpExchange {
 
-    public static void main(String[] args) throws Exception {
-        HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
+    public static void main(final String[] args) throws Exception {
+        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         httpclient.start();
         try {
-            File upload = new File(args[0]);
-            File download = new File(args[1]);
-            ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload,
+            final File upload = new File(args[0]);
+            final File download = new File(args[1]);
+            final ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload,
                     ContentType.create("text/plain"));
-            ZeroCopyConsumer<File> consumer = new ZeroCopyConsumer<File>(download) {
+            final ZeroCopyConsumer<File> consumer = new ZeroCopyConsumer<File>(download) {
 
                 @Override
                 protected File process(
@@ -62,12 +62,12 @@ public class ZeroCopyHttpExchange {
                 }
 
             };
-            Future<File> future = httpclient.execute(httpost, consumer, null);
-            File result = future.get();
+            final Future<File> future = httpclient.execute(httpost, consumer, null);
+            final File result = future.get();
             System.out.println("Response file length: " + result.length());
             System.out.println("Shutting down");
         } finally {
-            httpclient.shutdown();
+            httpclient.close();
         }
         System.out.println("Done");
     }

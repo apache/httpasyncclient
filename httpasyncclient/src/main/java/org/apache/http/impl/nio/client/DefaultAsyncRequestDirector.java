@@ -58,7 +58,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.AbortableHttpRequest;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
-import org.apache.http.client.params.HttpClientParamConfig;
 import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
@@ -94,6 +93,7 @@ import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
 
+@Deprecated
 class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler<T> {
 
     private static final AtomicLong COUNTER = new AtomicLong(1);
@@ -232,7 +232,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             wrapper.setParams(this.params);
             final HttpRoute route = determineRoute(target, wrapper, this.localContext);
             this.mainRequest = new RoutedRequest(wrapper, route);
-            RequestConfig config = ParamConfig.getRequestConfig(params);
+            final RequestConfig config = ParamConfig.getRequestConfig(params);
             this.localContext.setAttribute(ClientContext.REQUEST_CONFIG, config);
             this.requestContentProduced = false;
             requestConnection();

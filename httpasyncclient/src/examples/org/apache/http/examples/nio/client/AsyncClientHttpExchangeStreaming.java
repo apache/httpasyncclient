@@ -31,23 +31,23 @@ import java.nio.CharBuffer;
 import java.util.concurrent.Future;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.AsyncCharConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.protocol.HttpContext;
 
 public class AsyncClientHttpExchangeStreaming {
 
-    public static void main(String[] args) throws Exception {
-        HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
+    public static void main(final String[] args) throws Exception {
+        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         httpclient.start();
         try {
-            Future<Boolean> future = httpclient.execute(
+            final Future<Boolean> future = httpclient.execute(
                     HttpAsyncMethods.createGet("http://localhost:8080/"),
                     new MyResponseConsumer(), null);
-            Boolean result = future.get();
+            final Boolean result = future.get();
             if (result != null && result.booleanValue()) {
                 System.out.println("Request successfully executed");
             } else {
@@ -55,7 +55,7 @@ public class AsyncClientHttpExchangeStreaming {
             }
             System.out.println("Shutting down");
         } finally {
-            httpclient.shutdown();
+            httpclient.close();
         }
         System.out.println("Done");
     }

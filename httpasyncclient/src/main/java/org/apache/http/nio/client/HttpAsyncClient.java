@@ -40,16 +40,22 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
+@SuppressWarnings("deprecation")
 public interface HttpAsyncClient {
 
+    @Deprecated
     void start();
 
+    @Deprecated
     void shutdown() throws InterruptedException;
 
+    @Deprecated
     IOReactorStatus getStatus();
 
+    @Deprecated
     ClientAsyncConnectionManager getConnectionManager();
 
+    @Deprecated
     HttpParams getParams();
 
     <T> Future<T> execute(

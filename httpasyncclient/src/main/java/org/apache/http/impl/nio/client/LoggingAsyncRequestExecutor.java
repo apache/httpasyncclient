@@ -36,7 +36,6 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
-import org.apache.http.protocol.HttpContext;
 
 class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
 
@@ -67,14 +66,6 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
             this.log.debug(conn + ": Disconnected");
         }
         super.closed(conn);
-    }
-
-    @Override
-    public void exception(final NHttpClientConnection conn, final Exception ex) {
-        if (this.log.isErrorEnabled()) {
-            this.log.error(conn + " HTTP protocol exception: " + ex.getMessage(), ex);
-        }
-        super.exception(conn, ex);
     }
 
     @Override
@@ -131,13 +122,10 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
 
     @Override
     public void endOfInput(final NHttpClientConnection conn) throws IOException {
-        super.endOfInput(conn);
-        HttpContext context = conn.getContext();
-        DefaultAsyncRequestDirector<?> handler = (DefaultAsyncRequestDirector<?>) context.getAttribute(
-            HTTP_HANDLER);
-        if (handler != null && !handler.isDone()) {
-            handler.endOfStream();
+        if (this.log.isDebugEnabled()) {
+            this.log.debug(conn + " End of input");
         }
+        super.endOfInput(conn);
     }
 
 }

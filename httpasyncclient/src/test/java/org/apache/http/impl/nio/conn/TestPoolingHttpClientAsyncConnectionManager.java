@@ -54,7 +54,7 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.Interna
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.scheme.LayeringStrategy;
+import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
@@ -77,7 +77,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private CPool pool;
     @Mock
-    private LayeringStrategy layeringStrategy;
+    private SchemeLayeringStrategy layeringStrategy;
     @Mock
     private SchemePortResolver schemePortResolver;
     @Mock
@@ -97,13 +97,13 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private IOSession iosession;
 
-    private Registry<LayeringStrategy> layeringStrategyRegistry;
+    private Registry<SchemeLayeringStrategy> layeringStrategyRegistry;
     private PoolingNHttpClientConnectionManager connman;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        layeringStrategyRegistry = RegistryBuilder.<LayeringStrategy>create()
+        layeringStrategyRegistry = RegistryBuilder.<SchemeLayeringStrategy>create()
             .register("https", layeringStrategy).build();
         connman = new PoolingNHttpClientConnectionManager(
             ioreactor, pool, layeringStrategyRegistry,
@@ -283,7 +283,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
             sessionRequestCallbackCaptor.capture());
 
         Mockito.when(sessionRequest.getSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         final SessionRequestCallback callback = sessionRequestCallbackCaptor.getValue();
         callback.completed(sessionRequest);
@@ -443,11 +443,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy, Mockito.never()).layer(iosession);
+        Mockito.verify(layeringStrategy, Mockito.never()).layer(target, iosession);
         Mockito.verify(conn, Mockito.never()).bind(iosession);
 
         Assert.assertFalse(connman.isRouteComplete(managedConn));
@@ -465,11 +465,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy).layer(iosession);
+        Mockito.verify(layeringStrategy).layer(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -485,11 +485,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy).layer(iosession);
+        Mockito.verify(layeringStrategy).layer(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -505,7 +505,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
     }
@@ -522,7 +522,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(iosession)).thenReturn(iosession);
+        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
         connman.routeComplete(managedConn, route, context);
@@ -573,7 +573,8 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpRoute route = new HttpRoute(new HttpHost("somehost"));
         internalConnFactory.create(route, iosession);
 
-        Mockito.verify(layeringStrategy, Mockito.never()).layer(Mockito.<IOSession>any());
+        Mockito.verify(layeringStrategy, Mockito.never()).layer(
+            Mockito.eq(new HttpHost("somehost")), Mockito.<IOSession>any());
         Mockito.verify(connFactory).create(Mockito.same(iosession), Mockito.<ConnectionConfig>any());
     }
 

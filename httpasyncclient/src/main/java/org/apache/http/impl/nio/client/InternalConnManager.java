@@ -24,30 +24,16 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.examples.nio.client;
+package org.apache.http.impl.nio.client;
 
-import java.util.concurrent.Future;
+import org.apache.http.nio.NHttpClientConnection;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
+interface InternalConnManager {
 
-public class AsyncClientHttpExchange {
+    void releaseConnection();
 
-    public static void main(final String[] args) throws Exception {
-        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
-        httpclient.start();
-        try {
-            final HttpGet request = new HttpGet("http://www.apache.org/");
-            final Future<HttpResponse> future = httpclient.execute(request, null);
-            final HttpResponse response = future.get();
-            System.out.println("Response: " + response.getStatusLine());
-            System.out.println("Shutting down");
-        } finally {
-            httpclient.close();
-        }
-        System.out.println("Done");
-    }
+    void abortConnection();
+
+    NHttpClientConnection getConnection();
 
 }

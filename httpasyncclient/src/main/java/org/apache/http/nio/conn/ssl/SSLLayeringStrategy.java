@@ -34,6 +34,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -45,6 +47,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
@@ -55,7 +58,8 @@ import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.reactor.ssl.SSLMode;
 import org.apache.http.nio.reactor.ssl.SSLSetupHandler;
 
-public class SSLLayeringStrategy implements LayeringStrategy {
+@SuppressWarnings("deprecation")
+public class SSLLayeringStrategy implements LayeringStrategy, SchemeLayeringStrategy {
 
     public static final String TLS   = "TLS";
     public static final String SSL   = "SSL";
@@ -179,9 +183,49 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         return true;
     }
 
+    @Deprecated
     public SSLIOSession layer(final IOSession iosession) {
-        final SSLIOSession ssliosession = new SSLIOSession(iosession, SSLMode.CLIENT, this.sslContext,
-                new InternalSSLSetupHandler());
+        final SSLIOSession ssliosession = new SSLIOSession(
+            iosession,
+            SSLMode.CLIENT,
+            this.sslContext,
+            new SSLSetupHandler() {
+
+                public void initalize(
+                        final SSLEngine sslengine) throws SSLException {
+                    initializeEngine(sslengine);
+                }
+
+                public void verify(
+                        final IOSession iosession,
+                        final SSLSession sslsession) throws SSLException {
+                    verifySession(iosession, sslsession);
+                }
+
+        });
+        iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
+        return ssliosession;
+    }
+
+    public SSLIOSession layer(final HttpHost host, final IOSession iosession) {
+        final SSLIOSession ssliosession = new SSLIOSession(
+            iosession,
+            SSLMode.CLIENT,
+            this.sslContext,
+            new SSLSetupHandler() {
+
+                public void initalize(
+                        final SSLEngine sslengine) throws SSLException {
+                    initializeEngine(sslengine);
+                }
+
+                public void verify(
+                        final IOSession iosession,
+                        final SSLSession sslsession) throws SSLException {
+                    verifySession(host, iosession, sslsession);
+                }
+
+        });
         iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
         return ssliosession;
     }
@@ -189,24 +233,24 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     protected void initializeEngine(final SSLEngine engine) {
     }
 
-    protected void verifySession(final IOSession iosession,
-                          final SSLSession sslsession) throws SSLException {
+    @Deprecated
+    protected void verifySession(
+            final IOSession iosession,
+            final SSLSession sslsession) throws SSLException {
         final InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
-        hostnameVerifier.verify(address.getHostName(), sslsession);
+
+        final Certificate[] certs = sslsession.getPeerCertificates();
+        final X509Certificate x509 = (X509Certificate) certs[0];
+        hostnameVerifier.verify(address.getHostName(), x509);
     }
 
-    class InternalSSLSetupHandler implements SSLSetupHandler {
-
-        public void initalize(
-                final SSLEngine sslengine) throws SSLException {
-            initializeEngine(sslengine);
-        }
-
-        public void verify(
-                final IOSession iosession,
-                final SSLSession sslsession) throws SSLException {
-            verifySession(iosession, sslsession);
-        }
-
+    protected void verifySession(
+            final HttpHost host,
+            final IOSession iosession,
+            final SSLSession sslsession) throws SSLException {
+        final Certificate[] certs = sslsession.getPeerCertificates();
+        final X509Certificate x509 = (X509Certificate) certs[0];
+        hostnameVerifier.verify(host.getHostName(), x509);
     }
+
 }

@@ -29,25 +29,25 @@ package org.apache.http.examples.nio.client;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
-import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 
 public class AsyncClientHttpExchangeFutureCallback {
 
-    public static void main(String[] args) throws Exception {
-        HttpAsyncClient httpclient = new DefaultHttpAsyncClient();
-        httpclient.getParams()
-            .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 3000)
-            .setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 3000)
-            .setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
-            .setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true);
+    public static void main(final String[] args) throws Exception {
+        final RequestConfig requestConfig = RequestConfig.custom()
+            .setSocketTimeout(3000)
+            .setConnectTimeout(3000).build();
+        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
+            .setDefaultRequestConfig(requestConfig)
+            .build();
 
         httpclient.start();
         try {
-            HttpGet[] requests = new HttpGet[] {
+            final HttpGet[] requests = new HttpGet[] {
                     new HttpGet("http://www.apache.org/"),
                     new HttpGet("https://www.verisign.com/"),
                     new HttpGet("http://www.google.com/")
@@ -76,7 +76,7 @@ public class AsyncClientHttpExchangeFutureCallback {
             latch.await();
             System.out.println("Shutting down");
         } finally {
-            httpclient.shutdown();
+            httpclient.close();
         }
         System.out.println("Done");
     }
