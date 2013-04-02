@@ -506,6 +506,7 @@ public class TestRedirects extends HttpAsyncTestBase {
         final HttpHost target = start(registry, null);
 
         this.httpclient.getParams().setBooleanParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, false);
+        this.httpclient.getParams().setBooleanParameter(ClientPNames.REJECT_RELATIVE_REDIRECT, false);
 
         final HttpGet httpget = new HttpGet("/circular-oldlocation/");
 

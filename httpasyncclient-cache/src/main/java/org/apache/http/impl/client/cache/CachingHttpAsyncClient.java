@@ -54,6 +54,7 @@ import org.apache.http.client.cache.HeaderConstants;
 import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.cache.HttpCacheStorage;
 import org.apache.http.client.cache.ResourceFactory;
+import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
@@ -71,6 +72,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.VersionInfo;
 
+@SuppressWarnings("deprecation")
 @ThreadSafe // So long as the responseCache implementation is threadsafe
 public class CachingHttpAsyncClient implements HttpAsyncClient {
 
@@ -121,7 +123,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         this.backend = client;
         this.responseCache = cache;
         this.validityPolicy = new CacheValidityPolicy();
-        this.responseCachingPolicy = new ResponseCachingPolicy(this.maxObjectSizeBytes, this.sharedCache);
+        this.responseCachingPolicy = new ResponseCachingPolicy(this.maxObjectSizeBytes, this.sharedCache, false);
         this.responseGenerator = new CachedHttpResponseGenerator(this.validityPolicy);
         this.cacheableRequestPolicy = new CacheableRequestPolicy();
         this.suitabilityChecker = new CachedResponseSuitabilityChecker(this.validityPolicy, config);
@@ -136,7 +138,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     public CachingHttpAsyncClient() throws IOReactorException {
         this(new DefaultHttpAsyncClient(),
                 new BasicHttpCache(),
-                new CacheConfig());
+                CacheConfig.DEFAULT);
     }
 
     public CachingHttpAsyncClient(final CacheConfig config) throws IOReactorException {
@@ -148,7 +150,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     public CachingHttpAsyncClient(final HttpAsyncClient client) {
         this(client,
                 new BasicHttpCache(),
-                new CacheConfig());
+                CacheConfig.DEFAULT);
     }
 
     public CachingHttpAsyncClient(final HttpAsyncClient client, final CacheConfig config) {
@@ -187,7 +189,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final ConditionalRequestBuilder conditionalRequestBuilder,
             final ResponseProtocolCompliance responseCompliance,
             final RequestProtocolCompliance requestCompliance) {
-        final CacheConfig config = new CacheConfig();
+        final CacheConfig config = CacheConfig.DEFAULT;
         this.maxObjectSizeBytes = config.getMaxObjectSize();
         this.sharedCache = config.isSharedCache();
         this.backend = backend;
@@ -280,15 +282,17 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return this.backend.getConnectionManager();
     }
 
+    @Deprecated
     public HttpParams getParams() {
         return this.backend.getParams();
     }
 
     public Future<HttpResponse> execute(
             final HttpHost target,
-            final HttpRequest request,
+            final HttpRequest originalRequest,
             final HttpContext context,
             final FutureCallback<HttpResponse> futureCallback) {
+        final HttpRequestWrapper request = HttpRequestWrapper.wrap(originalRequest);
         // default response context
         setResponseStatus(context, CacheResponseStatus.CACHE_MISS);
 
@@ -309,29 +313,28 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             return future;
         }
 
-        HttpRequest httRequest = request;
         try {
-            httRequest = this.requestCompliance.makeRequestCompliant(request);
+            this.requestCompliance.makeRequestCompliant(request);
         } catch (final ClientProtocolException e) {
             final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
             future.failed(e);
             return future;
         }
-        httRequest.addHeader("Via",via);
+        request.addHeader("Via",via);
 
-        flushEntriesInvalidatedByRequest(target, httRequest);
+        flushEntriesInvalidatedByRequest(target, request);
 
-        if (!this.cacheableRequestPolicy.isServableFromCache(httRequest)) {
-            return callBackend(target, httRequest, context, futureCallback);
+        if (!this.cacheableRequestPolicy.isServableFromCache(request)) {
+            return callBackend(target, request, context, futureCallback);
         }
 
-        final HttpCacheEntry entry = satisfyFromCache(target, httRequest);
+        final HttpCacheEntry entry = satisfyFromCache(target, request);
         if (entry == null) {
-            return handleCacheMiss(target, httRequest, context, futureCallback);
+            return handleCacheMiss(target, request, context, futureCallback);
         }
 
         try {
-            return handleCacheHit(target, httRequest, context, entry, futureCallback);
+            return handleCacheHit(target, request, context, entry, futureCallback);
         } catch (final ClientProtocolException e) {
             final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
             future.failed(e);
@@ -343,7 +346,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         }
     }
 
-    private Future<HttpResponse> handleCacheHit(final HttpHost target, final HttpRequest request,
+    private Future<HttpResponse> handleCacheHit(final HttpHost target, final HttpRequestWrapper request,
             final HttpContext context, final HttpCacheEntry entry,
             final FutureCallback<HttpResponse> futureCallback)
             throws ClientProtocolException, IOException {
@@ -369,7 +372,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private Future<HttpResponse> revalidateCacheEntry(final HttpHost target,
-            final HttpRequest request, final HttpContext context, final HttpCacheEntry entry,
+            final HttpRequestWrapper request, final HttpContext context, final HttpCacheEntry entry,
             final Date now, final FutureCallback<HttpResponse> futureCallback) throws ClientProtocolException {
         this.log.debug("Revalidating the cache entry");
 
@@ -409,7 +412,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         }
     }
 
-    private Future<HttpResponse> handleCacheMiss(final HttpHost target, final HttpRequest request,
+    private Future<HttpResponse> handleCacheMiss(final HttpHost target, final HttpRequestWrapper request,
             final HttpContext context, final FutureCallback<HttpResponse> futureCallback) {
         recordCacheMiss(target, request);
 
@@ -631,7 +634,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return true;
     }
 
-    Future<HttpResponse> callBackend(final HttpHost target, final HttpRequest request, final HttpContext context, final FutureCallback<HttpResponse> futureCallback) {
+    Future<HttpResponse> callBackend(
+            final HttpHost target, final HttpRequestWrapper request, final HttpContext context,
+            final FutureCallback<HttpResponse> futureCallback) {
         final Date requestDate = getCurrentDate();
         this.log.debug("Calling the backend");
         return this.backend.execute(target, request, context, new FutureCallback<HttpResponse>() {
@@ -681,7 +686,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     Future<HttpResponse> negotiateResponseFromVariants(final HttpHost target,
-            final HttpRequest request, final HttpContext context,
+            final HttpRequestWrapper request, final HttpContext context,
             final Map<String, Variant> variants,
             final FutureCallback<HttpResponse> futureCallback) {
         final HttpRequest conditionalRequest = this.conditionalRequestBuilder.buildConditionalRequestFromVariants(request, variants);
@@ -750,7 +755,6 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                         }
 
                     });
-                    return;
                 }
 
                 final HttpCacheEntry matchedEntry = matchingVariant.getEntry();
@@ -787,9 +791,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private void retryRequestUnconditionally(final HttpHost target,
-            final HttpRequest request, final HttpContext context,
+        final HttpRequestWrapper request, final HttpContext context,
             final HttpCacheEntry matchedEntry, final FutureCallback<HttpResponse> futureCallback) {
-        final HttpRequest unconditional = this.conditionalRequestBuilder
+        final HttpRequestWrapper unconditional = this.conditionalRequestBuilder
             .buildUnconditionalRequest(request, matchedEntry);
         callBackend(target, unconditional, context, futureCallback);
     }
@@ -825,12 +829,12 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     Future<HttpResponse> revalidateCacheEntry(
             final HttpHost target,
-            final HttpRequest request,
+            final HttpRequestWrapper request,
             final HttpContext context,
             final HttpCacheEntry cacheEntry,
             final FutureCallback<HttpResponse> futureCallback) throws ProtocolException {
 
-        final HttpRequest conditionalRequest = this.conditionalRequestBuilder.buildConditionalRequest(request, cacheEntry);
+        final HttpRequestWrapper conditionalRequest = this.conditionalRequestBuilder.buildConditionalRequest(request, cacheEntry);
         final Date requestDate = getCurrentDate();
         return this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse>() {
 
@@ -880,11 +884,11 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     private void revalidateCacheEntryCompleted(
             final HttpHost target,
-            final HttpRequest request,
+            final HttpRequestWrapper request,
             final HttpContext context,
             final HttpCacheEntry cacheEntry,
             final FutureCallback<HttpResponse> futureCallback,
-            final HttpRequest conditionalRequest,
+            final HttpRequestWrapper conditionalRequest,
             final Date requestDate,
             final HttpResponse httpResponse,
             final Date responseDate) {
@@ -942,7 +946,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     HttpResponse handleBackendResponse(
             final HttpHost target,
-            final HttpRequest request,
+            final HttpRequestWrapper request,
             final Date requestDate,
             final Date responseDate,
             final HttpResponse backendResponse) throws IOException {

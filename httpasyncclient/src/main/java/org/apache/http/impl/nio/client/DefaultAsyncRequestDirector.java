@@ -54,9 +54,11 @@ import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.UserTokenHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.AbortableHttpRequest;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.params.HttpClientParamConfig;
 import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URIUtils;
@@ -230,6 +232,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             wrapper.setParams(this.params);
             final HttpRoute route = determineRoute(target, wrapper, this.localContext);
             this.mainRequest = new RoutedRequest(wrapper, route);
+            RequestConfig config = ParamConfig.getRequestConfig(params);
+            this.localContext.setAttribute(ClientContext.REQUEST_CONFIG, config);
             this.requestContentProduced = false;
             requestConnection();
         } catch (final Exception ex) {
@@ -286,6 +290,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.localContext.setAttribute(ExecutionContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(ExecutionContext.HTTP_PROXY_HOST, proxy);
         this.localContext.setAttribute(ExecutionContext.HTTP_CONNECTION, this.managedConn);
+        this.localContext.setAttribute(ClientContext.ROUTE, route);
 
         if (this.currentRequest == null) {
             this.currentRequest = this.mainRequest.getRequest();

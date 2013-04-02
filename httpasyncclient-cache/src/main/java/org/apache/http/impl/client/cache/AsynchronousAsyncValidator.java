@@ -38,8 +38,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.client.cache.HttpCacheEntry;
+import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.protocol.HttpContext;
 
 /**
@@ -100,7 +100,7 @@ class AsynchronousAsyncValidator {
      * @param context
      * @param entry
      */
-    public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequest request,
+    public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequestWrapper request,
             final HttpContext context, final HttpCacheEntry entry) {
         // getVariantURI will fall back on getURI if no variants exist
         final String uri = this.cacheKeyGenerator.getVariantURI(target, request, entry);
