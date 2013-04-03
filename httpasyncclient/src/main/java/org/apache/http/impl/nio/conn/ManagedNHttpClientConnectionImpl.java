@@ -64,6 +64,7 @@ class ManagedNHttpClientConnectionImpl
             final Log wirelog,
             final IOSession iosession,
             final int buffersize,
+            final int fragmentSizeHint,
             final ByteBufferAllocator allocator,
             final CharsetDecoder chardecoder,
             final CharsetEncoder charencoder,
@@ -72,7 +73,7 @@ class ManagedNHttpClientConnectionImpl
             final ContentLengthStrategy outgoingContentStrategy,
             final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory,
             final NHttpMessageParserFactory<HttpResponse> responseParserFactory) {
-        super(iosession, buffersize, buffersize, allocator, chardecoder, charencoder, constraints,
+        super(iosession, buffersize, fragmentSizeHint, allocator, chardecoder, charencoder, constraints,
                 incomingContentStrategy, outgoingContentStrategy,
                 requestWriterFactory, responseParserFactory);
         this.id = id;
