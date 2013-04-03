@@ -88,7 +88,6 @@ import org.apache.http.impl.cookie.IgnoreSpecFactory;
 import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
 import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
-import org.apache.http.impl.execchain.ClientExecChain;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
@@ -335,14 +334,6 @@ public class HttpAsyncClientBuilder {
     public final HttpAsyncClientBuilder useSystemProperties() {
         systemProperties = true;
         return this;
-    }
-
-    protected ClientExecChain decorateMainExec(final ClientExecChain mainExec) {
-        return mainExec;
-    }
-
-    protected ClientExecChain decorateProtocolExec(final ClientExecChain protocolExec) {
-        return protocolExec;
     }
 
     private ConnectingIOReactor createIOReactor(final IOReactorConfig config) {

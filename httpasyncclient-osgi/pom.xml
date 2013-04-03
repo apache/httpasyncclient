@@ -76,6 +76,7 @@
             org.apache.http;version=${httpcore.version},
             org.apache.http.entity;version=${httpcore.version},
             org.apache.http.concurrent;version=${httpcore.version},
+            org.apache.http.config;version=${httpcore.version},
             org.apache.http.io;version=${httpcore.version},
             org.apache.http.message;version=${httpcore.version},
             org.apache.http.params;version=${httpcore.version},
@@ -91,6 +92,7 @@
             org.apache.http.nio.reactor;version=${httpcore.version},
             org.apache.http.nio.reactor.ssl;version=${httpcore.version},
             org.apache.http.nio.util;version=${httpcore.version},
+            org.apache.http.impl.nio.codecs;version=${httpcore.version},
             org.apache.http.impl.nio;version=${httpcore.version},
             org.apache.http.impl.nio.reactor;version=${httpcore.version},
             org.apache.http.auth;version=${httpclient.version},
@@ -100,6 +102,7 @@
             org.apache.http.conn.routing;version=${httpclient.version},
             org.apache.http.conn.ssl;version=${httpclient.version},
             org.apache.http.client;version=${httpclient.version},
+            org.apache.http.client.config;version=${httpcore.version},
             org.apache.http.client.methods;version=${httpclient.version},
             org.apache.http.client.params;version=${httpclient.version},
             org.apache.http.client.protocol;version=${httpclient.version},
@@ -107,7 +110,8 @@
             org.apache.http.impl.auth;version=${httpclient.version},
             org.apache.http.impl.cookie;version=${httpclient.version},
             org.apache.http.impl.conn;version=${httpclient.version},
-            org.apache.http.impl.client;version=${httpclient.version}
+            org.apache.http.impl.client;version=${httpclient.version},
+            org.apache.http.impl.execchain;version=${httpclient.version}
             </Import-Package>
             <Include-Resource />
             <!-- Stop the JAVA_1_n_HOME variables from being treated as headers by Bnd -->
