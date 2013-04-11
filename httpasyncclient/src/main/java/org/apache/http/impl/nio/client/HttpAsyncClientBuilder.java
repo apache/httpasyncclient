@@ -61,7 +61,7 @@ import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.NoConnectionReuseStrategy;
@@ -352,9 +352,9 @@ public class HttpAsyncClientBuilder {
                 SSLContext sslcontext = this.sslcontext;
                 if (sslcontext == null) {
                     if (systemProperties) {
-                        sslcontext = SSLSocketFactory.createSystemSSLContext();
+                        sslcontext = SSLContexts.createDefault();
                     } else {
-                        sslcontext = SSLSocketFactory.createDefaultSSLContext();
+                        sslcontext = SSLContexts.createSystemDefault();
                     }
                 }
                 sslLayeringStrategy = new SSLLayeringStrategy(sslcontext);

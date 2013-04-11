@@ -57,7 +57,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.Configurable;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
@@ -67,7 +66,7 @@ import org.apache.http.conn.routing.HttpRouteDirector;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.execchain.HttpAuthenticator;
+import org.apache.http.impl.auth.HttpAuthenticator;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
@@ -76,7 +75,6 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpProcessor;
 
 class MainClientExec implements InternalClientExec {
@@ -271,7 +269,7 @@ class MainClientExec implements InternalClientExec {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
         final HttpClientContext context = state.getLocalContext();
-        context.setAttribute(HttpCoreContext.HTTP_RESPONSE, response);
+        context.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
         this.httpProcessor.process(response, context);
 
         state.setCurrentResponse(response);
@@ -368,7 +366,7 @@ class MainClientExec implements InternalClientExec {
         Object userToken = localContext.getUserToken();
         if (userToken == null) {
             userToken = this.userTokenHandler.getUserToken(localContext);
-            localContext.setAttribute(ClientContext.USER_TOKEN, userToken);
+            localContext.setAttribute(HttpClientContext.USER_TOKEN, userToken);
         }
 
         if (state.getFinalResponse() != null) {
@@ -494,9 +492,9 @@ class MainClientExec implements InternalClientExec {
         // Re-write request URI if needed
         rewriteRequestURI(state);
 
-        localContext.setAttribute(HttpCoreContext.HTTP_REQUEST, currentRequest);
-        localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, target);
-        localContext.setAttribute(ClientContext.ROUTE, route);
+        localContext.setAttribute(HttpClientContext.HTTP_REQUEST, currentRequest);
+        localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
+        localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
         this.httpProcessor.process(currentRequest, localContext);
     }
 

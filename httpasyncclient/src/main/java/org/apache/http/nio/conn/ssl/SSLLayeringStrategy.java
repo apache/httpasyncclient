@@ -49,7 +49,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.nio.conn.scheme.LayeringStrategy;
@@ -66,11 +66,11 @@ public class SSLLayeringStrategy implements LayeringStrategy, SchemeLayeringStra
     public static final String SSLV2 = "SSLv2";
 
     public static SSLLayeringStrategy getDefaultStrategy() {
-        return new SSLLayeringStrategy(SSLSocketFactory.createDefaultSSLContext());
+        return new SSLLayeringStrategy(SSLContexts.createDefault());
     }
 
     public static SSLLayeringStrategy getSystemDefaultStrategy() {
-        return new SSLLayeringStrategy(SSLSocketFactory.createSystemSSLContext());
+        return new SSLLayeringStrategy(SSLContexts.createSystemDefault());
     }
 
     private final SSLContext sslContext;

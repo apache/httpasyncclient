@@ -44,7 +44,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.Configurable;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoute;
@@ -56,7 +55,6 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.HttpCoreContext;
 
 class MinimalClientExec implements InternalClientExec {
 
@@ -115,8 +113,8 @@ class MinimalClientExec implements InternalClientExec {
             host = target;
         }
 
-        localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, host);
-        localContext.setAttribute(ClientContext.ROUTE, route);
+        localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, host);
+        localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
     }
 
     public HttpRequest generateRequest(
