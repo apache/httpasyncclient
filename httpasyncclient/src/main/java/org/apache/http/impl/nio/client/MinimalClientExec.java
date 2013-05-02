@@ -36,18 +36,16 @@ import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.AuthenticationStrategy;
-import org.apache.http.client.RedirectStrategy;
-import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.Configurable;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -55,27 +53,36 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
+import org.apache.http.protocol.HttpProcessor;
+import org.apache.http.protocol.ImmutableHttpProcessor;
+import org.apache.http.protocol.RequestContent;
+import org.apache.http.protocol.RequestTargetHost;
+import org.apache.http.protocol.RequestUserAgent;
+import org.apache.http.util.VersionInfo;
 
 class MinimalClientExec implements InternalClientExec {
 
     private final Log log = LogFactory.getLog(getClass());
 
+    private final HttpProcessor httpProcessor;
     private final NHttpClientConnectionManager connmgr;
-    private final HttpRoutePlanner routePlanner;
+    private final ConnectionReuseStrategy connReuseStrategy;
     private final ConnectionKeepAliveStrategy keepaliveStrategy;
 
     public MinimalClientExec(
             final NHttpClientConnectionManager connmgr,
-            final HttpRoutePlanner routePlanner,
-            final ConnectionReuseStrategy reuseStrategy,
-            final ConnectionKeepAliveStrategy keepaliveStrategy,
-            final RedirectStrategy redirectStrategy,
-            final AuthenticationStrategy targetAuthStrategy,
-            final AuthenticationStrategy proxyAuthStrategy,
-            final UserTokenHandler userTokenHandler) {
+            final ConnectionReuseStrategy connReuseStrategy,
+            final ConnectionKeepAliveStrategy keepaliveStrategy) {
         super();
+        this.httpProcessor = new ImmutableHttpProcessor(new HttpRequestInterceptor[] {
+                new RequestContent(),
+                new RequestTargetHost(),
+                new RequestClientConnControl(),
+                new RequestUserAgent(VersionInfo.getUserAgent(
+                        "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass()))
+        } );
         this.connmgr = connmgr;
-        this.routePlanner = routePlanner;
+        this.connReuseStrategy = connReuseStrategy;
         this.keepaliveStrategy = keepaliveStrategy;
     }
 
@@ -89,7 +96,7 @@ class MinimalClientExec implements InternalClientExec {
 
         final HttpClientContext localContext = state.getLocalContext();
         final HttpRequestWrapper request = HttpRequestWrapper.wrap(original);
-        final HttpRoute route = this.routePlanner.determineRoute(target, request, localContext);
+        final HttpRoute route = new HttpRoute(target);
 
         state.setRoute(route);
         state.setMainRequest(request);
@@ -113,20 +120,22 @@ class MinimalClientExec implements InternalClientExec {
             host = target;
         }
 
-        localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, host);
+        localContext.setAttribute(HttpClientContext.HTTP_REQUEST, request);
+        localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
         localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
+        this.httpProcessor.process(request, localContext);
     }
 
     public HttpRequest generateRequest(
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {
-        if (state.isRouteEstablished()) {
+        if (!state.isRouteEstablished()) {
             final HttpClientContext localContext = state.getLocalContext();
             final HttpRoute route = state.getRoute();
             final NHttpClientConnection managedConn = connManager.getConnection();
             this.connmgr.initialize(managedConn, route, localContext);
             this.connmgr.routeComplete(managedConn, route, localContext);
-
+            state.setRouteEstablished(true);
         }
         if (state.getCurrentRequest() == null) {
             state.setCurrentRequest(state.getMainRequest());
@@ -163,6 +172,11 @@ class MinimalClientExec implements InternalClientExec {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
+
+        final HttpClientContext context = state.getLocalContext();
+        context.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
+        this.httpProcessor.process(response, context);
+
         state.setCurrentResponse(response);
         final HttpAsyncResponseConsumer<?> responseConsumer = state.getResponseConsumer();
         responseConsumer.responseReceived(response);
@@ -185,7 +199,7 @@ class MinimalClientExec implements InternalClientExec {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpResponse currentResponse = state.getCurrentResponse();
 
-        if (connManager.getConnection().isOpen()) {
+        if (this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
             final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
                     currentResponse, localContext);
             if (this.log.isDebugEnabled()) {

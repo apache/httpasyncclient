@@ -31,16 +31,11 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.auth.AuthSchemeProvider;
-import org.apache.http.auth.AuthState;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.config.Lookup;
-import org.apache.http.cookie.CookieSpecProvider;
+import org.apache.http.impl.DefaultConnectionReuseStrategy;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
@@ -52,37 +47,23 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 
 @SuppressWarnings("deprecation")
-class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
+class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
     private final InternalClientExec exec;
-    private final Lookup<CookieSpecProvider> cookieSpecRegistry;
-    private final Lookup<AuthSchemeProvider> authSchemeRegistry;
-    private final CookieStore cookieStore;
-    private final CredentialsProvider credentialsProvider;
-    private final RequestConfig defaultConfig;
     private final Thread reactorThread;
 
     private volatile IOReactorStatus status;
 
-    public InternalHttpAsyncClient(
-            final NHttpClientConnectionManager connmgr,
-            final InternalClientExec exec,
-            final Lookup<CookieSpecProvider> cookieSpecRegistry,
-            final Lookup<AuthSchemeProvider> authSchemeRegistry,
-            final CookieStore cookieStore,
-            final CredentialsProvider credentialsProvider,
-            final RequestConfig defaultConfig) {
+    public MinimalHttpAsyncClient(
+            final NHttpClientConnectionManager connmgr) {
         super();
         this.connmgr = connmgr;
-        this.exec = exec;
-        this.cookieSpecRegistry = cookieSpecRegistry;
-        this.authSchemeRegistry = authSchemeRegistry;
-        this.cookieStore = cookieStore;
-        this.credentialsProvider = credentialsProvider;
-        this.defaultConfig = defaultConfig;
+        this.exec = new MinimalClientExec(connmgr,
+                DefaultConnectionReuseStrategy.INSTANCE,
+                DefaultConnectionKeepAliveStrategy.INSTANCE);
         this.reactorThread = new Thread() {
 
             @Override
@@ -138,30 +119,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         shutdown();
     }
 
-    private void setupContext(final HttpClientContext context) {
-        if (context.getAttribute(HttpClientContext.TARGET_AUTH_STATE) == null) {
-            context.setAttribute(HttpClientContext.TARGET_AUTH_STATE, new AuthState());
-        }
-        if (context.getAttribute(HttpClientContext.PROXY_AUTH_STATE) == null) {
-            context.setAttribute(HttpClientContext.PROXY_AUTH_STATE, new AuthState());
-        }
-        if (context.getAttribute(HttpClientContext.AUTHSCHEME_REGISTRY) == null) {
-            context.setAttribute(HttpClientContext.AUTHSCHEME_REGISTRY, this.authSchemeRegistry);
-        }
-        if (context.getAttribute(HttpClientContext.COOKIESPEC_REGISTRY) == null) {
-            context.setAttribute(HttpClientContext.COOKIESPEC_REGISTRY, this.cookieSpecRegistry);
-        }
-        if (context.getAttribute(HttpClientContext.COOKIE_STORE) == null) {
-            context.setAttribute(HttpClientContext.COOKIE_STORE, this.cookieStore);
-        }
-        if (context.getAttribute(HttpClientContext.CREDS_PROVIDER) == null) {
-            context.setAttribute(HttpClientContext.CREDS_PROVIDER, this.credentialsProvider);
-        }
-        if (context.getAttribute(HttpClientContext.REQUEST_CONFIG) == null) {
-            context.setAttribute(HttpClientContext.REQUEST_CONFIG, this.defaultConfig);
-        }
-    }
-
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
@@ -174,7 +131,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
-        setupContext(localcontext);
 
         final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
             this.log,

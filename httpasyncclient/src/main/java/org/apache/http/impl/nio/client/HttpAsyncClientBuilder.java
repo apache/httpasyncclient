@@ -89,13 +89,11 @@ import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
 import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
 import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
 import org.apache.http.protocol.RequestContent;
@@ -336,14 +334,6 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
-    private ConnectingIOReactor createIOReactor(final IOReactorConfig config) {
-        try {
-            return new DefaultConnectingIOReactor(config);
-        } catch (final IOReactorException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
-
     public CloseableHttpAsyncClient build() {
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
@@ -359,7 +349,7 @@ public class HttpAsyncClientBuilder {
                 }
                 sslLayeringStrategy = new SSLLayeringStrategy(sslcontext);
             }
-            final ConnectingIOReactor ioreactor = createIOReactor(
+            final ConnectingIOReactor ioreactor = IOReactorUtils.create(
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
                     ioreactor,
