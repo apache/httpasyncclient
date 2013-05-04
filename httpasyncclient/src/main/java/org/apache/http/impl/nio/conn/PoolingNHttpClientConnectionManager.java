@@ -379,7 +379,7 @@ public class PoolingNHttpClientConnectionManager
     public void routeComplete(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
-            final HttpContext context) throws IOException {
+            final HttpContext context) {
         Args.notNull(managedConn, "Managed connection");
         Args.notNull(route, "HTTP route");
         synchronized (managedConn) {

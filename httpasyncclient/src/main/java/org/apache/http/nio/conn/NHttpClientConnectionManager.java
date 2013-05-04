@@ -96,7 +96,7 @@ public interface NHttpClientConnectionManager {
     void routeComplete(
             NHttpClientConnection conn,
             HttpRoute route,
-            HttpContext context) throws IOException;
+            HttpContext context);
 
     boolean isRouteComplete(NHttpClientConnection conn);
 
