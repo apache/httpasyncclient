@@ -31,9 +31,13 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.ConnectionReuseStrategy;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
@@ -45,6 +49,12 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpProcessor;
+import org.apache.http.protocol.ImmutableHttpProcessor;
+import org.apache.http.protocol.RequestContent;
+import org.apache.http.protocol.RequestTargetHost;
+import org.apache.http.protocol.RequestUserAgent;
+import org.apache.http.util.VersionInfo;
 
 @SuppressWarnings("deprecation")
 class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
@@ -52,7 +62,9 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
-    private final InternalClientExec exec;
+    private final HttpProcessor httpProcessor;
+    private final ConnectionReuseStrategy connReuseStrategy;
+    private final ConnectionKeepAliveStrategy keepaliveStrategy;
     private final Thread reactorThread;
 
     private volatile IOReactorStatus status;
@@ -61,9 +73,15 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
             final NHttpClientConnectionManager connmgr) {
         super();
         this.connmgr = connmgr;
-        this.exec = new MinimalClientExec(connmgr,
-                DefaultConnectionReuseStrategy.INSTANCE,
-                DefaultConnectionKeepAliveStrategy.INSTANCE);
+        this.httpProcessor = new ImmutableHttpProcessor(new HttpRequestInterceptor[] {
+                new RequestContent(),
+                new RequestTargetHost(),
+                new RequestClientConnControl(),
+                new RequestUserAgent(VersionInfo.getUserAgent(
+                        "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass()))
+        });
+        this.connReuseStrategy = DefaultConnectionReuseStrategy.INSTANCE;
+        this.keepaliveStrategy = DefaultConnectionKeepAliveStrategy.INSTANCE;
         this.reactorThread = new Thread() {
 
             @Override
@@ -132,14 +150,16 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
 
-        final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
+        final MinimalClientExchangeHandlerImpl<T> handler = new MinimalClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
             responseConsumer,
             localcontext,
             future,
             this.connmgr,
-            this.exec);
+            this.httpProcessor,
+            this.connReuseStrategy,
+            this.keepaliveStrategy);
         try {
             handler.start();
         } catch (final Exception ex) {
