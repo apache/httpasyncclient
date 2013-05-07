@@ -35,8 +35,9 @@ import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
-import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
+import org.apache.http.nio.conn.PlainIOSessionFactory;
+import org.apache.http.nio.conn.SchemeIOSessionFactory;
+import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
 
 public class TestHttpsRedirects extends TestRedirects {
 
@@ -53,9 +54,10 @@ public class TestHttpsRedirects extends TestRedirects {
 
     @Override
     public void initConnectionManager() throws Exception {
-        final Registry<SchemeLayeringStrategy> schemereg = RegistryBuilder.<SchemeLayeringStrategy>create()
-            .register("https", new SSLLayeringStrategy(SSLTestContexts.createClientSSLContext()))
-            .build();
+        final Registry<SchemeIOSessionFactory> schemereg = RegistryBuilder.<SchemeIOSessionFactory>create()
+                .register("http", PlainIOSessionFactory.INSTANCE)
+                .register("https", new SSLIOSessionFactory(SSLTestContexts.createClientSSLContext()))
+                .build();
         this.clientIOReactor = new DefaultConnectingIOReactor(this.clientReactorConfig);
         this.connMgr = new PoolingNHttpClientConnectionManager(this.clientIOReactor, schemereg);
     }

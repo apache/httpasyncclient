@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -45,7 +44,6 @@ import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.config.SocketConfig;
-import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoute;
@@ -55,15 +53,14 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
-import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
+import org.apache.http.nio.conn.PlainIOSessionFactory;
+import org.apache.http.nio.conn.SchemeIOSessionFactory;
+import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
 import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.reactor.SessionRequest;
-import org.apache.http.nio.reactor.SessionRequestCallback;
 import org.apache.http.pool.ConnPoolControl;
 import org.apache.http.pool.PoolStats;
 import org.apache.http.protocol.HttpContext;
@@ -78,13 +75,12 @@ public class PoolingNHttpClientConnectionManager
     private final ConnectingIOReactor ioreactor;
     private final ConfigData configData;
     private final CPool pool;
-    private final Registry<SchemeLayeringStrategy> layeringStrategyRegistry;
-    private final SchemePortResolver schemePortResolver;
-    private final DnsResolver dnsResolver;
+    private final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry;
 
-    private static Registry<SchemeLayeringStrategy> getDefaultRegistry() {
-        return RegistryBuilder.<SchemeLayeringStrategy>create()
-                .register("https", SSLLayeringStrategy.getDefaultStrategy())
+    private static Registry<SchemeIOSessionFactory> getDefaultRegistry() {
+        return RegistryBuilder.<SchemeIOSessionFactory>create()
+                .register("http", PlainIOSessionFactory.INSTANCE)
+                .register("https", SSLIOSessionFactory.getDefaultStrategy())
                 .build();
     }
 
@@ -94,8 +90,8 @@ public class PoolingNHttpClientConnectionManager
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry) {
-        this(ioreactor, null, layeringStrategyRegistry, null);
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
+        this(ioreactor, null, iosessionFactoryRegistry, null);
     }
 
     public PoolingNHttpClientConnectionManager(
@@ -114,46 +110,42 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry) {
-        this(ioreactor, connFactory, layeringStrategyRegistry, null);
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
+        this(ioreactor, connFactory, iosessionFactoryRegistry, null);
     }
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
             final DnsResolver dnsResolver) {
-        this(ioreactor, connFactory, layeringStrategyRegistry, null, dnsResolver,
+        this(ioreactor, connFactory, iosessionFactoryRegistry, null, dnsResolver,
             -1, TimeUnit.MILLISECONDS);
     }
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
             final long timeToLive, final TimeUnit tunit) {
         super();
         Args.notNull(ioreactor, "I/O reactor");
-        Args.notNull(layeringStrategyRegistry, "Layering strategy registry");
+        Args.notNull(iosessionFactoryRegistry, "Layering strategy registry");
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
         this.pool = new CPool(ioreactor,
             new InternalConnectionFactory(this.configData, connFactory),
             new InternalAddressResolver(schemePortResolver, dnsResolver),
             2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
-        this.layeringStrategyRegistry = layeringStrategyRegistry;
-        this.schemePortResolver = schemePortResolver != null ? schemePortResolver :
-            DefaultSchemePortResolver.INSTANCE;
-        this.dnsResolver = dnsResolver != null ? dnsResolver :
-            SystemDefaultDnsResolver.INSTANCE;
+        this.iosessionFactoryRegistry = iosessionFactoryRegistry;
     }
 
     PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final CPool pool,
-            final Registry<SchemeLayeringStrategy> layeringStrategyRegistry,
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
             final long timeToLive, final TimeUnit tunit) {
@@ -161,11 +153,7 @@ public class PoolingNHttpClientConnectionManager
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
         this.pool = pool;
-        this.layeringStrategyRegistry = layeringStrategyRegistry;
-        this.schemePortResolver = schemePortResolver != null ? schemePortResolver :
-            DefaultSchemePortResolver.INSTANCE;
-        this.dnsResolver = dnsResolver != null ? dnsResolver :
-            SystemDefaultDnsResolver.INSTANCE;
+        this.iosessionFactoryRegistry = iosessionFactoryRegistry;
     }
 
     @Override
@@ -236,6 +224,18 @@ public class PoolingNHttpClientConnectionManager
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
         final BasicFuture<NHttpClientConnection> future = new BasicFuture<NHttpClientConnection>(callback);
+        final HttpHost host;
+        if (route.getProxyHost() != null) {
+            host = route.getProxyHost();
+        } else {
+            host = route.getTargetHost();
+        }
+        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
+                host.getSchemeName());
+        if (sf == null) {
+            future.failed(new IOException("Unsupported scheme: " + host.getSchemeName()));
+            return future;
+        }
         this.pool.lease(route, state, connectTimeout,
                 tunit != null ? tunit : TimeUnit.MILLISECONDS,
                 new InternalPoolEntryCallback(future));
@@ -277,63 +277,6 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
-    public Future<NHttpClientConnection> connect(
-            final NHttpClientConnection managedConn,
-            final HttpRoute route,
-            final int connectTimeout,
-            final FutureCallback<NHttpClientConnection> callback) {
-        Args.notNull(managedConn, "Managed connection");
-        final BasicFuture<NHttpClientConnection> future = new BasicFuture<NHttpClientConnection>(callback);
-        if (managedConn.isOpen()) {
-            future.completed(managedConn);
-            return future;
-        }
-        final HttpHost host;
-        if (route.getProxyHost() != null) {
-            host = route.getProxyHost();
-        } else {
-            host = route.getTargetHost();
-        }
-        final InetSocketAddress localAddress = route.getLocalAddress() != null ?
-            new InetSocketAddress(route.getLocalAddress(), 0) : null;
-        final InetAddress[] addresses;
-        try {
-            addresses = this.dnsResolver.resolve(host.getHostName());
-        } catch (final UnknownHostException ex) {
-            future.failed(ex);
-            return future;
-        }
-        final int port = this.schemePortResolver.resolve(host);
-        final InetSocketAddress remoteAddress = new InetSocketAddress(addresses[0], port);
-        this.ioreactor.connect(remoteAddress, localAddress, null, new SessionRequestCallback() {
-
-            public void completed(final SessionRequest request) {
-                synchronized (managedConn) {
-                    final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
-                    final ManagedNHttpClientConnection conn = entry.getConnection();
-                    final IOSession iosession = request.getSession();
-                    iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
-                    conn.bind(iosession);
-                }
-                future.completed(managedConn);
-            }
-
-            public void timeout(final SessionRequest request) {
-                future.failed(new ConnectTimeoutException(host, remoteAddress));
-            }
-
-            public void failed(final SessionRequest request) {
-                future.failed(request.getException());
-            }
-
-            public void cancelled(final SessionRequest request) {
-                future.cancel();
-            }
-
-        });
-        return future;
-    }
-
     public void initialize(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
@@ -346,15 +289,16 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final SchemeLayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
+        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
                 host.getSchemeName());
-        if (layeringStrategy != null) {
-            synchronized (managedConn) {
-                final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
-                final ManagedNHttpClientConnection conn = entry.getConnection();
-                final IOSession currentSession = layeringStrategy.layer(host, conn.getIOSession());
-                conn.bind(currentSession);
-            }
+        if (sf == null) {
+            throw new IOException("Unsupported scheme: " + host.getSchemeName());
+        }
+        synchronized (managedConn) {
+            final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
+            final ManagedNHttpClientConnection conn = entry.getConnection();
+            final IOSession currentSession = sf.create(host, conn.getIOSession());
+            conn.bind(currentSession);
         }
     }
 
@@ -365,13 +309,16 @@ public class PoolingNHttpClientConnectionManager
         Args.notNull(managedConn, "Managed connection");
         Args.notNull(route, "HTTP route");
         final HttpHost host  = route.getTargetHost();
-        final SchemeLayeringStrategy layeringStrategy = layeringStrategyRegistry.lookup(
+        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
             host.getSchemeName());
+        if (sf == null) {
+            throw new IOException("Unsupported scheme: " + host.getSchemeName());
+        }
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
             final ManagedNHttpClientConnection conn = entry.getConnection();
-            Asserts.check(layeringStrategy != null, "Layering is not supported for this scheme");
-            final IOSession currentSession = layeringStrategy.layer(host, conn.getIOSession());
+            Asserts.check(sf.isLayering(), "Layering is not supported for this scheme");
+            final IOSession currentSession = sf.create(host, conn.getIOSession());
             conn.bind(currentSession);
         }
     }
@@ -398,8 +345,8 @@ public class PoolingNHttpClientConnectionManager
     }
 
     public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
-        if (log.isDebugEnabled()) {
-            log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
         }
         this.pool.closeIdle(idleTimeout, tunit);
     }
@@ -618,12 +565,8 @@ public class PoolingNHttpClientConnectionManager
                 host = route.getTargetHost();
             }
             final int port = this.schemePortResolver.resolve(host);
-            try {
-                final InetAddress[] addresses = this.dnsResolver.resolve(host.getHostName());
-                return new InetSocketAddress(addresses[0], port);
-            } catch (final UnknownHostException ex) {
-                return new InetSocketAddress(host.getHostName(), port);
-            }
+            final InetAddress[] addresses = this.dnsResolver.resolve(host.getHostName());
+            return new InetSocketAddress(addresses[0], port);
         }
 
     }

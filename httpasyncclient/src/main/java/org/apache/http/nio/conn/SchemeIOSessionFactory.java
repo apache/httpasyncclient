@@ -24,13 +24,15 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn.ssl;
+package org.apache.http.nio.conn;
 
 import org.apache.http.HttpHost;
 import org.apache.http.nio.reactor.IOSession;
 
-public interface SchemeLayeringStrategy {
+public interface SchemeIOSessionFactory {
 
-    IOSession layer(HttpHost host, IOSession iosession);
+    IOSession create(HttpHost host, IOSession iosession);
+
+    boolean isLayering();
 
 }

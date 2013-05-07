@@ -26,12 +26,9 @@
  */
 package org.apache.http.impl.nio.conn;
 
-import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.util.Calendar;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -45,7 +42,6 @@ import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoute;
@@ -55,9 +51,8 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.Interna
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionFactory;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
-import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 import org.apache.http.nio.reactor.SessionRequestCallback;
@@ -78,7 +73,9 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private CPool pool;
     @Mock
-    private SchemeLayeringStrategy layeringStrategy;
+    private SchemeIOSessionFactory plainFactory;
+    @Mock
+    private SchemeIOSessionFactory sslFactory;
     @Mock
     private SchemePortResolver schemePortResolver;
     @Mock
@@ -98,14 +95,18 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private IOSession iosession;
 
-    private Registry<SchemeLayeringStrategy> layeringStrategyRegistry;
+    private Registry<SchemeIOSessionFactory> layeringStrategyRegistry;
     private PoolingNHttpClientConnectionManager connman;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        layeringStrategyRegistry = RegistryBuilder.<SchemeLayeringStrategy>create()
-            .register("https", layeringStrategy).build();
+        Mockito.when(sslFactory.isLayering()).thenReturn(Boolean.TRUE);
+
+        layeringStrategyRegistry = RegistryBuilder.<SchemeIOSessionFactory>create()
+            .register("http", plainFactory)
+            .register("https", sslFactory)
+            .build();
         connman = new PoolingNHttpClientConnectionManager(
             ioreactor, pool, layeringStrategyRegistry,
             schemePortResolver, dnsResolver, 10, TimeUnit.SECONDS);
@@ -259,181 +260,6 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     }
 
     @Test
-    public void testConnect() throws Exception {
-        final InetAddress la1 = InetAddress.getByAddress(new byte[] {127,0,0,1});
-        final InetAddress ra1 = InetAddress.getByAddress(new byte[] {10,0,0,1});
-        final InetAddress ra2 = InetAddress.getByAddress(new byte[] {10,0,0,2});
-        final HttpHost target = new HttpHost("somehost", -1, "https");
-        final HttpRoute route = new HttpRoute(target, la1, true);
-
-        Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {ra1, ra2});
-        Mockito.when(schemePortResolver.resolve(target)).thenReturn(8443);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-
-        Mockito.verify(ioreactor).connect(
-            Mockito.eq(new InetSocketAddress(ra1, 8443)),
-            Mockito.eq(new InetSocketAddress(la1, 0)),
-            Mockito.isNull(),
-            sessionRequestCallbackCaptor.capture());
-
-        Mockito.when(sessionRequest.getSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
-
-        final SessionRequestCallback callback = sessionRequestCallbackCaptor.getValue();
-        callback.completed(sessionRequest);
-        Mockito.verify(connCallback).completed(Mockito.<NHttpClientConnection>any());
-        Mockito.verify(iosession).setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
-        Mockito.verify(conn).bind(iosession);
-    }
-
-    @Test
-    public void testConnectAlreadyConnected() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "https");
-        final HttpRoute route = new HttpRoute(target);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-
-        Mockito.when(conn.isOpen()).thenReturn(Boolean.TRUE);
-
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-        Assert.assertTrue(future.isDone());
-
-        Mockito.verify(ioreactor, Mockito.never()).connect(
-            Mockito.<InetSocketAddress>any(),
-            Mockito.<InetSocketAddress>any(),
-            Mockito.any(),
-            Mockito.<SessionRequestCallback>any());
-    }
-
-    @Test
-    public void testConnectUnknownHost() throws Exception {
-        final HttpHost target = new HttpHost("pampa", -1, "https");
-        final HttpRoute route = new HttpRoute(target);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-
-        Mockito.when(dnsResolver.resolve("pampa")).thenThrow(new UnknownHostException());
-
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-        Assert.assertTrue(future.isDone());
-
-        Mockito.verify(ioreactor, Mockito.never()).connect(
-            Mockito.<InetSocketAddress>any(),
-            Mockito.<InetSocketAddress>any(),
-            Mockito.any(),
-            Mockito.<SessionRequestCallback>any());
-
-        try {
-            future.get();
-        } catch (final ExecutionException ex) {
-            Assert.assertTrue(ex.getCause() instanceof UnknownHostException);
-        }
-    }
-
-    @Test
-    public void testConnectFailure() throws Exception {
-        final InetAddress ra1 = InetAddress.getByAddress(new byte[] {10,0,0,1});
-        final HttpHost target = new HttpHost("somehost", -1, "https");
-        final HttpRoute route = new HttpRoute(target);
-
-        Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {ra1});
-        Mockito.when(schemePortResolver.resolve(target)).thenReturn(8443);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-
-        Mockito.verify(ioreactor).connect(
-            Mockito.eq(new InetSocketAddress(ra1, 8443)),
-            (SocketAddress) Mockito.isNull(),
-            Mockito.isNull(),
-            sessionRequestCallbackCaptor.capture());
-
-        Mockito.when(sessionRequest.getException()).thenReturn(new IOException());
-
-        final SessionRequestCallback callback = sessionRequestCallbackCaptor.getValue();
-        callback.failed(sessionRequest);
-        Mockito.verify(connCallback).failed(Mockito.<IOException>any());
-    }
-
-    @Test
-    public void testConnectTimeout() throws Exception {
-        final InetAddress ra1 = InetAddress.getByAddress(new byte[] {10,0,0,1});
-        final HttpHost target = new HttpHost("somehost", -1, "https");
-        final HttpRoute route = new HttpRoute(target);
-
-        Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {ra1});
-        Mockito.when(schemePortResolver.resolve(target)).thenReturn(8443);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-
-        Mockito.verify(ioreactor).connect(
-            Mockito.eq(new InetSocketAddress(ra1, 8443)),
-            (SocketAddress) Mockito.isNull(),
-            Mockito.isNull(),
-            sessionRequestCallbackCaptor.capture());
-
-        final SessionRequestCallback callback = sessionRequestCallbackCaptor.getValue();
-        callback.timeout(sessionRequest);
-        Mockito.verify(connCallback).failed(Mockito.<ConnectTimeoutException>any());
-    }
-
-    @Test
-    public void testConnectCancelled() throws Exception {
-        final InetAddress ra1 = InetAddress.getByAddress(new byte[] {10,0,0,1});
-        final HttpHost target = new HttpHost("somehost", -1, "https");
-        final HttpRoute route = new HttpRoute(target);
-
-        Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {ra1});
-        Mockito.when(schemePortResolver.resolve(target)).thenReturn(8443);
-
-        final Log log = Mockito.mock(Log.class);
-        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
-        poolentry.markRouteComplete();
-        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
-        final Future<NHttpClientConnection> future = connman.connect(
-            managedConn, route, 1000, connCallback);
-        Assert.assertNotNull(future);
-
-        Mockito.verify(ioreactor).connect(
-            Mockito.eq(new InetSocketAddress(ra1, 8443)),
-            (SocketAddress) Mockito.isNull(),
-            Mockito.isNull(),
-            sessionRequestCallbackCaptor.capture());
-
-        final SessionRequestCallback callback = sessionRequestCallbackCaptor.getValue();
-        callback.cancelled(sessionRequest);
-        Mockito.verify(connCallback).cancelled();
-    }
-
-    @Test
     public void testConnectionInitialize() throws Exception {
         final HttpHost target = new HttpHost("somehost", -1, "http");
         final HttpRoute route = new HttpRoute(target);
@@ -444,11 +270,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy, Mockito.never()).layer(target, iosession);
+        Mockito.verify(plainFactory).create(target, iosession);
         Mockito.verify(conn, Mockito.never()).bind(iosession);
 
         Assert.assertFalse(connman.isRouteComplete(managedConn));
@@ -466,11 +292,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy).layer(target, iosession);
+        Mockito.verify(sslFactory).create(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -486,11 +312,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
 
-        Mockito.verify(layeringStrategy).layer(target, iosession);
+        Mockito.verify(sslFactory).create(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -506,7 +332,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
     }
@@ -523,7 +349,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(layeringStrategy.layer(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
 
         connman.initialize(managedConn, route, context);
         connman.routeComplete(managedConn, route, context);
@@ -574,7 +400,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpRoute route = new HttpRoute(new HttpHost("somehost"));
         internalConnFactory.create(route, iosession);
 
-        Mockito.verify(layeringStrategy, Mockito.never()).layer(
+        Mockito.verify(sslFactory, Mockito.never()).create(
             Mockito.eq(new HttpHost("somehost")), Mockito.<IOSession>any());
         Mockito.verify(connFactory).create(Mockito.same(iosession), Mockito.<ConnectionConfig>any());
     }

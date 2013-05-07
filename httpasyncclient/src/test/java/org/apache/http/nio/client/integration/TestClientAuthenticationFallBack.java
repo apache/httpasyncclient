@@ -122,8 +122,8 @@ public class TestClientAuthenticationFallBack extends HttpAsyncTestBase {
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
-                new DefaultConnectionReuseStrategy(),
-                new DefaultHttpResponseFactory(),
+                DefaultConnectionReuseStrategy.INSTANCE,
+                DefaultHttpResponseFactory.INSTANCE,
                 requestHandlerResolver,
                 expectationVerifier);
         this.server.start(serviceHandler);

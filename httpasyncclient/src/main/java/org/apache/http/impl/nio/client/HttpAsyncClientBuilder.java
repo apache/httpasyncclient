@@ -91,8 +91,9 @@ import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
-import org.apache.http.nio.conn.ssl.SSLLayeringStrategy;
-import org.apache.http.nio.conn.ssl.SchemeLayeringStrategy;
+import org.apache.http.nio.conn.PlainIOSessionFactory;
+import org.apache.http.nio.conn.SchemeIOSessionFactory;
+import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
@@ -106,7 +107,7 @@ public class HttpAsyncClientBuilder {
 
     private NHttpClientConnectionManager connManager;
     private SchemePortResolver schemePortResolver;
-    private SchemeLayeringStrategy sslLayeringStrategy;
+    private SchemeIOSessionFactory iosessionFactory;
     private SSLContext sslcontext;
     private ConnectionReuseStrategy reuseStrategy;
     private ConnectionKeepAliveStrategy keepAliveStrategy;
@@ -293,9 +294,9 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
-    public final HttpAsyncClientBuilder setSSLLayeringStrategy(
-            final SchemeLayeringStrategy layeringStrategy) {
-        this.sslLayeringStrategy = layeringStrategy;
+    public final HttpAsyncClientBuilder setSSLIOSessionFactory(
+            final SchemeIOSessionFactory iosessionFactory) {
+        this.iosessionFactory = iosessionFactory;
         return this;
     }
 
@@ -337,8 +338,8 @@ public class HttpAsyncClientBuilder {
     public CloseableHttpAsyncClient build() {
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
-            SchemeLayeringStrategy sslLayeringStrategy = this.sslLayeringStrategy;
-            if (sslLayeringStrategy == null) {
+            SchemeIOSessionFactory iosessionFactory = this.iosessionFactory;
+            if (iosessionFactory == null) {
                 SSLContext sslcontext = this.sslcontext;
                 if (sslcontext == null) {
                     if (systemProperties) {
@@ -347,14 +348,15 @@ public class HttpAsyncClientBuilder {
                         sslcontext = SSLContexts.createSystemDefault();
                     }
                 }
-                sslLayeringStrategy = new SSLLayeringStrategy(sslcontext);
+                iosessionFactory = new SSLIOSessionFactory(sslcontext);
             }
             final ConnectingIOReactor ioreactor = IOReactorUtils.create(
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
                     ioreactor,
-                    RegistryBuilder.<SchemeLayeringStrategy>create()
-                        .register("https", sslLayeringStrategy)
+                    RegistryBuilder.<SchemeIOSessionFactory>create()
+                        .register("http", PlainIOSessionFactory.INSTANCE)
+                        .register("https", iosessionFactory)
                         .build());
             if (defaultSocketConfig != null) {
                 poolingmgr.setDefaultSocketConfig(defaultSocketConfig);

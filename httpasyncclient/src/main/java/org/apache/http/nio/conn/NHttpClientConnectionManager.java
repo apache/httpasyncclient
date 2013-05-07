@@ -77,12 +77,6 @@ public interface NHttpClientConnectionManager {
     void releaseConnection(
             NHttpClientConnection conn, Object newState, long validDuration, TimeUnit timeUnit);
 
-    Future<NHttpClientConnection> connect(
-            NHttpClientConnection conn,
-            HttpRoute route,
-            int connectTimeout,
-            FutureCallback<NHttpClientConnection> callback);
-
     void initialize(
             NHttpClientConnection conn,
             HttpRoute route,

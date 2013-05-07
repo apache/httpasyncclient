@@ -29,7 +29,6 @@ package org.apache.http.nio.client.integration;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -122,8 +121,8 @@ public class TestRedirects extends HttpAsyncTestBase {
             final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
         final HttpAsyncService serviceHandler = new HttpAsyncService(
                 this.serverHttpProc,
-                new DefaultConnectionReuseStrategy(),
-                new DefaultHttpResponseFactory(),
+                DefaultConnectionReuseStrategy.INSTANCE,
+                DefaultHttpResponseFactory.INSTANCE,
                 requestHandlerResolver,
                 expectationVerifier);
         this.server.start(serviceHandler);
@@ -648,7 +647,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
         } catch (final ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof UnknownHostException);
+            Assert.assertTrue(e.getCause() instanceof IOException);
             throw e;
         }
     }
