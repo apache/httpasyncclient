@@ -175,6 +175,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             context != null ? context : new BasicHttpContext());
         setupContext(localcontext);
 
+        @SuppressWarnings("resource")
         final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,

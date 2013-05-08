@@ -149,6 +149,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
 
+        @SuppressWarnings("resource")
         final MinimalClientExchangeHandlerImpl<T> handler = new MinimalClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
