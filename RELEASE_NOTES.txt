@@ -1,4 +1,18 @@
-Changes since 4.0 Beta 3
+Release 4.0 Beta 4
+-------------------
+
+The 4.0 BETA4 release delivers significant performance improvements in request execution,
+especially for short HTTP messages, and also re-aligns programming interfaces used by the library 
+with HttpCore 4.3 and HttpClient 4.3 APIs. Configuration and preference APIs of HttpAsyncClient
+are now consistent with those used by HttpClient 4.3.
+
+Changelog:
+
+* Redesign of configuration and preference APIs. 
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* Redesign of connection management APIs.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
 
 * [HTTPASYNC-34] HttpAsyncClient fails to re-start request execution if the opposite end 
   prematurely terminates persistent connection. 
@@ -6,6 +20,7 @@ Changes since 4.0 Beta 3
 
 * [HTTPASYNC-28] PoolEntry's expiry information is never updated.
   Contributed by Daniel Kulp <dkulp at apache.org>
+
 
 
 Release 4.0 Beta 3
