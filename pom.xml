@@ -65,7 +65,7 @@
   </scm>
 
   <properties>
-    <httpcore.version>4.3-beta1</httpcore.version>
+    <httpcore.version>4.3-beta2</httpcore.version>
     <httpclient.version>4.3-beta1</httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <!-- Note IO 2.3+ requires Java 6 -->
