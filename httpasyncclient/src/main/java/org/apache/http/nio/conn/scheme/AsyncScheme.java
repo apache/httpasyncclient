@@ -28,6 +28,7 @@ package org.apache.http.nio.conn.scheme;
 
 import java.util.Locale;
 
+import org.apache.http.util.Args;
 import org.apache.http.util.LangUtils;
 
 @Deprecated
@@ -51,9 +52,7 @@ public final class AsyncScheme {
     */
 
     public AsyncScheme(final String name, final int port, final LayeringStrategy strategy) {
-        if (name == null) {
-            throw new IllegalArgumentException("Scheme name may not be null");
-        }
+        Args.notNull(name, "Scheme name");
         if ((port <= 0) || (port > 0xffff)) {
             throw new IllegalArgumentException("Port is invalid: " + port);
         }

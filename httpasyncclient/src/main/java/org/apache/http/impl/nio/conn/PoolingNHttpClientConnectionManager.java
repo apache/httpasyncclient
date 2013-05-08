@@ -132,7 +132,7 @@ public class PoolingNHttpClientConnectionManager
             final long timeToLive, final TimeUnit tunit) {
         super();
         Args.notNull(ioreactor, "I/O reactor");
-        Args.notNull(iosessionFactoryRegistry, "Layering strategy registry");
+        Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
         this.pool = new CPool(ioreactor,

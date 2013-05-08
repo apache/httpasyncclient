@@ -42,6 +42,7 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.Asserts;
 
 public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
@@ -76,9 +77,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
     @Override
     protected void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        if (this.fileChannel == null) {
-            throw new IllegalStateException("File channel is null");
-        }
+        Asserts.notNull(this.fileChannel, "File channel");
         long transferred;
         if (decoder instanceof FileContentDecoder) {
             transferred = ((FileContentDecoder)decoder).transfer(

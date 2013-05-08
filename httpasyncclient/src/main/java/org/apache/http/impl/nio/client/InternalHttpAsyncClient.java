@@ -50,6 +50,7 @@ import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.Asserts;
 
 @SuppressWarnings("deprecation")
 class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
@@ -167,10 +168,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        if (this.status != IOReactorStatus.ACTIVE) {
-            throw new IllegalStateException("Request cannot be executed; " +
-                    "I/O reactor status: " + this.status);
-        }
+        Asserts.check(this.status == IOReactorStatus.ACTIVE, "Request cannot be executed; " +
+                    "I/O reactor status: %s", this.status);
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());

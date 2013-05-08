@@ -37,6 +37,7 @@ import org.apache.http.annotation.NotThreadSafe;
 import org.apache.http.impl.conn.ConnectionShutdownException;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
+import org.apache.http.util.Asserts;
 
 @NotThreadSafe
 class CPoolProxy implements InvocationHandler {
@@ -159,9 +160,8 @@ class CPoolProxy implements InvocationHandler {
     private static CPoolProxy getHandler(
             final NHttpClientConnection proxy) {
         final InvocationHandler handler = Proxy.getInvocationHandler(proxy);
-        if (!CPoolProxy.class.isInstance(handler)) {
-            throw new IllegalStateException("Unexpected proxy handler class: " + handler);
-        }
+        Asserts.check(CPoolProxy.class.isInstance(handler),
+                "Unexpected proxy handler class: %s", handler.getClass());
         return CPoolProxy.class.cast(handler);
     }
 

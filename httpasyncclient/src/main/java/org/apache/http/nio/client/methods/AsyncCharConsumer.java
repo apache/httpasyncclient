@@ -39,6 +39,7 @@ import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.util.Asserts;
 
 public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
@@ -76,9 +77,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     @Override
     protected final void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        if (this.bbuf == null) {
-            throw new IllegalStateException("Byte buffer is null");
-        }
+        Asserts.notNull(this.bbuf, "Byte buffer");
         for (;;) {
             final int bytesRead = decoder.read(this.bbuf);
             if (bytesRead <= 0) {

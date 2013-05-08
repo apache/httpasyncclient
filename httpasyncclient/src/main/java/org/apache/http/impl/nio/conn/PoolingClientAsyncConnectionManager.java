@@ -45,6 +45,7 @@ import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.pool.ConnPoolControl;
 import org.apache.http.pool.PoolStats;
+import org.apache.http.util.Args;
 
 @Deprecated
 public class PoolingClientAsyncConnectionManager
@@ -62,15 +63,9 @@ public class PoolingClientAsyncConnectionManager
             final AsyncSchemeRegistry schemeRegistry,
             final long timeToLive, final TimeUnit tunit) {
         super();
-        if (ioreactor == null) {
-            throw new IllegalArgumentException("I/O reactor may not be null");
-        }
-        if (schemeRegistry == null) {
-            throw new IllegalArgumentException("Scheme registory may not be null");
-        }
-        if (tunit == null) {
-            throw new IllegalArgumentException("Time unit may not be null");
-        }
+        Args.notNull(ioreactor, "I/O reactor");
+        Args.notNull(schemeRegistry, "Scheme registory");
+        Args.notNull(tunit, "Time unit");
         this.ioreactor = ioreactor;
         this.pool = new HttpNIOConnPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
         this.schemeRegistry = schemeRegistry;
@@ -163,12 +158,8 @@ public class PoolingClientAsyncConnectionManager
             final long connectTimeout,
             final TimeUnit tunit,
             final FutureCallback<ManagedClientAsyncConnection> callback) {
-        if (route == null) {
-            throw new IllegalArgumentException("HTTP route may not be null");
-        }
-        if (tunit == null) {
-            throw new IllegalArgumentException("Time unit may not be null");
-        }
+        Args.notNull(route, "HTTP route");
+        Args.notNull(tunit, "Time unit");
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
@@ -182,16 +173,12 @@ public class PoolingClientAsyncConnectionManager
             final ManagedClientAsyncConnection conn,
             final long keepalive,
             final TimeUnit tunit) {
-        if (conn == null) {
-            throw new IllegalArgumentException("HTTP connection may not be null");
-        }
+        Args.notNull(conn, "HTTP connection");
         if (!(conn instanceof ManagedClientAsyncConnectionImpl)) {
             throw new IllegalArgumentException("Connection class mismatch, " +
                  "connection not obtained from this manager");
         }
-        if (tunit == null) {
-            throw new IllegalArgumentException("Time unit may not be null");
-        }
+        Args.notNull(tunit, "Time unit");
         final ManagedClientAsyncConnectionImpl managedConn = (ManagedClientAsyncConnectionImpl) conn;
         final ClientAsyncConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {

@@ -46,6 +46,7 @@ import org.apache.http.nio.FileContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.Args;
 
 abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
@@ -59,12 +60,8 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
     protected BaseZeroCopyRequestProducer(
             final URI requestURI, final File file, final ContentType contentType) {
         super();
-        if (requestURI == null) {
-            throw new IllegalArgumentException("Request URI may not be null");
-        }
-        if (file == null) {
-            throw new IllegalArgumentException("Source file may not be null");
-        }
+        Args.notNull(requestURI, "Request URI");
+        Args.notNull(file, "Source file");
         this.requestURI = requestURI;
         this.file = file;
         this.contentType = contentType;

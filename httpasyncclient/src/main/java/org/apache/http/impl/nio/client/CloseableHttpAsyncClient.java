@@ -44,6 +44,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.Args;
 
 public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Closeable {
 
@@ -93,6 +94,7 @@ public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Close
     }
 
     private HttpHost determineTarget(final HttpUriRequest request) throws ClientProtocolException {
+        Args.notNull(request, "HTTP request");
         // A null target may be acceptable if there is a default target.
         // Otherwise, the null target is detected in the director.
         HttpHost target = null;

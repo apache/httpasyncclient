@@ -50,23 +50,18 @@ import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
+import org.apache.http.util.Args;
 
 public final class HttpAsyncMethods {
 
     public static HttpAsyncRequestProducer create(final HttpHost target, final HttpRequest request) {
-        if (target == null) {
-            throw new IllegalArgumentException("HTTP host may not be null");
-        }
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(target, "HTTP host");
+        Args.notNull(request, "HTTP request");
         return new RequestProducerImpl(target, request);
     }
 
     public static HttpAsyncRequestProducer create(final HttpUriRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(request, "HTTP request");
         final HttpHost target = URIUtils.extractHost(request.getURI());
         return new RequestProducerImpl(target, request);
     }
