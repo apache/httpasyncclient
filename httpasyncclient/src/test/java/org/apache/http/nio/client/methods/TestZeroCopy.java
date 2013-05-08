@@ -28,6 +28,7 @@ package org.apache.http.nio.client.methods;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -172,7 +173,9 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
         private final boolean forceChunking;
 
-        protected TestZeroCopyPost(final String requestURI, final boolean forceChunking) {
+        protected TestZeroCopyPost(
+                final String requestURI,
+                final boolean forceChunking) throws FileNotFoundException {
             super(URI.create(requestURI), TEST_FILE, ContentType.create("text/plain"));
             this.forceChunking = forceChunking;
         }
@@ -194,7 +197,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
     static class TestZeroCopyConsumer extends ZeroCopyConsumer<Integer> {
 
-        public TestZeroCopyConsumer(final File file) {
+        public TestZeroCopyConsumer(final File file) throws FileNotFoundException {
             super(file);
         }
 

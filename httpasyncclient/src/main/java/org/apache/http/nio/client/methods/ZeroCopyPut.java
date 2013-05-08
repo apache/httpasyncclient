@@ -27,6 +27,7 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.URI;
 
 import org.apache.http.HttpEntity;
@@ -36,11 +37,17 @@ import org.apache.http.entity.ContentType;
 
 public class ZeroCopyPut extends BaseZeroCopyRequestProducer {
 
-    public ZeroCopyPut(final URI requestURI, final File content, final ContentType contentType) {
+    public ZeroCopyPut(
+            final URI requestURI,
+            final File content,
+            final ContentType contentType) throws FileNotFoundException {
         super(requestURI, content, contentType);
     }
 
-    public ZeroCopyPut(final String requestURI, final File content, final ContentType contentType) {
+    public ZeroCopyPut(
+            final String requestURI,
+            final File content,
+            final ContentType contentType) throws FileNotFoundException {
         super(URI.create(requestURI), content, contentType);
     }
 

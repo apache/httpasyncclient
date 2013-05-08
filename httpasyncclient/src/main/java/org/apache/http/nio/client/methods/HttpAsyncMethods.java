@@ -27,6 +27,7 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 
@@ -179,28 +180,28 @@ public final class HttpAsyncMethods {
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final URI requestURI,
             final File content,
-            final ContentType contentType) {
+            final ContentType contentType) throws FileNotFoundException {
         return new ZeroCopyPost(requestURI, content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final String requestURI,
             final File content,
-            final ContentType contentType) {
+            final ContentType contentType) throws FileNotFoundException {
         return new ZeroCopyPost(URI.create(requestURI), content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final URI requestURI,
             final File content,
-            final ContentType contentType) {
+            final ContentType contentType) throws FileNotFoundException {
         return new ZeroCopyPut(requestURI, content, contentType);
     }
 
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final String requestURI,
             final File content,
-            final ContentType contentType) {
+            final ContentType contentType) throws FileNotFoundException {
         return new ZeroCopyPut(URI.create(requestURI), content, contentType);
     }
 
@@ -208,7 +209,8 @@ public final class HttpAsyncMethods {
         return new BasicAsyncResponseConsumer();
     }
 
-    public static HttpAsyncResponseConsumer<HttpResponse> createZeroCopyConsumer(final File file) {
+    public static HttpAsyncResponseConsumer<HttpResponse> createZeroCopyConsumer(
+            final File file) throws FileNotFoundException {
         return new ZeroCopyConsumer<HttpResponse>(file) {
 
             @Override

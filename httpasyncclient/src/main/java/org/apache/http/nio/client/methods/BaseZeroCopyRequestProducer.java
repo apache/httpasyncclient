@@ -27,8 +27,9 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.channels.FileChannel;
 
@@ -52,18 +53,21 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
     private final URI requestURI;
     private final File file;
+    private final RandomAccessFile accessfile;
     private final ContentType contentType;
 
     private FileChannel fileChannel;
     private long idx = -1;
 
     protected BaseZeroCopyRequestProducer(
-            final URI requestURI, final File file, final ContentType contentType) {
+            final URI requestURI,
+            final File file, final ContentType contentType) throws FileNotFoundException {
         super();
         Args.notNull(requestURI, "Request URI");
         Args.notNull(file, "Source file");
         this.requestURI = requestURI;
         this.file = file;
+        this.accessfile = new RandomAccessFile(file, "r");
         this.contentType = contentType;
     }
 
@@ -93,8 +97,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         if (this.fileChannel == null) {
-            final FileInputStream in = new FileInputStream(this.file);
-            this.fileChannel = in.getChannel();
+            this.fileChannel = this.accessfile.getChannel();
             this.idx = 0;
         }
         long transferred;
@@ -130,7 +133,10 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
     }
 
     public synchronized void close() throws IOException {
-        closeChannel();
+        try {
+            this.accessfile.close();
+        } catch (final IOException ignore) {
+        }
     }
 
 }

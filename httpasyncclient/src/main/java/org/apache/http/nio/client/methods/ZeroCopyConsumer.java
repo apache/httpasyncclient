@@ -27,8 +27,9 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
 import org.apache.http.HttpEntity;
@@ -47,18 +48,20 @@ import org.apache.http.util.Asserts;
 public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final File file;
+    private final RandomAccessFile accessfile;
 
     private HttpResponse response;
     private ContentType contentType;
     private FileChannel fileChannel;
     private long idx = -1;
 
-    public ZeroCopyConsumer(final File file) {
+    public ZeroCopyConsumer(final File file) throws FileNotFoundException {
         super();
         if (file == null) {
             throw new IllegalArgumentException("File may nor be null");
         }
         this.file = file;
+        this.accessfile = new RandomAccessFile(this.file, "rw");
     }
 
     @Override
@@ -70,7 +73,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
     protected void onEntityEnclosed(
             final HttpEntity entity, final ContentType contentType) throws IOException {
         this.contentType = contentType;
-        this.fileChannel = new FileOutputStream(this.file).getChannel();
+        this.fileChannel = this.accessfile.getChannel();
         this.idx = 0;
     }
 
@@ -91,7 +94,6 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
         }
         if (decoder.isCompleted()) {
             this.fileChannel.close();
-            this.fileChannel = null;
         }
     }
 
@@ -108,12 +110,9 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     @Override
     protected void releaseResources() {
-        if (this.fileChannel != null) {
-            try {
-                this.fileChannel.close();
-            } catch (final IOException ignore) {
-            }
-            this.fileChannel = null;
+        try {
+            this.accessfile.close();
+        } catch (final IOException ignore) {
         }
     }
 
