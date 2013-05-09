@@ -6,6 +6,8 @@ especially for short HTTP messages, and also re-aligns programming interfaces us
 with HttpCore 4.3 and HttpClient 4.3 APIs. Configuration and preference APIs of HttpAsyncClient
 are now consistent with those used by HttpClient 4.3.
 
+Users of previous releases of HttpAsyncClient are advised to upgrade.
+
 Changelog:
 
 * Redesign of configuration and preference APIs. 
