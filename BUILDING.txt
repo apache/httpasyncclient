@@ -57,7 +57,7 @@ mvn antrun:run
 
 (7) Building project web site 
 
-Execute the following command in order to generate the project web site:
+Execute the following command with Maven 2 in order to generate the project web site:
 
 mvn site -Dmaven.clover.licenseLocation=<path>/clover.license
 
