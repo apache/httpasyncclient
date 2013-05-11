@@ -5,7 +5,7 @@ Building HttpComponents AsyncClient
 --------------
 JDK 1.5+ is required in order to compile and run HttpAsyncClient.
 
-HttpCore utilizes Maven as a distribution management and packaging tool.
+HttpAsyncClient utilizes Maven as a distribution management and packaging tool.
 Version 3.0.3 or later is required. 
 
 Maven installation and configuration instructions can be found here:
