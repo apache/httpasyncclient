@@ -34,7 +34,7 @@ where <VERSION> is the release version
 
 (4) Building documentation 
 
-Execute the following command in order to generate javadoc:
+Execute the following commands in order to generate Javadoc:
 
 mvn install
 mvn javadoc:aggregate
