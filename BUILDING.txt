@@ -3,12 +3,10 @@ Building HttpComponents AsyncClient
 
 (1) Requisites
 --------------
-HttpAsyncClient utilizes Maven 2 as a distribution management and packaging tool. 
-Version 2.1.0 or above is required, which requires JDK 1.4 or later.
-However, it is recommended that you use Maven 2.2.1 or later, which  
-require JDK 1.5 or above, as does HttpAsyncClient itself.
+JDK 1.5+ is required in order to compile and run HttpAsyncClient.
 
-Maven 3.0.x and Clover are not compatible and will cause a build error.
+HttpCore utilizes Maven as a distribution management and packaging tool.
+Version 3.0.3 or later is required. 
 
 Maven installation and configuration instructions can be found here:
 
@@ -29,6 +27,8 @@ mvn package
 The resultant packages can be found in the target folders of their respective modules
 
 httpasyncclient/target/httpasyncclient-<VERSION>.jar
+httpasyncclient-cache/target/httpasyncclient-cache-<VERSION>.jar
+httpasyncclient-osgi/target/org.apache.httpcomponents.httpasyncclient_<VERSION>.jar
 
 where <VERSION> is the release version
 
@@ -55,11 +55,16 @@ Fix the archive files so the source files have the correct EOL settings:
 
 mvn antrun:run
 
-(7) Building project web site 
+(7) Building project web site
 
-Execute the following command with Maven 2 in order to generate the project web site:
+Execute the following command in order to generate the project web site:
 
-mvn site -Dmaven.clover.licenseLocation=<path>/clover.license
+mvn site
+
+Execute the following command in order to generate the project web site with Clover reports.
+This step is optional:
+
+mvn site -Pclover -Dmaven.clover.licenseLocation=<path>/clover.license
 
 where <path> is a full path to Clover license file
 
