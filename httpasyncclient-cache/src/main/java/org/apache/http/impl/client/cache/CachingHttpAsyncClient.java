@@ -118,7 +118,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         this.backend = client;
         this.responseCache = cache;
         this.validityPolicy = new CacheValidityPolicy();
-        this.responseCachingPolicy = new ResponseCachingPolicy(this.maxObjectSizeBytes, this.sharedCache, false);
+        this.responseCachingPolicy = new ResponseCachingPolicy(this.maxObjectSizeBytes, this.sharedCache, false, config.is303CachingEnabled());
         this.responseGenerator = new CachedHttpResponseGenerator(this.validityPolicy);
         this.cacheableRequestPolicy = new CacheableRequestPolicy();
         this.suitabilityChecker = new CachedResponseSuitabilityChecker(this.validityPolicy, config);

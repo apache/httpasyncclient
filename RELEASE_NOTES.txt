@@ -10,6 +10,9 @@ Users of previous releases of HttpAsyncClient are advised to upgrade.
 
 Changelog:
 
+* [HTTPCLIENT-1353] 303 Redirects Should be Cacheable
+  Contributed by James Leigh <james at 3roundstones dot com>
+
 * Redesign of configuration and preference APIs. 
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
