@@ -646,9 +646,9 @@ public class TestRedirects extends HttpAsyncTestBase {
         try {
             final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
             future.get();
-        } catch (final ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof IOException);
-            throw e;
+        } catch (final ExecutionException ex) {
+            Assert.assertTrue(ex.getCause() instanceof HttpException);
+            throw ex;
         }
     }
 
