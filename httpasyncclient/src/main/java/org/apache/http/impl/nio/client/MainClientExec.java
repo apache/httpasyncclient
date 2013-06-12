@@ -53,6 +53,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.URICollection;
 import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.Configurable;
@@ -138,6 +139,12 @@ class MainClientExec implements InternalClientExec {
                 localContext.setRequestConfig(config);
             }
         }
+
+        final URICollection redirectLocations = localContext.getRedirectLocations();
+        if (redirectLocations != null) {
+            redirectLocations.clear();
+        }
+
         prepareRequest(state);
     }
 

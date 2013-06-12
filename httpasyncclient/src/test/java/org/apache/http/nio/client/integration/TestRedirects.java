@@ -284,6 +284,28 @@ public class TestRedirects extends HttpAsyncTestBase {
         }
     }
 
+    private static class RomeRedirectService implements HttpRequestHandler {
+
+        public RomeRedirectService() {
+            super();
+        }
+
+        public void handle(
+                final HttpRequest request,
+                final HttpResponse response,
+                final HttpContext context) throws HttpException, IOException {
+            final String uri = request.getRequestLine().getUri();
+            if (uri.equals("/rome")) {
+                response.setStatusCode(HttpStatus.SC_OK);
+                final StringEntity entity = new StringEntity("Successful redirect");
+                response.setEntity(entity);
+            } else {
+                response.setStatusCode(HttpStatus.SC_MOVED_TEMPORARILY);
+                response.addHeader(new BasicHeader("Location", "/rome"));
+            }
+        }
+    }
+
     @Test
     public void testBasicRedirect300() throws Exception {
         final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
@@ -807,6 +829,99 @@ public class TestRedirects extends HttpAsyncTestBase {
         } finally {
             this.server.shutdown();
         }
+    }
+
+    @Test
+    public void testRepeatRequest() throws Exception {
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
+        registry.register("*", new BasicAsyncRequestHandler(new RomeRedirectService()));
+        final HttpHost target = start(registry, null);
+
+        final HttpClientContext context = HttpClientContext.create();
+
+        final RequestConfig config = RequestConfig.custom().setRelativeRedirectsAllowed(true).build();
+        final HttpGet first = new HttpGet("/rome");
+        first.setConfig(config);
+
+        final Future<HttpResponse> future1 = this.httpclient.execute(target, first, context, null);
+        final HttpResponse response1 = future1.get();
+        Assert.assertNotNull(response1);
+
+        final HttpGet second = new HttpGet("/rome");
+        second.setConfig(config);
+
+        final Future<HttpResponse> future2 = this.httpclient.execute(target, second, context, null);
+        final HttpResponse response2 = future2.get();
+        Assert.assertNotNull(response2);
+
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
+
+        Assert.assertEquals(HttpStatus.SC_OK, response2.getStatusLine().getStatusCode());
+        Assert.assertEquals("/rome", reqWrapper.getRequestLine().getUri());
+        Assert.assertEquals(host, target);
+    }
+
+    @Test
+    public void testRepeatRequestRedirect() throws Exception {
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
+        registry.register("*", new BasicAsyncRequestHandler(new RomeRedirectService()));
+        final HttpHost target = start(registry, null);
+
+        final HttpClientContext context = HttpClientContext.create();
+
+        final RequestConfig config = RequestConfig.custom().setRelativeRedirectsAllowed(true).build();
+        final HttpGet first = new HttpGet("/lille");
+        first.setConfig(config);
+
+        final Future<HttpResponse> future1 = this.httpclient.execute(target, first, context, null);
+        final HttpResponse response1 = future1.get();
+        Assert.assertNotNull(response1);
+
+        final HttpGet second = new HttpGet("/lille");
+        second.setConfig(config);
+
+        final Future<HttpResponse> future2 = this.httpclient.execute(target, second, context, null);
+        final HttpResponse response2 = future2.get();
+        Assert.assertNotNull(response2);
+
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
+
+        Assert.assertEquals(HttpStatus.SC_OK, response2.getStatusLine().getStatusCode());
+        Assert.assertEquals("/rome", reqWrapper.getRequestLine().getUri());
+        Assert.assertEquals(host, target);
+    }
+
+    @Test
+    public void testDifferentRequestSameRedirect() throws Exception {
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
+        registry.register("*", new BasicAsyncRequestHandler(new RomeRedirectService()));
+        final HttpHost target = start(registry, null);
+
+        final HttpClientContext context = HttpClientContext.create();
+
+        final RequestConfig config = RequestConfig.custom().setRelativeRedirectsAllowed(true).build();
+        final HttpGet first = new HttpGet("/alian");
+        first.setConfig(config);
+
+        final Future<HttpResponse> future1 = this.httpclient.execute(target, first, context, null);
+        final HttpResponse response1 = future1.get();
+        Assert.assertNotNull(response1);
+
+        final HttpGet second = new HttpGet("/lille");
+        second.setConfig(config);
+
+        final Future<HttpResponse> future2 = this.httpclient.execute(target, second, context, null);
+        final HttpResponse response2 = future2.get();
+        Assert.assertNotNull(response2);
+
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
+
+        Assert.assertEquals(HttpStatus.SC_OK, response2.getStatusLine().getStatusCode());
+        Assert.assertEquals("/rome", reqWrapper.getRequestLine().getUri());
+        Assert.assertEquals(host, target);
     }
 
 }
