@@ -45,6 +45,7 @@ import org.apache.http.ProtocolException;
 import org.apache.http.auth.AUTH;
 import org.apache.http.auth.AuthProtocolState;
 import org.apache.http.auth.AuthScheme;
+import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthenticationStrategy;
@@ -65,7 +66,6 @@ import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.HttpRouteDirector;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.routing.RouteTracker;
-import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.auth.HttpAuthenticator;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
@@ -457,17 +457,7 @@ class MainClientExec implements InternalClientExec {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpRequestWrapper currentRequest = state.getCurrentRequest();
         final HttpRoute route = state.getRoute();
-        // Get user info from the URI
-        final URI requestURI = currentRequest.getURI();
-        if (requestURI != null) {
-            final String userinfo = requestURI.getUserInfo();
-            if (userinfo != null) {
-                final AuthState targetAuthState = localContext.getTargetAuthState();
-                targetAuthState.update(new BasicScheme(), new UsernamePasswordCredentials(userinfo));
-            }
-        }
 
-        HttpHost target = null;
         final HttpRequest original = currentRequest.getOriginal();
         URI uri = null;
         if (original instanceof HttpUriRequest) {
@@ -478,10 +468,18 @@ class MainClientExec implements InternalClientExec {
                 uri = URI.create(uriString);
             } catch (final IllegalArgumentException ex) {
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("Unable to parse '" + uriString + "' request URI: " + ex.getMessage());
+                    this.log.debug("Unable to parse '" + uriString + "' as a valid URI; " +
+                        "request URI and Host header may be inconsistent", ex);
                 }
             }
+
         }
+        currentRequest.setURI(uri);
+
+        // Re-write request URI if needed
+        rewriteRequestURI(state);
+
+        HttpHost target = null;
         if (uri != null && uri.isAbsolute() && uri.getHost() != null) {
             target = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
         }
@@ -489,8 +487,16 @@ class MainClientExec implements InternalClientExec {
             target = route.getTargetHost();
         }
 
-        // Re-write request URI if needed
-        rewriteRequestURI(state);
+        // Get user info from the URI
+        if (uri != null) {
+            final String userinfo = uri.getUserInfo();
+            if (userinfo != null) {
+                final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
+                credsProvider.setCredentials(
+                        new AuthScope(target),
+                        new UsernamePasswordCredentials(userinfo));
+            }
+        }
 
         localContext.setAttribute(HttpClientContext.HTTP_REQUEST, currentRequest);
         localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);

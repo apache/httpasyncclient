@@ -36,6 +36,7 @@ import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpInetConnection;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
@@ -62,6 +63,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.BasicAuthTokenExtractor;
 import org.apache.http.localserver.RequestBasicAuth;
 import org.apache.http.localserver.ResponseBasicUnauthorized;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.entity.NByteArrayEntity;
@@ -78,13 +80,13 @@ import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.ResponseConnControl;
 import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
-import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -522,7 +524,6 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         final HttpEntity entity = response.getEntity();
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
         Assert.assertNotNull(entity);
-        EntityUtils.consume(entity);
     }
 
     @Test
@@ -544,7 +545,47 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
         final HttpEntity entity = response.getEntity();
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
         Assert.assertNotNull(entity);
-        EntityUtils.consume(entity);
+    }
+
+    private static class RedirectHandler implements HttpRequestHandler {
+
+        public RedirectHandler() {
+            super();
+        }
+
+        public void handle(
+                final HttpRequest request,
+                final HttpResponse response,
+                final HttpContext context) throws HttpException, IOException {
+            final HttpInetConnection conn = (HttpInetConnection) context.getAttribute(HttpCoreContext.HTTP_CONNECTION);
+            final String localhost = conn.getLocalAddress().getHostName();
+            final int port = conn.getLocalPort();
+            response.setStatusCode(HttpStatus.SC_MOVED_PERMANENTLY);
+            response.addHeader(new BasicHeader("Location",
+                    "http://test:test@" + localhost + ":" + port + "/"));
+        }
+
+    }
+
+    @Test
+    public void testAuthenticationUserinfoInRedirectSuccess() throws Exception {
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
+        registry.register("*", new BasicAsyncRequestHandler(new AuthHandler()));
+        registry.register("/thatway", new BasicAsyncRequestHandler(new RedirectHandler()));
+
+        this.httpclient = HttpAsyncClients.custom()
+            .setConnectionManager(this.connMgr)
+            .build();
+
+        final HttpHost target = start(registry, null);
+
+        final HttpGet httpget = new HttpGet("http://test:test@" +  target.toHostString() + "/thatway");
+        final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        final HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        final HttpEntity entity = response.getEntity();
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
+        Assert.assertNotNull(entity);
     }
 
 }
