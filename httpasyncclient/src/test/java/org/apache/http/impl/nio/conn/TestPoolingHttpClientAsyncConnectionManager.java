@@ -44,6 +44,7 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
+import org.apache.http.conn.UnsupportedSchemeException;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.ConfigData;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.InternalAddressResolver;
@@ -298,6 +299,49 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Mockito.verify(sslFactory).create(target, iosession);
         Mockito.verify(conn).bind(iosession);
+    }
+
+    @Test
+    public void testConnectionInitializeContextSpecific() throws Exception {
+        final HttpHost target = new HttpHost("somehost", -1, "http11");
+        final HttpRoute route = new HttpRoute(target);
+        final HttpContext context = new BasicHttpContext();
+
+        final Registry<SchemeIOSessionFactory> reg = RegistryBuilder.<SchemeIOSessionFactory>create()
+                .register("http11", plainFactory)
+                .build();
+        context.setAttribute(PoolingNHttpClientConnectionManager.IOSESSION_FACTORY_REGISTRY, reg);
+
+        final Log log = Mockito.mock(Log.class);
+        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
+        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
+
+        Mockito.when(conn.getIOSession()).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+
+        connman.initialize(managedConn, route, context);
+
+        Mockito.verify(plainFactory).create(target, iosession);
+        Mockito.verify(conn, Mockito.never()).bind(iosession);
+
+        Assert.assertFalse(connman.isRouteComplete(managedConn));
+    }
+
+    @Test(expected=UnsupportedSchemeException.class)
+    public void testConnectionInitializeUnknownScheme() throws Exception {
+        final HttpHost target = new HttpHost("somehost", -1, "whatever");
+        final HttpRoute route = new HttpRoute(target, null, true);
+        final HttpContext context = new BasicHttpContext();
+
+        final Log log = Mockito.mock(Log.class);
+        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
+        poolentry.markRouteComplete();
+        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
+
+        Mockito.when(conn.getIOSession()).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+
+        connman.initialize(managedConn, route, context);
     }
 
     @Test

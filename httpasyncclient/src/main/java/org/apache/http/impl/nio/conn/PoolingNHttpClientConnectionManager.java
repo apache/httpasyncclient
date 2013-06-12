@@ -41,11 +41,13 @@ import org.apache.http.HttpHost;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.Lookup;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
+import org.apache.http.conn.UnsupportedSchemeException;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.conn.DefaultSchemePortResolver;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
@@ -71,6 +73,8 @@ public class PoolingNHttpClientConnectionManager
        implements NHttpClientConnectionManager, ConnPoolControl<HttpRoute> {
 
     private final Log log = LogFactory.getLog(getClass());
+
+    static final String IOSESSION_FACTORY_REGISTRY = "http.iosession-factory-registry";
 
     private final ConnectingIOReactor ioreactor;
     private final ConfigData configData;
@@ -277,6 +281,16 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private Lookup<SchemeIOSessionFactory> getIOSessionFactoryRegistry(final HttpContext context) {
+        Lookup<SchemeIOSessionFactory> reg = (Lookup<SchemeIOSessionFactory>) context.getAttribute(
+                IOSESSION_FACTORY_REGISTRY);
+        if (reg == null) {
+            reg = this.iosessionFactoryRegistry;
+        }
+        return reg;
+    }
+
     public void initialize(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
@@ -289,10 +303,11 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
-                host.getSchemeName());
+        final Lookup<SchemeIOSessionFactory> reg = getIOSessionFactoryRegistry(context);
+        final SchemeIOSessionFactory sf = reg.lookup(host.getSchemeName());
         if (sf == null) {
-            throw new IOException("Unsupported scheme: " + host.getSchemeName());
+            throw new UnsupportedSchemeException(host.getSchemeName() +
+                    " protocol is not supported");
         }
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
@@ -309,10 +324,11 @@ public class PoolingNHttpClientConnectionManager
         Args.notNull(managedConn, "Managed connection");
         Args.notNull(route, "HTTP route");
         final HttpHost host  = route.getTargetHost();
-        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
-            host.getSchemeName());
+        final Lookup<SchemeIOSessionFactory> reg = getIOSessionFactoryRegistry(context);
+        final SchemeIOSessionFactory sf = reg.lookup(host.getSchemeName());
         if (sf == null) {
-            throw new IOException("Unsupported scheme: " + host.getSchemeName());
+            throw new UnsupportedSchemeException(host.getSchemeName() +
+                    " protocol is not supported");
         }
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
