@@ -1,3 +1,10 @@
+Change since Release 4.0 Beta 4
+-------------------
+
+* [HTTPASYNC-45] CachingHttpAsyncClient to override Future returned by the backend.
+  Contributed by James Leigh <james at 3roundstones dot com>
+
+
 Release 4.0 Beta 4
 -------------------
 

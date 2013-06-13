@@ -78,6 +78,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
+import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 
 @SuppressWarnings("deprecation")
@@ -400,24 +401,17 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 future.completed(resp);
                 return future;
             }
-            return revalidateCacheEntry(target, request, context, entry, new FutureCallback<HttpResponse> () {
-
-                public void cancelled() {
-                    futureCallback.cancelled();
-                }
-
-                public void completed(final HttpResponse httpResponse) {
-                    futureCallback.completed(httpResponse);
-                }
-
-                public void failed(final Exception e) {
-                    if(e instanceof IOException) {
-                        futureCallback.completed(handleRevalidationFailure(request, context, entry, now));
-                        return;
+            final FutureHttpResponse future = new FutureHttpResponse(futureCallback) {
+                public void failed(final Exception ex) {
+                    if(ex instanceof IOException) {
+                        super.completed(handleRevalidationFailure(request, context, entry, now));
+                    } else {
+                        super.failed(ex);
                     }
-                    futureCallback.failed(e);
                 }
-            });
+            };
+            future.setDelegate(revalidateCacheEntry(target, request, context, entry, future));
+            return future;
         } catch (final ProtocolException e) {
             throw new ClientProtocolException(e);
         }
@@ -662,30 +656,21 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final HttpHost target, final HttpRequestWrapper request, final HttpContext context,
             final FutureCallback<HttpResponse> futureCallback) {
         final Date requestDate = getCurrentDate();
-        this.log.debug("Calling the backend");
-        return this.backend.execute(target, request, context, new FutureCallback<HttpResponse>() {
-
-            public void cancelled() {
-                futureCallback.cancelled();
-            }
-
+        this.log.trace("Calling the backend");
+        final FutureHttpResponse future = new FutureHttpResponse(futureCallback) {
             public void completed(final HttpResponse httpResponse) {
-                httpResponse.addHeader("Via", generateViaHeader(httpResponse));
+                httpResponse.addHeader(HeaderConstants.VIA, generateViaHeader(httpResponse));
                 try {
                     final HttpResponse backendResponse = handleBackendResponse(target, request, requestDate, getCurrentDate(), httpResponse);
-                    futureCallback.completed(backendResponse);
+                    super.completed(backendResponse);
                 } catch (final IOException e) {
-                    futureCallback.failed(e);
-                    return;
+                    super.failed(e);
                 }
 
             }
-
-            public void failed(final Exception e) {
-                futureCallback.failed(e);
-            }
-
-        });
+        };
+        future.setDelegate(this.backend.execute(target, request, context, future));
+        return future;
     }
 
     private boolean revalidationResponseIsTooOld(final HttpResponse backendResponse,
@@ -716,11 +701,11 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         final HttpRequest conditionalRequest = this.conditionalRequestBuilder.buildConditionalRequestFromVariants(request, variants);
 
         final Date requestDate = getCurrentDate();
-        //HttpResponse backendResponse =
-        return this.backend.execute(target, conditionalRequest, new FutureCallback<HttpResponse> () {
+        final FutureHttpResponse future = new FutureHttpResponse(futureCallback);
+        Future<HttpResponse> backendFuture = this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse> () {
 
             public void cancelled() {
-                futureCallback.cancelled();
+                future.cancelled();
             }
 
             public void completed(final HttpResponse httpResponse) {
@@ -730,11 +715,10 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
                 if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_MODIFIED) {
                     try {
-                        final HttpResponse backendResponse = handleBackendResponse(target, request, requestDate, responseDate, httpResponse);
-                        futureCallback.completed(backendResponse);
+                        future.completed(handleBackendResponse(target, request, requestDate, responseDate, httpResponse));
                         return;
                     } catch (final IOException e) {
-                        futureCallback.failed(e);
+                        future.failed(e);
                         return;
                     }
                 }
@@ -742,21 +726,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 final Header resultEtagHeader = httpResponse.getFirstHeader(HeaderConstants.ETAG);
                 if (resultEtagHeader == null) {
                     CachingHttpAsyncClient.this.log.warn("304 response did not contain ETag");
-                    callBackend(target, request, context, new FutureCallback<HttpResponse>() {
-
-                        public void cancelled() {
-                            futureCallback.cancelled();
-                        }
-
-                        public void completed(final HttpResponse innerHttpResponse) {
-                            futureCallback.completed(innerHttpResponse);
-                        }
-
-                        public void failed(final Exception e) {
-                            futureCallback.failed(e);
-                        }
-
-                    });
+                    callBackend(target, request, context, future);
                     return;
                 }
 
@@ -764,27 +734,14 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 final Variant matchingVariant = variants.get(resultEtag);
                 if (matchingVariant == null) {
                     CachingHttpAsyncClient.this.log.debug("304 response did not contain ETag matching one sent in If-None-Match");
-                    callBackend(target, request, context, new FutureCallback<HttpResponse>() {
-
-                        public void cancelled() {
-                            futureCallback.cancelled();
-                        }
-
-                        public void completed(final HttpResponse innerHttpResponse) {
-                            futureCallback.completed(innerHttpResponse);
-                        }
-
-                        public void failed(final Exception e) {
-                            futureCallback.failed(e);
-                        }
-
-                    });
+                    callBackend(target, request, context, future);
                 }
 
                 final HttpCacheEntry matchedEntry = matchingVariant.getEntry();
 
                 if (revalidationResponseIsTooOld(httpResponse, matchedEntry)) {
-                    retryRequestUnconditionally(target, request, context, matchedEntry, futureCallback);
+                    EntityUtils.consumeQuietly(httpResponse.getEntity());
+                    retryRequestUnconditionally(target, request, context, matchedEntry, future);
                     return;
                 }
 
@@ -798,20 +755,20 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 tryToUpdateVariantMap(target, request, matchingVariant);
 
                 if (shouldSendNotModifiedResponse(request, responseEntry)) {
-                    final HttpResponse backendResponse = CachingHttpAsyncClient.this.responseGenerator.generateNotModifiedResponse(responseEntry);
-                    futureCallback.completed(backendResponse);
+                    future.completed(CachingHttpAsyncClient.this.responseGenerator.generateNotModifiedResponse(responseEntry));
                     return;
                 }
 
-                final HttpResponse backendResponse = resp;
-                futureCallback.completed(backendResponse);
+                future.completed(resp);
                 return;
             }
 
-            public void failed(final Exception e) {
-                futureCallback.failed(e);
+            public void failed(final Exception ex) {
+                future.failed(ex);
             }
         });
+        future.setDelegate(backendFuture);
+        return future;
     }
 
     private void retryRequestUnconditionally(final HttpHost target,
@@ -860,10 +817,11 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
         final HttpRequestWrapper conditionalRequest = this.conditionalRequestBuilder.buildConditionalRequest(request, cacheEntry);
         final Date requestDate = getCurrentDate();
-        return this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse>() {
+        final FutureHttpResponse future = new FutureHttpResponse(futureCallback);
+        future.setDelegate(this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse>() {
 
             public void cancelled() {
-                futureCallback.cancelled();
+                future.cancelled();
             }
 
             public void completed(final HttpResponse httpResponse) {
@@ -875,35 +833,36 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                         CachingHttpAsyncClient.this.backend.execute(target, unconditional, context, new FutureCallback<HttpResponse>() {
 
                             public void cancelled() {
-                                futureCallback.cancelled();
+                                future.cancelled();
                             }
 
                             public void completed(final HttpResponse innerHttpResponse) {
                                 final Date innerResponseDate = getCurrentDate();
                                 revalidateCacheEntryCompleted(target, request,
-                                        context, cacheEntry, futureCallback,
+                                        context, cacheEntry, future,
                                         conditionalRequest, innerRequestDate,
                                         innerHttpResponse, innerResponseDate);
                             }
 
-                            public void failed(final Exception e) {
-                                futureCallback.failed(e);
+                            public void failed(final Exception ex) {
+                                future.failed(ex);
                             }
 
                         });
                         return;
                     }
                     revalidateCacheEntryCompleted(target, request,
-                            context, cacheEntry, futureCallback,
+                            context, cacheEntry, future,
                             conditionalRequest, requestDate,
                             httpResponse, responseDate);
             }
 
-            public void failed(final Exception e) {
-                futureCallback.failed(e);
+            public void failed(final Exception ex) {
+                future.failed(ex);
             }
 
-        });
+        }));
+        return future;
     }
 
     private void revalidateCacheEntryCompleted(
@@ -911,7 +870,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final HttpRequestWrapper request,
             final HttpContext context,
             final HttpCacheEntry cacheEntry,
-            final FutureCallback<HttpResponse> futureCallback,
+            final FutureHttpResponse futureCallback,
             final HttpRequestWrapper conditionalRequest,
             final Date requestDate,
             final HttpResponse httpResponse,
