@@ -29,6 +29,7 @@ package org.apache.http.impl.client.cache;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -38,6 +39,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpMessage;
 import org.apache.http.HttpRequest;
@@ -51,13 +53,17 @@ import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.cache.CacheResponseStatus;
 import org.apache.http.client.cache.HeaderConstants;
+import org.apache.http.client.cache.HttpCacheContext;
 import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.cache.HttpCacheStorage;
 import org.apache.http.client.cache.ResourceFactory;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.cookie.DateParseException;
 import org.apache.http.impl.cookie.DateUtils;
 import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
@@ -69,6 +75,7 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
 import org.apache.http.util.VersionInfo;
@@ -77,13 +84,13 @@ import org.apache.http.util.VersionInfo;
 @ThreadSafe // So long as the responseCache implementation is threadsafe
 public class CachingHttpAsyncClient implements HttpAsyncClient {
 
-    public static final String CACHE_RESPONSE_STATUS = "http.cache.response.status";
-
     private final static boolean SUPPORTS_RANGE_AND_CONTENT_RANGE_HEADERS = false;
 
     private final AtomicLong cacheHits = new AtomicLong();
     private final AtomicLong cacheMisses = new AtomicLong();
     private final AtomicLong cacheUpdates = new AtomicLong();
+
+    private final Map<ProtocolVersion, String> viaHeaders = new HashMap<ProtocolVersion, String>(4);
 
     private final HttpAsyncClient backend;
     private final HttpCache responseCache;
@@ -315,16 +322,18 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             future.failed(e);
             return future;
         }
-        request.addHeader("Via",via);
+        request.addHeader(HeaderConstants.VIA,via);
 
         flushEntriesInvalidatedByRequest(target, request);
 
         if (!this.cacheableRequestPolicy.isServableFromCache(request)) {
+            log.debug("Request is not servable from cache");
             return callBackend(target, request, context, futureCallback);
         }
 
         final HttpCacheEntry entry = satisfyFromCache(target, request);
         if (entry == null) {
+            log.debug("Cache miss");
             return handleCacheMiss(target, request, context, futureCallback);
         }
 
@@ -346,35 +355,42 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final FutureCallback<HttpResponse> futureCallback)
             throws ClientProtocolException, IOException {
         recordCacheHit(target, request);
-
+        HttpResponse out = null;
         final Date now = getCurrentDate();
         if (this.suitabilityChecker.canCachedResponseBeUsed(target, request, entry, now)) {
-            final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
-            future.completed(generateCachedResponse(request, context, entry, now));
-            return future;
-        }
-
-        if (!mayCallBackend(request)) {
-            final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
-            future.completed(generateGatewayTimeout(context));
-            return future;
-        }
-
-        if (this.validityPolicy.isRevalidatable(entry)) {
+            log.debug("Cache hit");
+            out = generateCachedResponse(request, context, entry, now);
+        } else if (!mayCallBackend(request)) {
+            log.debug("Cache entry not suitable but only-if-cached requested");
+            out = generateGatewayTimeout(context);
+        } else if (validityPolicy.isRevalidatable(entry)
+                && !(entry.getStatusCode() == HttpStatus.SC_NOT_MODIFIED
+                && !suitabilityChecker.isConditional(request))) {
+            log.debug("Revalidating cache entry");
             return revalidateCacheEntry(target, request, context, entry, now, futureCallback);
+        } else {
+            log.debug("Cache entry not usable; calling backend");
+            return callBackend(target, request, context, futureCallback);
         }
-        return callBackend(target, request, context, futureCallback);
+        context.setAttribute(HttpClientContext.HTTP_ROUTE, new HttpRoute(target));
+        context.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
+        context.setAttribute(HttpClientContext.HTTP_REQUEST, request);
+        context.setAttribute(HttpClientContext.HTTP_RESPONSE, out);
+        context.setAttribute(HttpClientContext.HTTP_REQ_SENT, Boolean.TRUE);
+        final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
+        future.completed(out);
+        return future;
     }
 
     private Future<HttpResponse> revalidateCacheEntry(final HttpHost target,
             final HttpRequestWrapper request, final HttpContext context, final HttpCacheEntry entry,
             final Date now, final FutureCallback<HttpResponse> futureCallback) throws ClientProtocolException {
-        this.log.debug("Revalidating the cache entry");
 
         try {
             if (this.asynchAsyncRevalidator != null
                 && !staleResponseNotAllowed(request, entry, now)
                 && this.validityPolicy.mayReturnStaleWhileRevalidating(entry, now)) {
+                this.log.debug("Serving stale with asynchronous revalidation");
                 final HttpResponse resp = this.responseGenerator.generateResponse(entry);
                 resp.addHeader(HeaderConstants.WARNING, "110 localhost \"Response is stale\"");
 
@@ -535,9 +551,10 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private boolean mayCallBackend(final HttpRequest request) {
-        for (final Header h: request.getHeaders("Cache-Control")) {
+        for (final Header h: request.getHeaders(HeaderConstants.CACHE_CONTROL)) {
             for (final HeaderElement elt : h.getElements()) {
                 if ("only-if-cached".equals(elt.getName())) {
+                    this.log.debug("Request marked only-if-cached");
                     return false;
                 }
             }
@@ -546,9 +563,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private boolean explicitFreshnessRequest(final HttpRequest request, final HttpCacheEntry entry, final Date now) {
-        for(final Header h : request.getHeaders("Cache-Control")) {
+        for(final Header h : request.getHeaders(HeaderConstants.CACHE_CONTROL)) {
             for(final HeaderElement elt : h.getElements()) {
-                if ("max-stale".equals(elt.getName())) {
+                if (HeaderConstants.CACHE_CONTROL_MAX_STALE.equals(elt.getName())) {
                     try {
                         final int maxstale = Integer.parseInt(elt.getValue());
                         final long age = this.validityPolicy.getCurrentAgeSecs(entry, now);
@@ -559,8 +576,8 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                     } catch (final NumberFormatException nfe) {
                         return true;
                     }
-                } else if ("min-fresh".equals(elt.getName())
-                            || "max-age".equals(elt.getName())) {
+                } else if (HeaderConstants.CACHE_CONTROL_MIN_FRESH.equals(elt.getName())
+                            || HeaderConstants.CACHE_CONTROL_MAX_AGE.equals(elt.getName())) {
                     return true;
                 }
             }
@@ -569,20 +586,32 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private String generateViaHeader(final HttpMessage msg) {
+
+        final ProtocolVersion pv = msg.getProtocolVersion();
+        final String existingEntry = viaHeaders.get(pv);
+        if (existingEntry != null) {
+            return existingEntry;
+        }
+
         final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.client", getClass().getClassLoader());
         final String release = (vi != null) ? vi.getRelease() : VersionInfo.UNAVAILABLE;
-        final ProtocolVersion pv = msg.getProtocolVersion();
+
+        String value;
         if ("http".equalsIgnoreCase(pv.getProtocol())) {
-            return String.format("%d.%d localhost (Apache-HttpClient/%s (cache))",
-                new Integer(pv.getMajor()), new Integer(pv.getMinor()), release);
+            value = String.format("%d.%d localhost (Apache-HttpClient/%s (cache))", pv.getMajor(), pv.getMinor(),
+                    release);
+        } else {
+            value = String.format("%s/%d.%d localhost (Apache-HttpClient/%s (cache))", pv.getProtocol(), pv.getMajor(),
+                    pv.getMinor(), release);
         }
-        return String.format("%s/%d.%d localhost (Apache-HttpClient/%s (cache))",
-                pv.getProtocol(), new Integer(pv.getMajor()), new Integer(pv.getMinor()), release);
+        viaHeaders.put(pv, value);
+
+        return value;
     }
 
     private void setResponseStatus(final HttpContext context, final CacheResponseStatus value) {
         if (context != null) {
-            context.setAttribute(CACHE_RESPONSE_STATUS, value);
+            context.setAttribute(HttpCacheContext.CACHE_RESPONSE_STATUS, value);
         }
     }
 
@@ -661,8 +690,8 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     private boolean revalidationResponseIsTooOld(final HttpResponse backendResponse,
             final HttpCacheEntry cacheEntry) {
-        final Header entryDateHeader = cacheEntry.getFirstHeader("Date");
-        final Header responseDateHeader = backendResponse.getFirstHeader("Date");
+        final Header entryDateHeader = cacheEntry.getFirstHeader(HTTP.DATE_HEADER);
+        final Header responseDateHeader = backendResponse.getFirstHeader(HTTP.DATE_HEADER);
         if (entryDateHeader != null && responseDateHeader != null) {
             try {
                 final Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
@@ -697,7 +726,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             public void completed(final HttpResponse httpResponse) {
                 final Date responseDate = getCurrentDate();
 
-                httpResponse.addHeader("Via", generateViaHeader(httpResponse));
+                httpResponse.addHeader(HeaderConstants.VIA, generateViaHeader(httpResponse));
 
                 if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_MODIFIED) {
                     try {
@@ -888,7 +917,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final HttpResponse httpResponse,
             final Date responseDate) {
 
-        httpResponse.addHeader("Via", generateViaHeader(httpResponse));
+        httpResponse.addHeader(HeaderConstants.VIA, generateViaHeader(httpResponse));
 
         final int statusCode = httpResponse.getStatusLine().getStatusCode();
         if (statusCode == HttpStatus.SC_NOT_MODIFIED || statusCode == HttpStatus.SC_OK) {
@@ -953,12 +982,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         this.responseCache.flushInvalidatedCacheEntriesFor(target, request, backendResponse);
         if (cacheable &&
             !alreadyHaveNewerCacheEntry(target, request, backendResponse)) {
-            try {
-                return this.responseCache.cacheAndReturnResponse(target, request, backendResponse, requestDate,
-                        responseDate);
-            } catch (final IOException ioe) {
-                this.log.warn("Unable to store entries in cache", ioe);
-            }
+            storeRequestIfModifiedSinceFor304Response(request, backendResponse);
+            return this.responseCache.cacheAndReturnResponse(target, request, backendResponse, requestDate,
+                    responseDate);
         }
         if (!cacheable) {
             try {
@@ -968,6 +994,24 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             }
         }
         return backendResponse;
+    }
+
+    /**
+     * For 304 Not modified responses, adds a "Last-Modified" header with the
+     * value of the "If-Modified-Since" header passed in the request. This
+     * header is required to be able to reuse match the cache entry for
+     * subsequent requests but as defined in http specifications it is not
+     * included in 304 responses by backend servers. This header will not be
+     * included in the resulting response.
+     */
+    private void storeRequestIfModifiedSinceFor304Response(
+            final HttpRequest request, final HttpResponse backendResponse) {
+        if (backendResponse.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_MODIFIED) {
+            final Header h = request.getFirstHeader("If-Modified-Since");
+            if (h != null) {
+                backendResponse.addHeader("Last-Modified", h.getValue());
+            }
+        }
     }
 
     private boolean alreadyHaveNewerCacheEntry(final HttpHost target, final HttpRequest request,
@@ -981,11 +1025,11 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         if (existing == null) {
             return false;
         }
-        final Header entryDateHeader = existing.getFirstHeader("Date");
+        final Header entryDateHeader = existing.getFirstHeader(HTTP.DATE_HEADER);
         if (entryDateHeader == null) {
             return false;
         }
-        final Header responseDateHeader = backendResponse.getFirstHeader("Date");
+        final Header responseDateHeader = backendResponse.getFirstHeader(HTTP.DATE_HEADER);
         if (responseDateHeader == null) {
             return false;
         }
