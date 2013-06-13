@@ -125,7 +125,6 @@ class FutureHttpResponse implements Future<HttpResponse>,
         return cancel(true);
     }
 
-    @Override
     public void cancelled() {
         if (this.callback != null) {
             this.callback.cancelled();
