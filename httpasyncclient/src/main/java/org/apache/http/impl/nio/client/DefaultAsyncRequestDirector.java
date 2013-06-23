@@ -450,7 +450,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                 final long duration = this.keepaliveStrategy.getKeepAliveDuration(
                         this.currentResponse, this.localContext);
                 if (this.log.isDebugEnabled()) {
-                    String s;
+                    final String s;
                     if (duration > 0) {
                         s = "for " + duration + " " + TimeUnit.MILLISECONDS;
                     } else {
@@ -655,16 +655,15 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     protected HttpRoute determineRoute(
-            HttpHost target,
+            final HttpHost target,
             final HttpRequest request,
             final HttpContext context) throws HttpException {
-        if (target == null) {
-            target = (HttpHost) request.getParams().getParameter(ClientPNames.DEFAULT_HOST);
-        }
-        if (target == null) {
+        final HttpHost t = target != null ? target :
+                (HttpHost) request.getParams().getParameter(ClientPNames.DEFAULT_HOST);
+        if (t == null) {
             throw new IllegalStateException("Target host could not be resolved");
         }
-        return this.routePlanner.determineRoute(target, request, context);
+        return this.routePlanner.determineRoute(t, request, context);
     }
 
     private RequestWrapper wrapRequest(final HttpRequest request) throws ProtocolException {

@@ -47,7 +47,7 @@ class FutureHttpResponse implements Future<HttpResponse>,
     private HttpResponse response;
     private Throwable thrown;
 
-    public FutureHttpResponse(FutureCallback<HttpResponse> callback) {
+    public FutureHttpResponse(final FutureCallback<HttpResponse> callback) {
         this.callback = callback;
     }
 
@@ -59,17 +59,17 @@ class FutureHttpResponse implements Future<HttpResponse>,
         return delegate;
     }
 
-    public synchronized void setDelegate(Future<HttpResponse> delegate) {
+    public synchronized void setDelegate(final Future<HttpResponse> delegate) {
         this.delegate = delegate;
     }
 
     public boolean isCancelled() {
-        Future<?> delegate = getDelegate();
+        final Future<?> delegate = getDelegate();
         return delegate != null && delegate.isCancelled();
     }
 
     public boolean isDone() {
-        Future<?> delegate = getDelegate();
+        final Future<?> delegate = getDelegate();
         return delegate != null && getDelegate().isDone();
     }
 
@@ -79,22 +79,22 @@ class FutureHttpResponse implements Future<HttpResponse>,
         } catch (ExecutionException e) {
             // ignore
         }
-        HttpResponse result = getResponse();
-        Throwable thrown = getThrown();
+        final HttpResponse result = getResponse();
+        final Throwable thrown = getThrown();
         if (thrown != null)
             throw new ExecutionException(thrown);
         return result;
     }
 
-    public HttpResponse get(long timeout, TimeUnit unit)
+    public HttpResponse get(final long timeout, final TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
         try {
             getDelegate().get(timeout, unit);
         } catch (ExecutionException e) {
             // ignore
         }
-        HttpResponse result = getResponse();
-        Throwable thrown = getThrown();
+        final HttpResponse result = getResponse();
+        final Throwable thrown = getThrown();
         if (thrown != null)
             throw new ExecutionException(thrown);
         return result;
@@ -135,7 +135,7 @@ class FutureHttpResponse implements Future<HttpResponse>,
         return response;
     }
 
-    private synchronized void setResponse(HttpResponse response) {
+    private synchronized void setResponse(final HttpResponse response) {
         this.response = response;
     }
 
@@ -143,7 +143,7 @@ class FutureHttpResponse implements Future<HttpResponse>,
         return thrown;
     }
 
-    private synchronized void setThrown(Throwable thrown) {
+    private synchronized void setThrown(final Throwable thrown) {
         this.thrown = thrown;
     }
 
