@@ -57,7 +57,6 @@ import org.apache.http.client.protocol.ResponseProcessCookies;
 import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Lookup;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
@@ -131,7 +130,6 @@ public class HttpAsyncClientBuilder {
     private HttpHost proxy;
     private Collection<? extends Header> defaultHeaders;
     private IOReactorConfig defaultIOReactorConfig;
-    private SocketConfig defaultSocketConfig;
     private ConnectionConfig defaultConnectionConfig;
     private RequestConfig defaultRequestConfig;
 
@@ -310,8 +308,8 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
-    public final HttpAsyncClientBuilder setDefaultSocketConfig(final SocketConfig config) {
-        this.defaultSocketConfig = config;
+    public final HttpAsyncClientBuilder setDefaultIOReactorConfig(final IOReactorConfig config) {
+        this.defaultIOReactorConfig = config;
         return this;
     }
 
@@ -327,6 +325,16 @@ public class HttpAsyncClientBuilder {
 
     public final HttpAsyncClientBuilder disableConnectionState() {
         connectionStateDisabled = true;
+        return this;
+    }
+
+    public final HttpAsyncClientBuilder disableCookieManagement() {
+        cookieManagementDisabled = true;
+        return this;
+    }
+
+    public final HttpAsyncClientBuilder disableAuthCaching() {
+        authCachingDisabled = true;
         return this;
     }
 
@@ -358,9 +366,6 @@ public class HttpAsyncClientBuilder {
                         .register("http", PlainIOSessionFactory.INSTANCE)
                         .register("https", iosessionFactory)
                         .build());
-            if (defaultSocketConfig != null) {
-                poolingmgr.setDefaultSocketConfig(defaultSocketConfig);
-            }
             if (defaultConnectionConfig != null) {
                 poolingmgr.setDefaultConnectionConfig(defaultConnectionConfig);
             }

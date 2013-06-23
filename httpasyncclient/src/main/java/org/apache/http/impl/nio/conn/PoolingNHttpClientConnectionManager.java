@@ -44,7 +44,6 @@ import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Lookup;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.UnsupportedSchemeException;
@@ -149,10 +148,7 @@ public class PoolingNHttpClientConnectionManager
     PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final CPool pool,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
-            final SchemePortResolver schemePortResolver,
-            final DnsResolver dnsResolver,
-            final long timeToLive, final TimeUnit tunit) {
+            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
         super();
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
@@ -404,28 +400,12 @@ public class PoolingNHttpClientConnectionManager
         return this.pool.getStats(route);
     }
 
-    public SocketConfig getDefaultSocketConfig() {
-        return this.configData.getDefaultSocketConfig();
-    }
-
-    public void setDefaultSocketConfig(final SocketConfig defaultSocketConfig) {
-        this.configData.setDefaultSocketConfig(defaultSocketConfig);
-    }
-
     public ConnectionConfig getDefaultConnectionConfig() {
         return this.configData.getDefaultConnectionConfig();
     }
 
     public void setDefaultConnectionConfig(final ConnectionConfig defaultConnectionConfig) {
         this.configData.setDefaultConnectionConfig(defaultConnectionConfig);
-    }
-
-    public SocketConfig getSocketConfig(final HttpHost host) {
-        return this.configData.getSocketConfig(host);
-    }
-
-    public void setSocketConfig(final HttpHost host, final SocketConfig socketConfig) {
-        this.configData.setSocketConfig(host, socketConfig);
     }
 
     public ConnectionConfig getConnectionConfig(final HttpHost host) {
@@ -473,23 +453,12 @@ public class PoolingNHttpClientConnectionManager
 
     static class ConfigData {
 
-        private final Map<HttpHost, SocketConfig> socketConfigMap;
         private final Map<HttpHost, ConnectionConfig> connectionConfigMap;
-        private volatile SocketConfig defaultSocketConfig;
         private volatile ConnectionConfig defaultConnectionConfig;
 
         ConfigData() {
             super();
-            this.socketConfigMap = new ConcurrentHashMap<HttpHost, SocketConfig>();
             this.connectionConfigMap = new ConcurrentHashMap<HttpHost, ConnectionConfig>();
-        }
-
-        public SocketConfig getDefaultSocketConfig() {
-            return this.defaultSocketConfig;
-        }
-
-        public void setDefaultSocketConfig(final SocketConfig defaultSocketConfig) {
-            this.defaultSocketConfig = defaultSocketConfig;
         }
 
         public ConnectionConfig getDefaultConnectionConfig() {
@@ -498,14 +467,6 @@ public class PoolingNHttpClientConnectionManager
 
         public void setDefaultConnectionConfig(final ConnectionConfig defaultConnectionConfig) {
             this.defaultConnectionConfig = defaultConnectionConfig;
-        }
-
-        public SocketConfig getSocketConfig(final HttpHost host) {
-            return this.socketConfigMap.get(host);
-        }
-
-        public void setSocketConfig(final HttpHost host, final SocketConfig socketConfig) {
-            this.socketConfigMap.put(host, socketConfig);
         }
 
         public ConnectionConfig getConnectionConfig(final HttpHost host) {

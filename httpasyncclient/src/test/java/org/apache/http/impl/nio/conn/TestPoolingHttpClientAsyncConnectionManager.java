@@ -109,8 +109,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
             .register("https", sslFactory)
             .build();
         connman = new PoolingNHttpClientConnectionManager(
-            ioreactor, pool, layeringStrategyRegistry,
-            schemePortResolver, dnsResolver, 10, TimeUnit.SECONDS);
+            ioreactor, pool, layeringStrategyRegistry);
     }
 
     @Test
