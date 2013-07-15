@@ -30,6 +30,8 @@ package org.apache.http.impl.nio.client;
 import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import javax.net.ssl.SSLContext;
 
@@ -132,6 +134,8 @@ public class HttpAsyncClientBuilder {
     private IOReactorConfig defaultIOReactorConfig;
     private ConnectionConfig defaultConnectionConfig;
     private RequestConfig defaultRequestConfig;
+
+    private ThreadFactory threadFactory;
 
     private boolean systemProperties;
     private boolean cookieManagementDisabled;
@@ -320,6 +324,11 @@ public class HttpAsyncClientBuilder {
 
     public final HttpAsyncClientBuilder setDefaultRequestConfig(final RequestConfig config) {
         this.defaultRequestConfig = config;
+        return this;
+    }
+
+    public final HttpAsyncClientBuilder setThreadFactory(final ThreadFactory threadFactory) {
+        this.threadFactory = threadFactory;
         return this;
     }
 
@@ -528,6 +537,16 @@ public class HttpAsyncClientBuilder {
             redirectStrategy = DefaultRedirectStrategy.INSTANCE;
         }
 
+        RequestConfig defaultRequestConfig = this.defaultRequestConfig;
+        if (defaultRequestConfig == null) {
+            defaultRequestConfig = RequestConfig.DEFAULT;
+        }
+
+        ThreadFactory threadFactory = this.threadFactory;
+        if (threadFactory == null) {
+            threadFactory = Executors.defaultThreadFactory();
+        }
+
         final MainClientExec exec = new MainClientExec(
             connManager,
             httpprocessor,
@@ -546,7 +565,8 @@ public class HttpAsyncClientBuilder {
             authSchemeRegistry,
             defaultCookieStore,
             defaultCredentialsProvider,
-            defaultRequestConfig != null ? defaultRequestConfig : RequestConfig.DEFAULT);
+            defaultRequestConfig,
+            threadFactory);
     }
 
 }

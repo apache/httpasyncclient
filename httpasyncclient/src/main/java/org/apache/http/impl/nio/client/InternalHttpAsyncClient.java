@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -75,7 +76,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             final Lookup<AuthSchemeProvider> authSchemeRegistry,
             final CookieStore cookieStore,
             final CredentialsProvider credentialsProvider,
-            final RequestConfig defaultConfig) {
+            final RequestConfig defaultConfig,
+            final ThreadFactory threadFactory) {
         super();
         this.connmgr = connmgr;
         this.exec = exec;
@@ -84,14 +86,14 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         this.cookieStore = cookieStore;
         this.credentialsProvider = credentialsProvider;
         this.defaultConfig = defaultConfig;
-        this.reactorThread = new Thread() {
+        this.reactorThread = threadFactory.newThread(new Runnable() {
 
             @Override
             public void run() {
                 doExecute();
             }
 
-        };
+        });
         this.status = IOReactorStatus.INACTIVE;
     }
 
