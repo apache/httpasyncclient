@@ -88,7 +88,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         this.defaultConfig = defaultConfig;
         this.reactorThread = threadFactory.newThread(new Runnable() {
 
-            @Override
             public void run() {
                 doExecute();
             }
