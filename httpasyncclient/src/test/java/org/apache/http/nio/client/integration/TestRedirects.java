@@ -770,7 +770,7 @@ public class TestRedirects extends HttpAsyncTestBase {
                 final HttpResponse response,
                 final HttpContext context) throws HttpException, IOException {
             final ProtocolVersion ver = request.getRequestLine().getProtocolVersion();
-            String location;
+            final String location;
             try {
                 final URIBuilder uribuilder = new URIBuilder(request.getRequestLine().getUri());
                 uribuilder.setScheme(this.host.getSchemeName());

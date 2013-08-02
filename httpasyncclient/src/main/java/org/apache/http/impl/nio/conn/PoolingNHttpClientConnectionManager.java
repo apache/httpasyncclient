@@ -233,7 +233,8 @@ public class PoolingNHttpClientConnectionManager
         final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
                 host.getSchemeName());
         if (sf == null) {
-            future.failed(new IOException("Unsupported scheme: " + host.getSchemeName()));
+            future.failed(new UnsupportedSchemeException(host.getSchemeName() +
+                    " protocol is not supported"));
             return future;
         }
         this.pool.lease(route, state, connectTimeout,
@@ -259,7 +260,7 @@ public class PoolingNHttpClientConnectionManager
                     entry.setState(state);
                     entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
                     if (this.log.isDebugEnabled()) {
-                        String s;
+                        final String s;
                         if (keepalive > 0) {
                             s = "for " + (double) keepalive / 1000 + " seconds";
                         } else {
@@ -326,10 +327,13 @@ public class PoolingNHttpClientConnectionManager
             throw new UnsupportedSchemeException(host.getSchemeName() +
                     " protocol is not supported");
         }
+        if (!sf.isLayering()) {
+            throw new UnsupportedSchemeException(host.getSchemeName() +
+                    " protocol does not support connection upgrade");
+        }
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
             final ManagedNHttpClientConnection conn = entry.getConnection();
-            Asserts.check(sf.isLayering(), "Layering is not supported for this scheme");
             final IOSession currentSession = sf.create(host, conn.getIOSession());
             conn.bind(currentSession);
         }

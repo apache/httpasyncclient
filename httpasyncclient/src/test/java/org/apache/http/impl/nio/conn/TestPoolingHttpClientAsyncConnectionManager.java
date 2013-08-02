@@ -56,7 +56,6 @@ import org.apache.http.nio.conn.SchemeIOSessionFactory;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
-import org.apache.http.nio.reactor.SessionRequestCallback;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.junit.Before;
@@ -89,8 +88,6 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     private ManagedNHttpClientConnection conn;
     @Mock
     private NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory;
-    @Captor
-    private ArgumentCaptor<SessionRequestCallback> sessionRequestCallbackCaptor;
     @Mock
     private SessionRequest sessionRequest;
     @Mock
@@ -363,7 +360,24 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         Mockito.verify(conn).bind(iosession);
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test(expected=UnsupportedSchemeException.class)
+    public void testConnectionUpgradeUnknownScheme() throws Exception {
+        final HttpHost target = new HttpHost("somehost", -1, "whatever");
+        final HttpRoute route = new HttpRoute(target);
+        final HttpContext context = new BasicHttpContext();
+
+        final Log log = Mockito.mock(Log.class);
+        final CPoolEntry poolentry = new CPoolEntry(log, "some-id", route, conn, -1, TimeUnit.MILLISECONDS);
+        poolentry.markRouteComplete();
+        final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
+
+        Mockito.when(conn.getIOSession()).thenReturn(iosession);
+        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+
+        connman.upgrade(managedConn, route, context);
+    }
+
+    @Test(expected=UnsupportedSchemeException.class)
     public void testConnectionUpgradeIllegalScheme() throws Exception {
         final HttpHost target = new HttpHost("somehost", -1, "http");
         final HttpRoute route = new HttpRoute(target);
