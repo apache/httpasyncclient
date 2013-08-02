@@ -78,11 +78,8 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     protected final void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         Asserts.notNull(this.bbuf, "Byte buffer");
-        for (;;) {
-            final int bytesRead = decoder.read(this.bbuf);
-            if (bytesRead <= 0) {
-                break;
-            }
+        final int bytesRead = decoder.read(this.bbuf);
+        if (bytesRead > 0) {
             this.bbuf.flip();
             final boolean completed = decoder.isCompleted();
             CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
