@@ -55,7 +55,7 @@ public interface NHttpClientConnectionManager {
      */
     Future<NHttpClientConnection> requestConnection(
             HttpRoute route, Object state,
-            long connectTimeout, TimeUnit timeUnit,
+            long connectTimeout, long leaseTimeout, TimeUnit timeUnit,
             FutureCallback<NHttpClientConnection> callback);
 
     /**

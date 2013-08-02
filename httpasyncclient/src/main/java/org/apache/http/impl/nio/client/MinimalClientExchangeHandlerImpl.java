@@ -347,7 +347,9 @@ public class MinimalClientExchangeHandlerImpl<T>
         this.connmgr.requestConnection(
                 this.route,
                 userToken,
-                config.getConnectionRequestTimeout(), TimeUnit.MILLISECONDS,
+                config.getConnectTimeout(),
+                config.getConnectionRequestTimeout(),
+                TimeUnit.MILLISECONDS,
                 new FutureCallback<NHttpClientConnection>() {
 
                     public void completed(final NHttpClientConnection managedConn) {

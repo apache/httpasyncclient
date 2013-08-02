@@ -217,6 +217,7 @@ public class PoolingNHttpClientConnectionManager
             final HttpRoute route,
             final Object state,
             final long connectTimeout,
+            final long leaseTimeout,
             final TimeUnit tunit,
             final FutureCallback<NHttpClientConnection> callback) {
         Args.notNull(route, "HTTP route");
@@ -237,8 +238,8 @@ public class PoolingNHttpClientConnectionManager
                     " protocol is not supported"));
             return future;
         }
-        this.pool.lease(route, state, connectTimeout,
-                tunit != null ? tunit : TimeUnit.MILLISECONDS,
+        this.pool.lease(route, state,
+                connectTimeout, leaseTimeout, tunit != null ? tunit : TimeUnit.MILLISECONDS,
                 new InternalPoolEntryCallback(future));
         return future;
     }

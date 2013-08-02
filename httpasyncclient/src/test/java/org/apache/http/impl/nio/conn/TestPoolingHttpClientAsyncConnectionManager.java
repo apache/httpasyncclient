@@ -128,13 +128,14 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
         final Future<NHttpClientConnection> future = connman.requestConnection(
-            route, "some state", 1000L, TimeUnit.MILLISECONDS, connCallback);
+            route, "some state", 1000L, 2000L, TimeUnit.MILLISECONDS, connCallback);
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
                 Mockito.same(route),
                 Mockito.eq("some state"),
                 Mockito.eq(1000L),
+                Mockito.eq(2000L),
                 Mockito.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
@@ -164,13 +165,14 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
         final Future<NHttpClientConnection> future = connman.requestConnection(
-            route, "some state", 1000L, TimeUnit.MILLISECONDS, connCallback);
+            route, "some state", 1000L, 2000L, TimeUnit.MILLISECONDS, connCallback);
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
                 Mockito.same(route),
                 Mockito.eq("some state"),
                 Mockito.eq(1000L),
+                Mockito.eq(2000L),
                 Mockito.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
@@ -194,7 +196,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
         final Future<NHttpClientConnection> future = connman.requestConnection(
-            route, "some state", 1000L, TimeUnit.MILLISECONDS, null);
+            route, "some state", 1000L, 2000L, TimeUnit.MILLISECONDS, null);
         Assert.assertNotNull(future);
         future.cancel(true);
 
@@ -202,6 +204,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
                 Mockito.same(route),
                 Mockito.eq("some state"),
                 Mockito.eq(1000L),
+                Mockito.eq(2000L),
                 Mockito.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
@@ -218,13 +221,14 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
         final Future<NHttpClientConnection> future = connman.requestConnection(
-            route, "some state", 1000L, TimeUnit.MILLISECONDS, null);
+            route, "some state", 1000L, 2000L, TimeUnit.MILLISECONDS, null);
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
                 Mockito.same(route),
                 Mockito.eq("some state"),
                 Mockito.eq(1000L),
+                Mockito.eq(2000L),
                 Mockito.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
@@ -239,13 +243,14 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
         final Future<NHttpClientConnection> future = connman.requestConnection(
-            route, "some state", 1000L, TimeUnit.MILLISECONDS, null);
+            route, "some state", 1000L, 2000L, TimeUnit.MILLISECONDS, null);
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
                 Mockito.same(route),
                 Mockito.eq("some state"),
                 Mockito.eq(1000L),
+                Mockito.eq(2000L),
                 Mockito.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();

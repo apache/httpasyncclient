@@ -326,7 +326,9 @@ class DefaultClientExchangeHandlerImpl<T>
         this.connmgr.requestConnection(
                 route,
                 userToken,
-                config.getConnectionRequestTimeout(), TimeUnit.MILLISECONDS,
+                config.getConnectTimeout(),
+                config.getConnectionRequestTimeout(),
+                TimeUnit.MILLISECONDS,
                 new FutureCallback<NHttpClientConnection>() {
 
                     public void completed(final NHttpClientConnection managedConn) {
