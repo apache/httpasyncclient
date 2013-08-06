@@ -42,18 +42,15 @@ import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.Lookup;
 import org.apache.http.cookie.CookieSpecProvider;
-import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
 
-@SuppressWarnings("deprecation")
 class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());
@@ -191,16 +188,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             handler.failed(ex);
         }
         return future;
-    }
-
-    @Deprecated
-    public ClientAsyncConnectionManager getConnectionManager() {
-        return null;
-    }
-
-    @Deprecated
-    public HttpParams getParams() {
-        return null;
     }
 
 }

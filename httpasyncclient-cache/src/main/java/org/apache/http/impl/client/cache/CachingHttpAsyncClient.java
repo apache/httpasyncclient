@@ -59,27 +59,22 @@ import org.apache.http.client.cache.ResourceFactory;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.DateUtils;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
-import org.apache.http.impl.nio.client.DefaultHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOReactorException;
-import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 
-@SuppressWarnings("deprecation")
 @ThreadSafe // So long as the responseCache implementation is threadsafe
 public class CachingHttpAsyncClient implements HttpAsyncClient {
 
@@ -137,13 +132,13 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     public CachingHttpAsyncClient() throws IOReactorException {
-        this(new DefaultHttpAsyncClient(),
+        this(HttpAsyncClients.createDefault(),
                 new BasicHttpCache(),
                 CacheConfig.DEFAULT);
     }
 
     public CachingHttpAsyncClient(final CacheConfig config) throws IOReactorException {
-        this(new DefaultHttpAsyncClient(),
+        this(HttpAsyncClients.createDefault(),
                 new BasicHttpCache(config),
                 config);
     }
@@ -277,15 +272,6 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         final URI uri = request.getURI();
         final HttpHost httpHost = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
         return execute(httpHost, request, context, callback);
-    }
-
-    public ClientAsyncConnectionManager getConnectionManager() {
-        return this.backend.getConnectionManager();
-    }
-
-    @Deprecated
-    public HttpParams getParams() {
-        return this.backend.getParams();
     }
 
     public Future<HttpResponse> execute(
@@ -676,17 +662,10 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         final Header entryDateHeader = cacheEntry.getFirstHeader(HTTP.DATE_HEADER);
         final Header responseDateHeader = backendResponse.getFirstHeader(HTTP.DATE_HEADER);
         if (entryDateHeader != null && responseDateHeader != null) {
-            try {
-                final Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
-                final Date respDate = DateUtils.parseDate(responseDateHeader.getValue());
-                if (respDate.before(entryDate)) {
-                    return true;
-                }
-            } catch (final DateParseException e) {
-                // either backend response or cached entry did not have a valid
-                // Date header, so we can't tell if they are out of order
-                // according to the origin clock; thus we can skip the
-                // unconditional retry recommended in 13.2.6 of RFC 2616.
+            final Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
+            final Date respDate = DateUtils.parseDate(responseDateHeader.getValue());
+            if (respDate != null && respDate.before(entryDate)) {
+                return true;
             }
         }
         return false;
@@ -823,36 +802,36 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             }
 
             public void completed(final HttpResponse httpResponse) {
-                   final Date responseDate = getCurrentDate();
+                final Date responseDate = getCurrentDate();
 
-                    if (revalidationResponseIsTooOld(httpResponse, cacheEntry)) {
-                        final HttpRequest unconditional = CachingHttpAsyncClient.this.conditionalRequestBuilder.buildUnconditionalRequest(request, cacheEntry);
-                        final Date innerRequestDate = getCurrentDate();
-                        CachingHttpAsyncClient.this.backend.execute(target, unconditional, context, new FutureCallback<HttpResponse>() {
+                if (revalidationResponseIsTooOld(httpResponse, cacheEntry)) {
+                    final HttpRequest unconditional = CachingHttpAsyncClient.this.conditionalRequestBuilder.buildUnconditionalRequest(request, cacheEntry);
+                    final Date innerRequestDate = getCurrentDate();
+                    CachingHttpAsyncClient.this.backend.execute(target, unconditional, context, new FutureCallback<HttpResponse>() {
 
-                            public void cancelled() {
-                                future.cancelled();
-                            }
+                        public void cancelled() {
+                            future.cancelled();
+                        }
 
-                            public void completed(final HttpResponse innerHttpResponse) {
-                                final Date innerResponseDate = getCurrentDate();
-                                revalidateCacheEntryCompleted(target, request,
-                                        context, cacheEntry, future,
-                                        conditionalRequest, innerRequestDate,
-                                        innerHttpResponse, innerResponseDate);
-                            }
+                        public void completed(final HttpResponse innerHttpResponse) {
+                            final Date innerResponseDate = getCurrentDate();
+                            revalidateCacheEntryCompleted(target, request,
+                                    context, cacheEntry, future,
+                                    conditionalRequest, innerRequestDate,
+                                    innerHttpResponse, innerResponseDate);
+                        }
 
-                            public void failed(final Exception ex) {
-                                future.failed(ex);
-                            }
+                        public void failed(final Exception ex) {
+                            future.failed(ex);
+                        }
 
-                        });
-                        return;
-                    }
-                    revalidateCacheEntryCompleted(target, request,
-                            context, cacheEntry, future,
-                            conditionalRequest, requestDate,
-                            httpResponse, responseDate);
+                    });
+                    return;
+                }
+                revalidateCacheEntryCompleted(target, request,
+                        context, cacheEntry, future,
+                        conditionalRequest, requestDate,
+                        httpResponse, responseDate);
             }
 
             public void failed(final Exception ex) {
@@ -990,26 +969,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         if (responseDateHeader == null) {
             return false;
         }
-        try {
-            final Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
-            final Date responseDate = DateUtils.parseDate(responseDateHeader.getValue());
-            return responseDate.before(entryDate);
-        } catch (final DateParseException e) {
-            //
-        }
-        return false;
-    }
-
-    public IOReactorStatus getStatus() {
-        return this.backend.getStatus();
-    }
-
-    public void shutdown() throws InterruptedException {
-        this.backend.shutdown();
-    }
-
-    public void start() {
-        this.backend.start();
+        final Date entryDate = DateUtils.parseDate(entryDateHeader.getValue());
+        final Date responseDate = DateUtils.parseDate(responseDateHeader.getValue());
+        return responseDate != null && responseDate.before(entryDate);
     }
 
 }

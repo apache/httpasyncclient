@@ -33,30 +33,11 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
-@SuppressWarnings("deprecation")
 public interface HttpAsyncClient {
-
-    @Deprecated
-    void start();
-
-    @Deprecated
-    void shutdown() throws InterruptedException;
-
-    @Deprecated
-    IOReactorStatus getStatus();
-
-    @Deprecated
-    ClientAsyncConnectionManager getConnectionManager();
-
-    @Deprecated
-    HttpParams getParams();
 
     <T> Future<T> execute(
             HttpAsyncRequestProducer requestProducer,
