@@ -1,6 +1,11 @@
 Change since Release 4.0 Beta 4
 -------------------
 
+* [HTTPASYNC-51] Request producers do not get correctly reset if the server responds early 
+  (out of sequence), which can cause entity enclosing requests to be malformed in case of 
+  re-execution.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-45] CachingHttpAsyncClient to override Future returned by the backend.
   Contributed by James Leigh <james at 3roundstones dot com>
 

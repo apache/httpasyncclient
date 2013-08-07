@@ -208,11 +208,12 @@ class MainClientExec implements InternalClientExec {
 
         if (state.isRouteEstablished()) {
             state.incrementExecCount();
-            if (state.getExecCount() > 1
-                    && !requestProducer.isRepeatable()
-                    && state.isRequestContentProduced()) {
-                throw new NonRepeatableRequestException("Cannot retry request " +
-                    "with a non-repeatable request entity.");
+            if (state.getExecCount() > 1) {
+                if (!requestProducer.isRepeatable() && state.isRequestContentProduced()) {
+                    throw new NonRepeatableRequestException("Cannot retry request " +
+                            "with a non-repeatable request entity.");
+                }
+                requestProducer.resetRequest();
             }
             if (this.log.isDebugEnabled()) {
                 this.log.debug("[exchange: " + state.getId() + "] Attempt " + state.getExecCount() +
@@ -334,7 +335,7 @@ class MainClientExec implements InternalClientExec {
             final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
                     currentResponse, localContext);
             if (this.log.isDebugEnabled()) {
-                String s;
+                final String s;
                 if (validDuration > 0) {
                     s = "for " + validDuration + " " + TimeUnit.MILLISECONDS;
                 } else {
