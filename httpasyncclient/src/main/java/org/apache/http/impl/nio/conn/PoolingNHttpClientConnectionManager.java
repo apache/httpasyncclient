@@ -279,8 +279,8 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Lookup<SchemeIOSessionFactory> getIOSessionFactoryRegistry(final HttpContext context) {
+        @SuppressWarnings("unchecked")
         Lookup<SchemeIOSessionFactory> reg = (Lookup<SchemeIOSessionFactory>) context.getAttribute(
                 IOSESSION_FACTORY_REGISTRY);
         if (reg == null) {
