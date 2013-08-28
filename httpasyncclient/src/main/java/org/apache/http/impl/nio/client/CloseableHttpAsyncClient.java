@@ -48,6 +48,8 @@ import org.apache.http.util.Args;
 
 public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Closeable {
 
+    public abstract boolean isRunning();
+
     public abstract void start();
 
     public <T> Future<T> execute(

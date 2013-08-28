@@ -26,7 +26,6 @@
  */
 package org.apache.http.impl.nio.client;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 
@@ -45,13 +44,11 @@ import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.nio.reactor.IOEventDispatch;
-import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
 
-class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
+class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -62,9 +59,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
     private final CookieStore cookieStore;
     private final CredentialsProvider credentialsProvider;
     private final RequestConfig defaultConfig;
-    private final Thread reactorThread;
-
-    private volatile IOReactorStatus status;
 
     public InternalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
@@ -75,7 +69,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             final CredentialsProvider credentialsProvider,
             final RequestConfig defaultConfig,
             final ThreadFactory threadFactory) {
-        super();
+        super(connmgr, threadFactory);
         this.connmgr = connmgr;
         this.exec = exec;
         this.cookieSpecRegistry = cookieSpecRegistry;
@@ -83,58 +77,6 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
         this.cookieStore = cookieStore;
         this.credentialsProvider = credentialsProvider;
         this.defaultConfig = defaultConfig;
-        this.reactorThread = threadFactory.newThread(new Runnable() {
-
-            public void run() {
-                doExecute();
-            }
-
-        });
-        this.status = IOReactorStatus.INACTIVE;
-    }
-
-    private void doExecute() {
-        try {
-            final IOEventDispatch ioEventDispatch = new InternalIODispatch();
-            this.connmgr.execute(ioEventDispatch);
-        } catch (final Exception ex) {
-            this.log.error("I/O reactor terminated abnormally", ex);
-        } finally {
-            this.status = IOReactorStatus.SHUT_DOWN;
-        }
-    }
-
-    public IOReactorStatus getStatus() {
-        return this.status;
-    }
-
-    @Override
-    public void start() {
-        this.status = IOReactorStatus.ACTIVE;
-        this.reactorThread.start();
-    }
-
-    public void shutdown() {
-        if (this.status.compareTo(IOReactorStatus.ACTIVE) > 0) {
-            return;
-        }
-        this.status = IOReactorStatus.SHUTDOWN_REQUEST;
-        try {
-            this.connmgr.shutdown();
-        } catch (final IOException ex) {
-            this.log.error("I/O error shutting down connection manager", ex);
-        }
-        if (this.reactorThread != null) {
-            try {
-                this.reactorThread.join();
-            } catch (final InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    public void close() {
-        shutdown();
     }
 
     private void setupContext(final HttpClientContext context) {
@@ -166,8 +108,9 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClient {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        Asserts.check(this.status == IOReactorStatus.ACTIVE, "Request cannot be executed; " +
-                    "I/O reactor status: %s", this.status);
+        final Status status = getStatus();
+        Asserts.check(status == Status.ACTIVE, "Request cannot be executed; " +
+                "I/O reactor status: %s", status);
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());

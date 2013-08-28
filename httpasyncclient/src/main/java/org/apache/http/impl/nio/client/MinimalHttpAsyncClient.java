@@ -26,13 +26,13 @@
  */
 package org.apache.http.impl.nio.client;
 
-import java.io.IOException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.ConnectionReuseStrategy;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.concurrent.BasicFuture;
@@ -43,8 +43,6 @@ import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.nio.reactor.IOEventDispatch;
-import org.apache.http.nio.reactor.IOReactorStatus;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
@@ -55,7 +53,7 @@ import org.apache.http.protocol.RequestUserAgent;
 import org.apache.http.util.Asserts;
 import org.apache.http.util.VersionInfo;
 
-class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
+class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -63,76 +61,24 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
     private final HttpProcessor httpProcessor;
     private final ConnectionReuseStrategy connReuseStrategy;
     private final ConnectionKeepAliveStrategy keepaliveStrategy;
-    private final Thread reactorThread;
-
-    private volatile IOReactorStatus status;
 
     public MinimalHttpAsyncClient(
-            final NHttpClientConnectionManager connmgr) {
-        super();
+            final NHttpClientConnectionManager connmgr,
+            final ThreadFactory threadFactory) {
+        super(connmgr, threadFactory);
         this.connmgr = connmgr;
-        this.httpProcessor = new ImmutableHttpProcessor(new HttpRequestInterceptor[] {
-                new RequestContent(),
+        this.httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
                 new RequestTargetHost(),
                 new RequestClientConnControl(),
                 new RequestUserAgent(VersionInfo.getUserAgent(
-                        "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass()))
-        });
+                        "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass())));
         this.connReuseStrategy = DefaultConnectionReuseStrategy.INSTANCE;
         this.keepaliveStrategy = DefaultConnectionKeepAliveStrategy.INSTANCE;
-        this.reactorThread = new Thread() {
-
-            @Override
-            public void run() {
-                doExecute();
-            }
-
-        };
-        this.status = IOReactorStatus.INACTIVE;
     }
 
-    private void doExecute() {
-        try {
-            final IOEventDispatch ioEventDispatch = new InternalIODispatch();
-            this.connmgr.execute(ioEventDispatch);
-        } catch (final Exception ex) {
-            this.log.error("I/O reactor terminated abnormally", ex);
-        } finally {
-            this.status = IOReactorStatus.SHUT_DOWN;
-        }
-    }
-
-    public IOReactorStatus getStatus() {
-        return this.status;
-    }
-
-    @Override
-    public void start() {
-        this.status = IOReactorStatus.ACTIVE;
-        this.reactorThread.start();
-    }
-
-    public void shutdown() {
-        if (this.status.compareTo(IOReactorStatus.ACTIVE) > 0) {
-            return;
-        }
-        this.status = IOReactorStatus.SHUTDOWN_REQUEST;
-        try {
-            this.connmgr.shutdown();
-        } catch (final IOException ex) {
-            this.log.error("I/O error shutting down connection manager", ex);
-        }
-        if (this.reactorThread != null) {
-            try {
-                this.reactorThread.join();
-            } catch (final InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    public void close() {
-        shutdown();
+    public MinimalHttpAsyncClient(
+            final NHttpClientConnectionManager connmgr) {
+        this(connmgr, Executors.defaultThreadFactory());
     }
 
     public <T> Future<T> execute(
@@ -140,8 +86,9 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClient {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        Asserts.check(this.status == IOReactorStatus.ACTIVE, "Request cannot be executed; " +
-                "I/O reactor status: %s", this.status);
+        final Status status = getStatus();
+        Asserts.check(status == Status.ACTIVE, "Request cannot be executed; " +
+                "I/O reactor status: %s", status);
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
