@@ -1,6 +1,9 @@
 Change since Release 4.0 Beta 4
 -------------------
 
+* [HTTPASYNC-52] Proxy configuration set at the request level does not apply.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-51] Request producers do not get correctly reset if the server responds early 
   (out of sequence), which can cause entity enclosing requests to be malformed in case of 
   re-execution.

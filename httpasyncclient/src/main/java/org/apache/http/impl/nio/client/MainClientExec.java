@@ -127,11 +127,6 @@ class MainClientExec implements InternalClientExec {
         }
 
         final HttpClientContext localContext = state.getLocalContext();
-        final HttpRequestWrapper request = HttpRequestWrapper.wrap(original);
-        final HttpRoute route = this.routePlanner.determineRoute(target, request, localContext);
-        state.setRoute(route);
-        state.setMainRequest(request);
-        state.setCurrentRequest(request);
 
         if (original instanceof Configurable) {
             final RequestConfig config = ((Configurable) original).getConfig();
@@ -144,6 +139,12 @@ class MainClientExec implements InternalClientExec {
         if (redirectLocations != null) {
             redirectLocations.clear();
         }
+
+        final HttpRequestWrapper request = HttpRequestWrapper.wrap(original);
+        final HttpRoute route = this.routePlanner.determineRoute(target, request, localContext);
+        state.setRoute(route);
+        state.setMainRequest(request);
+        state.setCurrentRequest(request);
 
         prepareRequest(state);
     }

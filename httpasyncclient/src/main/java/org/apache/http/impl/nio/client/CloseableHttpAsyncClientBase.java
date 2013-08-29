@@ -57,7 +57,8 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
                 doExecute();
             }
 
-        });        this.status = new AtomicReference<Status>(Status.INACTIVE);
+        });
+        this.status = new AtomicReference<Status>(Status.INACTIVE);
     }
 
     private void doExecute() {
