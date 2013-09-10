@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
@@ -53,7 +54,6 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.NonRepeatableRequestException;
 import org.apache.http.client.RedirectException;
 import org.apache.http.client.RedirectStrategy;
-import org.apache.http.client.URICollection;
 import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.Configurable;
@@ -135,7 +135,7 @@ class MainClientExec implements InternalClientExec {
             }
         }
 
-        final URICollection redirectLocations = localContext.getRedirectLocations();
+        final List<URI> redirectLocations = localContext.getRedirectLocations();
         if (redirectLocations != null) {
             redirectLocations.clear();
         }
