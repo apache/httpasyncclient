@@ -26,12 +26,12 @@
  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
-    <artifactId>project</artifactId>
-    <groupId>org.apache.httpcomponents</groupId>
-    <version>7</version>
-    <relativePath>../project/pom.xml</relativePath>
-  </parent>
-  <modelVersion>4.0.0</modelVersion>
+      <artifactId>project</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <version>7</version>
+      <relativePath>../project/pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
   <artifactId>httpcomponents-asyncclient</artifactId>
   <name>HttpComponents AsyncClient</name>
   <version>4.0-beta5-SNAPSHOT</version>
@@ -71,6 +71,7 @@
     <!-- Note IO 2.3+ requires Java 6 -->
     <commons-io.version>2.2</commons-io.version>
     <junit.version>4.8.1</junit.version>
+    <easymock.version>2.5.2</easymock.version>
     <mockito.version>1.8.5</mockito.version>
   </properties>
 
@@ -114,9 +115,28 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>org.easymock</groupId>
+        <artifactId>easymock</artifactId>
+        <version>${easymock.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.easymock</groupId>
+        <artifactId>easymockclassextension</artifactId>
+        <version>${easymock.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient-cache</artifactId>
+        <version>${httpclient.version}</version>
+        <type>test-jar</type>
         <scope>test</scope>
       </dependency>
     </dependencies>
