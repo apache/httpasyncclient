@@ -56,7 +56,7 @@ class AsynchronousAsyncValidator {
 
     /**
      * Create AsynchronousValidator which will make revalidation requests using
-     * the supplied {@link CachingHttpClient}, and a {@link ThreadPoolExecutor}
+     * the supplied {@link CachingHttpAsyncClient}, and a {@link ThreadPoolExecutor}
      * generated according to the thread pool settings provided in the given
      * {@link CacheConfig}.
      *
@@ -78,7 +78,7 @@ class AsynchronousAsyncValidator {
 
     /**
      * Create AsynchronousValidator which will make revalidation requests using
-     * the supplied {@link CachingHttpClient} and {@link ExecutorService}.
+     * the supplied {@link CachingHttpAsyncClient} and {@link ExecutorService}.
      *
      * @param cachingClient
      *            used to execute asynchronous requests
@@ -94,11 +94,6 @@ class AsynchronousAsyncValidator {
 
     /**
      * Schedules an asynchronous revalidation
-     *
-     * @param target
-     * @param request
-     * @param context
-     * @param entry
      */
     public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequestWrapper request,
             final HttpContext context, final HttpCacheEntry entry) {
@@ -123,8 +118,6 @@ class AsynchronousAsyncValidator {
      * progress. This is meant to be called by
      * {@link AsynchronousValidationRequest#run()} once the revalidation is
      * complete, using the identifier passed in during constructions.
-     *
-     * @param identifier
      */
     synchronized void markComplete(final String identifier) {
         this.queued.remove(identifier);

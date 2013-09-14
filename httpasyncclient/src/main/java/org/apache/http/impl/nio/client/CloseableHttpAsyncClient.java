@@ -84,7 +84,7 @@ public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Close
             final HttpUriRequest request,
             final HttpContext context,
             final FutureCallback<HttpResponse> callback) {
-        HttpHost target;
+        final HttpHost target;
         try {
             target = determineTarget(request);
         } catch (final ClientProtocolException ex) {

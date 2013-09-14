@@ -122,8 +122,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
         final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
-        return target;
+        return new HttpHost("localhost", address.getPort(), getSchemeName());
     }
 
     private static final String[] TEXT = {
@@ -133,7 +132,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         "nyet nyet nyet nyet nyet nyet nyet nyet nyet nyet nyet nyet nyet nyet"
     };
 
-    private static Charset ASCII = Charset.forName("ascii");
+    private static final Charset ASCII = Charset.forName("ascii");
     private static File TEST_FILE;
     private File tmpfile;
 

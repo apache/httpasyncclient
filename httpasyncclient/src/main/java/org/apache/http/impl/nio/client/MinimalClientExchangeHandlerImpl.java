@@ -215,7 +215,7 @@ public class MinimalClientExchangeHandlerImpl<T>
             this.validDuration = this.keepaliveStrategy.getKeepAliveDuration(this.response,
                     this.localContext);
             if (this.log.isDebugEnabled()) {
-                String s;
+                final String s;
                 if (this.validDuration > 0) {
                     s = "for " + this.validDuration + " " + TimeUnit.MILLISECONDS;
                 } else {

@@ -54,7 +54,7 @@ public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFacto
     private final Log wirelog = LogFactory.getLog("org.apache.http.wire");
     private final Log log = LogFactory.getLog(ManagedNHttpClientConnectionImpl.class);
 
-    private static AtomicLong COUNTER = new AtomicLong();
+    private static final AtomicLong COUNTER = new AtomicLong();
 
     public static final ManagedNHttpClientConnectionFactory INSTANCE = new ManagedNHttpClientConnectionFactory();
 

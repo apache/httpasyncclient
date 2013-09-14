@@ -46,6 +46,7 @@ import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
 import org.junit.After;
 
+@SuppressWarnings("RedundantArrayCreation")
 public abstract class HttpAsyncTestBase {
 
     protected HttpServerNio server;
@@ -81,12 +82,10 @@ public abstract class HttpAsyncTestBase {
         this.server = new HttpServerNio(
                 this.serverReactorConfig, createServerConnectionFactory(this.serverConnectionConfig));
         this.server.setExceptionHandler(new SimpleIOReactorExceptionHandler());
-        this.serverHttpProc = new ImmutableHttpProcessor(new HttpResponseInterceptor[] {
-                new ResponseDate(),
+        this.serverHttpProc = new ImmutableHttpProcessor(new ResponseDate(),
                 new ResponseServer("TEST-SERVER/1.1"),
                 new ResponseContent(),
-                new ResponseConnControl()
-        });
+                new ResponseConnControl());
     }
 
     public void initConnectionManager() throws Exception {

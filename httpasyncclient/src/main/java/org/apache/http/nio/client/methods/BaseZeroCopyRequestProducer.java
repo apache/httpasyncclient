@@ -100,7 +100,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
             this.fileChannel = this.accessfile.getChannel();
             this.idx = 0;
         }
-        long transferred;
+        final long transferred;
         if (encoder instanceof FileContentEncoder) {
             transferred = ((FileContentEncoder)encoder).transfer(
                     this.fileChannel, this.idx, Integer.MAX_VALUE);

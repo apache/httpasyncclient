@@ -115,8 +115,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
         final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
-        return target;
+        return new HttpHost("localhost", address.getPort(), getSchemeName());
     }
 
     static class SimpleService implements HttpRequestHandler {
@@ -143,8 +142,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         final UserTokenHandler userTokenHandler = new UserTokenHandler() {
 
             public Object getUserToken(final HttpContext context) {
-                final Integer id = (Integer) context.getAttribute("user");
-                return id;
+                return context.getAttribute("user");
             }
 
         };

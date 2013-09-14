@@ -340,7 +340,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final FutureCallback<HttpResponse> futureCallback)
             throws ClientProtocolException, IOException {
         recordCacheHit(target, request);
-        HttpResponse out = null;
+        final HttpResponse out;
         final Date now = getCurrentDate();
         if (this.suitabilityChecker.canCachedResponseBeUsed(target, request, entry, now)) {
             log.debug("Cache hit");
@@ -574,7 +574,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.client", getClass().getClassLoader());
         final String release = (vi != null) ? vi.getRelease() : VersionInfo.UNAVAILABLE;
 
-        String value;
+        final String value;
         if ("http".equalsIgnoreCase(pv.getProtocol())) {
             value = String.format("%d.%d localhost (Apache-HttpClient/%s (cache))", pv.getMajor(), pv.getMinor(),
                     release);
@@ -628,12 +628,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         if (!"*".equals(line.getUri())) {
             return false;
         }
-
-        if (!"0".equals(request.getFirstHeader(HeaderConstants.MAX_FORWARDS).getValue())) {
-            return false;
-        }
-
-        return true;
+        return "0".equals(request.getFirstHeader(HeaderConstants.MAX_FORWARDS).getValue());
     }
 
     Future<HttpResponse> callBackend(
@@ -679,7 +674,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
         final Date requestDate = getCurrentDate();
         final FutureHttpResponse future = new FutureHttpResponse(futureCallback);
-        Future<HttpResponse> backendFuture = this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse> () {
+        final Future<HttpResponse> backendFuture = this.backend.execute(target, conditionalRequest, context, new FutureCallback<HttpResponse> () {
 
             public void cancelled() {
                 future.cancelled();
@@ -737,7 +732,6 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 }
 
                 future.completed(resp);
-                return;
             }
 
             public void failed(final Exception ex) {
@@ -861,7 +855,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         }
 
         if (statusCode == HttpStatus.SC_NOT_MODIFIED) {
-            HttpCacheEntry updatedEntry = null;
+            final HttpCacheEntry updatedEntry;
             try {
                 updatedEntry = CachingHttpAsyncClient.this.responseCache.updateCacheEntry(target, request, cacheEntry,
                         httpResponse, requestDate, responseDate);
@@ -893,7 +887,6 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 futureCallback.completed(backendResponse);
         } catch (final IOException e) {
             futureCallback.failed(e);
-            return;
         }
     }
 

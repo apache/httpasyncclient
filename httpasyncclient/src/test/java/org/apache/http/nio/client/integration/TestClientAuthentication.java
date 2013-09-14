@@ -151,8 +151,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
         final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
-        return target;
+        return new HttpHost("localhost", address.getPort(), getSchemeName());
     }
 
     static class AuthHandler implements HttpRequestHandler {
@@ -201,7 +200,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
                 final HttpResponse response,
                 final HttpContext context) {
             final boolean res = super.isAuthenticationRequested(authhost, response, context);
-            if (res == true) {
+            if (res) {
                 synchronized (this) {
                     this.count++;
                 }

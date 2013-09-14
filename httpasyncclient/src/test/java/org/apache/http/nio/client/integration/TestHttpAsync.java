@@ -113,8 +113,7 @@ public class TestHttpAsync extends HttpAsyncTestBase {
 
         Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
         final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        final HttpHost target = new HttpHost("localhost", address.getPort(), getSchemeName());
-        return target;
+        return new HttpHost("localhost", address.getPort(), getSchemeName());
     }
 
     private HttpHost start() throws Exception {

@@ -31,7 +31,7 @@ import java.io.IOException;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
 /**
- * Static helpers for dealing with {@link HttpAsyncClient}.
+ * Static helpers for dealing with {@link org.apache.http.nio.client.HttpAsyncClient}.
  */
 public class HttpAsyncClientUtils {
 
@@ -62,7 +62,7 @@ public class HttpAsyncClientUtils {
         if (httpAsyncClient != null) {
             try {
                 httpAsyncClient.close();
-            } catch (final IOException e) {
+            } catch (final IOException ignore) {
             }
         }
     }
