@@ -126,7 +126,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         this.conditionalRequestBuilder = new ConditionalRequestBuilder();
 
         this.responseCompliance = new ResponseProtocolCompliance();
-        this.requestCompliance = new RequestProtocolCompliance();
+        this.requestCompliance = new RequestProtocolCompliance(config.isWeakETagOnPutDeleteAllowed());
 
         this.asynchAsyncRevalidator = makeAsynchronousValidator(config);
     }
