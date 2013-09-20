@@ -286,6 +286,10 @@ class DefaultClientExchangeHandlerImpl<T>
             } else {
                 this.managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
                 this.managedConn.requestOutput();
+                final RequestConfig config = this.localContext.getRequestConfig();
+                if (config.getSocketTimeout() > 0) {
+                    this.managedConn.setSocketTimeout(config.getSocketTimeout());
+                }
             }
         } catch (final RuntimeException runex) {
             failed(runex);
