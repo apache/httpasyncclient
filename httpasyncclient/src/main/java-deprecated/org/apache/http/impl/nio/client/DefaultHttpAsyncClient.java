@@ -34,7 +34,6 @@ import org.apache.http.client.protocol.RequestDefaultHeaders;
 import org.apache.http.client.protocol.RequestProxyAuthentication;
 import org.apache.http.client.protocol.RequestTargetAuthentication;
 import org.apache.http.client.protocol.ResponseProcessCookies;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.reactor.IOReactorException;
@@ -48,7 +47,6 @@ import org.apache.http.protocol.RequestContent;
 import org.apache.http.protocol.RequestExpectContinue;
 import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
-import org.apache.http.util.VersionInfo;
 
 @Deprecated
 public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
@@ -77,14 +75,7 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         HttpProtocolParams.setContentCharset(params, HTTP.DEF_CONTENT_CHARSET.name());
         HttpConnectionParams.setTcpNoDelay(params, true);
         HttpConnectionParams.setSocketBufferSize(params, 8192);
-
-        // determine the release version from packaged version info
-        final VersionInfo vi = VersionInfo.loadVersionInfo
-            ("org.apache.http.nio.client", DefaultHttpClient.class.getClassLoader());
-        final String release = (vi != null) ?
-            vi.getRelease() : VersionInfo.UNAVAILABLE;
-        HttpProtocolParams.setUserAgent(params,
-                "Apache-HttpAsyncClient/" + release + " (java 1.5)");
+        HttpProtocolParams.setUserAgent(params, HttpAsyncClientBuilder.DEFAULT_USER_AGENT);
     }
 
     @Override

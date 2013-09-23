@@ -106,6 +106,14 @@ import org.apache.http.util.VersionInfo;
 @NotThreadSafe
 public class HttpAsyncClientBuilder {
 
+    final static String DEFAULT_USER_AGENT;
+    static {
+        final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.nio.client",
+                HttpAsyncClientBuilder.class.getClassLoader());
+        final String release = vi != null ? vi.getRelease() : VersionInfo.UNAVAILABLE;
+        DEFAULT_USER_AGENT = "Apache-HttpAsyncClient/" + release + " (java 1.5)";
+    }
+
     private NHttpClientConnectionManager connManager;
     private SchemePortResolver schemePortResolver;
     private SchemeIOSessionFactory iosessionFactory;
@@ -441,11 +449,9 @@ public class HttpAsyncClientBuilder {
             if (userAgent == null) {
                 if (systemProperties) {
                     userAgent = System.getProperty("http.agent");
-                } else {
-                    final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.nio.client",
-                            HttpAsyncClientBuilder.class.getClassLoader());
-                    final String release = vi != null ? vi.getRelease() : VersionInfo.UNAVAILABLE;
-                    userAgent = "Apache-HttpAsyncClient/" + release + " (java 1.5)";
+                }
+                if (userAgent == null) {
+                    userAgent = DEFAULT_USER_AGENT;
                 }
             }
 
