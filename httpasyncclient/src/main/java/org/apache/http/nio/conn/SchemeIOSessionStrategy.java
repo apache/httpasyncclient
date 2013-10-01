@@ -29,6 +29,8 @@ package org.apache.http.nio.conn;
 import org.apache.http.HttpHost;
 import org.apache.http.nio.reactor.IOSession;
 
+import java.io.IOException;
+
 /**
  * I/O session layering strategy for complex protocol schemes, which employ
  * a transport level security protocol to secure HTTP communication
@@ -54,6 +56,6 @@ public interface SchemeIOSessionStrategy {
      * @param iosession the I/O session.
      * @return upgraded I/O session.
      */
-    IOSession upgrade(HttpHost host, IOSession iosession);
+    IOSession upgrade(HttpHost host, IOSession iosession) throws IOException;
 
 }

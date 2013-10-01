@@ -27,6 +27,7 @@
 
 package org.apache.http.nio.conn.ssl;
 
+import java.io.IOException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -74,7 +75,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         this(sslcontext, new BrowserCompatHostnameVerifier());
     }
 
-    public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) {
+    public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) throws IOException {
         Asserts.check(!(iosession instanceof SSLIOSession), "I/O session is already upgraded to TLS/SSL");
         final SSLIOSession ssliosession = new SSLIOSession(
             iosession,
@@ -95,6 +96,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
         });
         iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
+        ssliosession.initialize();
         return ssliosession;
     }
 

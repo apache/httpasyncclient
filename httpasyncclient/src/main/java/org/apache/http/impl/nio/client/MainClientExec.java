@@ -332,6 +332,14 @@ class MainClientExec implements InternalClientExec {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpResponse currentResponse = state.getCurrentResponse();
 
+        if (!state.isRouteEstablished()) {
+            final int status = currentResponse.getStatusLine().getStatusCode();
+            if (status == HttpStatus.SC_OK) {
+                state.setCurrentResponse(null);
+                return;
+            }
+        }
+
         if (this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
             final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
                     currentResponse, localContext);
