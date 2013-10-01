@@ -24,15 +24,41 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
+package org.apache.http.nio.conn.ssl;
 
-import org.apache.http.HttpHost;
-import org.apache.http.nio.reactor.IOSession;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-public interface SchemeIOSessionFactory {
+import javax.net.ssl.X509TrustManager;
 
-    IOSession create(HttpHost host, IOSession iosession);
+import org.apache.http.conn.ssl.TrustStrategy;
 
-    boolean isLayering();
+@Deprecated
+class TrustManagerDecorator implements X509TrustManager {
+
+    private final X509TrustManager trustManager;
+    private final TrustStrategy trustStrategy;
+
+    TrustManagerDecorator(final X509TrustManager trustManager, final TrustStrategy trustStrategy) {
+        super();
+        this.trustManager = trustManager;
+        this.trustStrategy = trustStrategy;
+    }
+
+    public void checkClientTrusted(
+            final X509Certificate[] chain, final String authType) throws CertificateException {
+        this.trustManager.checkClientTrusted(chain, authType);
+    }
+
+    public void checkServerTrusted(
+            final X509Certificate[] chain, final String authType) throws CertificateException {
+        if (!this.trustStrategy.isTrusted(chain, authType)) {
+            this.trustManager.checkServerTrusted(chain, authType);
+        }
+    }
+
+    public X509Certificate[] getAcceptedIssuers() {
+        return this.trustManager.getAcceptedIssuers();
+    }
 
 }

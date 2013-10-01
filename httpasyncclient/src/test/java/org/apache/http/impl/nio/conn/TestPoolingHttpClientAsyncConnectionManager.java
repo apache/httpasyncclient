@@ -52,7 +52,7 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager.Interna
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.SchemeIOSessionFactory;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
@@ -73,9 +73,9 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private CPool pool;
     @Mock
-    private SchemeIOSessionFactory plainFactory;
+    private SchemeIOSessionStrategy noopStrategy;
     @Mock
-    private SchemeIOSessionFactory sslFactory;
+    private SchemeIOSessionStrategy sslStrategy;
     @Mock
     private SchemePortResolver schemePortResolver;
     @Mock
@@ -93,17 +93,17 @@ public class TestPoolingHttpClientAsyncConnectionManager {
     @Mock
     private IOSession iosession;
 
-    private Registry<SchemeIOSessionFactory> layeringStrategyRegistry;
+    private Registry<SchemeIOSessionStrategy> layeringStrategyRegistry;
     private PoolingNHttpClientConnectionManager connman;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        Mockito.when(sslFactory.isLayering()).thenReturn(Boolean.TRUE);
+        Mockito.when(sslStrategy.isLayeringRequired()).thenReturn(Boolean.TRUE);
 
-        layeringStrategyRegistry = RegistryBuilder.<SchemeIOSessionFactory>create()
-            .register("http", plainFactory)
-            .register("https", sslFactory)
+        layeringStrategyRegistry = RegistryBuilder.<SchemeIOSessionStrategy>create()
+            .register("http", noopStrategy)
+            .register("https", sslStrategy)
             .build();
         connman = new PoolingNHttpClientConnectionManager(
             ioreactor, pool, layeringStrategyRegistry);
@@ -272,11 +272,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
-        connman.initialize(managedConn, route, context);
+        connman.startRoute(managedConn, route, context);
 
-        Mockito.verify(plainFactory).create(target, iosession);
+        Mockito.verify(noopStrategy, Mockito.never()).upgrade(target, iosession);
         Mockito.verify(conn, Mockito.never()).bind(iosession);
 
         Assert.assertFalse(connman.isRouteComplete(managedConn));
@@ -294,11 +294,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
-        connman.initialize(managedConn, route, context);
+        connman.startRoute(managedConn, route, context);
 
-        Mockito.verify(sslFactory).create(target, iosession);
+        Mockito.verify(sslStrategy).upgrade(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -308,8 +308,8 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpRoute route = new HttpRoute(target);
         final HttpContext context = new BasicHttpContext();
 
-        final Registry<SchemeIOSessionFactory> reg = RegistryBuilder.<SchemeIOSessionFactory>create()
-                .register("http11", plainFactory)
+        final Registry<SchemeIOSessionStrategy> reg = RegistryBuilder.<SchemeIOSessionStrategy>create()
+                .register("http11", noopStrategy)
                 .build();
         context.setAttribute(PoolingNHttpClientConnectionManager.IOSESSION_FACTORY_REGISTRY, reg);
 
@@ -318,11 +318,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
-        connman.initialize(managedConn, route, context);
+        connman.startRoute(managedConn, route, context);
 
-        Mockito.verify(plainFactory).create(target, iosession);
+        Mockito.verify(noopStrategy, Mockito.never()).upgrade(target, iosession);
         Mockito.verify(conn, Mockito.never()).bind(iosession);
 
         Assert.assertFalse(connman.isRouteComplete(managedConn));
@@ -340,9 +340,9 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
-        connman.initialize(managedConn, route, context);
+        connman.startRoute(managedConn, route, context);
     }
 
     @Test
@@ -357,11 +357,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
 
-        Mockito.verify(sslFactory).create(target, iosession);
+        Mockito.verify(sslStrategy).upgrade(target, iosession);
         Mockito.verify(conn).bind(iosession);
     }
 
@@ -377,7 +377,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
     }
@@ -394,7 +394,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
         connman.upgrade(managedConn, route, context);
     }
@@ -411,9 +411,9 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final NHttpClientConnection managedConn = CPoolProxy.newProxy(poolentry);
 
         Mockito.when(conn.getIOSession()).thenReturn(iosession);
-        Mockito.when(sslFactory.create(target, iosession)).thenReturn(iosession);
+        Mockito.when(sslStrategy.upgrade(target, iosession)).thenReturn(iosession);
 
-        connman.initialize(managedConn, route, context);
+        connman.startRoute(managedConn, route, context);
         connman.routeComplete(managedConn, route, context);
 
         Assert.assertTrue(connman.isRouteComplete(managedConn));
@@ -462,8 +462,8 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpRoute route = new HttpRoute(new HttpHost("somehost"));
         internalConnFactory.create(route, iosession);
 
-        Mockito.verify(sslFactory, Mockito.never()).create(
-            Mockito.eq(new HttpHost("somehost")), Mockito.<IOSession>any());
+        Mockito.verify(sslStrategy, Mockito.never()).upgrade(Mockito.eq(new HttpHost("somehost")),
+                Mockito.<IOSession>any());
         Mockito.verify(connFactory).create(Mockito.same(iosession), Mockito.<ConnectionConfig>any());
     }
 
@@ -570,8 +570,8 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost target = new HttpHost("somehost");
         final HttpRoute route = new HttpRoute(target);
 
-        final byte[] ip = new byte[] {10, 0, 0, 10};
         Mockito.when(schemePortResolver.resolve(target)).thenReturn(123);
+        final byte[] ip = new byte[] {10, 0, 0, 10};
         Mockito.when(dnsResolver.resolve("somehost")).thenReturn(new InetAddress[] {InetAddress.getByAddress(ip)});
 
         final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveRemoteAddress(route);
@@ -590,8 +590,8 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpHost proxy = new HttpHost("someproxy");
         final HttpRoute route = new HttpRoute(target, null, proxy, false);
 
-        final byte[] ip = new byte[] {10, 0, 0, 10};
         Mockito.when(schemePortResolver.resolve(proxy)).thenReturn(8888);
+        final byte[] ip = new byte[] {10, 0, 0, 10};
         Mockito.when(dnsResolver.resolve("someproxy")).thenReturn(new InetAddress[] {InetAddress.getByAddress(ip)});
 
         final InetSocketAddress address = (InetSocketAddress) addressResolver.resolveRemoteAddress(route);

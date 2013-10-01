@@ -165,11 +165,11 @@ class MainClientExec implements InternalClientExec {
                 step = this.routeDirector.nextStep(route, fact);
                 switch (step) {
                 case HttpRouteDirector.CONNECT_TARGET:
-                    this.connmgr.initialize(managedConn, route, localContext);
+                    this.connmgr.startRoute(managedConn, route, localContext);
                     routeTracker.connectTarget(route.isSecure());
                     break;
                 case HttpRouteDirector.CONNECT_PROXY:
-                    this.connmgr.initialize(managedConn, route, localContext);
+                    this.connmgr.startRoute(managedConn, route, localContext);
                     final HttpHost proxy  = route.getProxyHost();
                     routeTracker.connectProxy(proxy, false);
                     break;

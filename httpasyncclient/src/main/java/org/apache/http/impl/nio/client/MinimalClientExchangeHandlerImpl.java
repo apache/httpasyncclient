@@ -160,7 +160,7 @@ public class MinimalClientExchangeHandlerImpl<T>
 
     public synchronized HttpRequest generateRequest() throws IOException, HttpException {
         if (!this.connmgr.isRouteComplete(this.managedConn)) {
-            this.connmgr.initialize(this.managedConn, this.route, this.localContext);
+            this.connmgr.startRoute(this.managedConn, this.route, this.localContext);
             this.connmgr.routeComplete(this.managedConn, this.route, this.localContext);
         }
         return this.request;

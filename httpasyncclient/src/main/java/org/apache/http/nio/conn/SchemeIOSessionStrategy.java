@@ -26,17 +26,34 @@
  */
 package org.apache.http.nio.conn;
 
-import org.apache.http.config.ConnectionConfig;
-import org.apache.http.nio.NHttpConnection;
+import org.apache.http.HttpHost;
 import org.apache.http.nio.reactor.IOSession;
 
 /**
- * Generic {@link NHttpConnection} factory.
+ * I/O session layering strategy for complex protocol schemes, which employ
+ * a transport level security protocol to secure HTTP communication
+ * (in other words those schemes 'layer' HTTP on top of a transport level
+ * protocol such as TLS/SSL).
  *
  * @since 4.0
  */
-public interface NHttpConnectionFactory<T extends NHttpConnection> {
+public interface SchemeIOSessionStrategy {
 
-    T create(IOSession iosession, ConnectionConfig config);
+    /**
+     * Determines whether or not protocol layering is required. If this method
+     * returns <code>false<code/> the {@link #upgrade(org.apache.http.HttpHost,
+     * org.apache.http.nio.reactor.IOSession) upgrade} method  is expected
+     * to have no effect and should not be called.
+     */
+    boolean isLayeringRequired();
+
+    /**
+     * Decorates the original {@link IOSession} with a transport level security
+     * protocol implementation.
+     * @param host the target host.
+     * @param iosession the I/O session.
+     * @return upgraded I/O session.
+     */
+    IOSession upgrade(HttpHost host, IOSession iosession);
 
 }

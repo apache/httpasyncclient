@@ -38,16 +38,20 @@ import org.apache.http.nio.client.methods.AsyncCharConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.protocol.HttpContext;
 
+/**
+ * This example demonstrates an asynchronous HTTP request / response exchange with
+ * a full content streaming.
+ */
 public class AsyncClientHttpExchangeStreaming {
 
     public static void main(final String[] args) throws Exception {
-        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
-        httpclient.start();
+        CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         try {
-            final Future<Boolean> future = httpclient.execute(
+            httpclient.start();
+            Future<Boolean> future = httpclient.execute(
                     HttpAsyncMethods.createGet("http://localhost:8080/"),
                     new MyResponseConsumer(), null);
-            final Boolean result = future.get();
+            Boolean result = future.get();
             if (result != null && result.booleanValue()) {
                 System.out.println("Request successfully executed");
             } else {

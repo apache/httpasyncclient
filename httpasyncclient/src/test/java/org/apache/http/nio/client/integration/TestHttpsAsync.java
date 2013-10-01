@@ -35,9 +35,9 @@ import org.apache.http.impl.nio.SSLNHttpServerConnectionFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.conn.PlainIOSessionFactory;
-import org.apache.http.nio.conn.SchemeIOSessionFactory;
-import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
+import org.apache.http.nio.conn.NoopIOSessionStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 
 public class TestHttpsAsync extends TestHttpAsync {
 
@@ -54,9 +54,9 @@ public class TestHttpsAsync extends TestHttpAsync {
 
     @Override
     public void initConnectionManager() throws Exception {
-        final Registry<SchemeIOSessionFactory> schemereg = RegistryBuilder.<SchemeIOSessionFactory>create()
-                .register("http", PlainIOSessionFactory.INSTANCE)
-                .register("https", new SSLIOSessionFactory(SSLTestContexts.createClientSSLContext()))
+        final Registry<SchemeIOSessionStrategy> schemereg = RegistryBuilder.<SchemeIOSessionStrategy>create()
+                .register("http", NoopIOSessionStrategy.INSTANCE)
+                .register("https", new SSLIOSessionStrategy(SSLTestContexts.createClientSSLContext()))
                 .build();
         this.clientIOReactor = new DefaultConnectingIOReactor(this.clientReactorConfig);
         this.connMgr = new PoolingNHttpClientConnectionManager(this.clientIOReactor, schemereg);

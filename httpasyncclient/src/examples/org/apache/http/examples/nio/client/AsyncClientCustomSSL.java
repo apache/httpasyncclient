@@ -27,48 +27,48 @@
 package org.apache.http.examples.nio.client;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.security.KeyStore;
 import java.util.concurrent.Future;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.entity.ContentType;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
-import org.apache.http.nio.client.methods.ZeroCopyConsumer;
-import org.apache.http.nio.client.methods.ZeroCopyPost;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 
 /**
- * This example demonstrates how HttpAsyncClient can be used to upload or download files
- * without creating an intermediate content buffer in memory (zero copy file transfer).
+ * This example demonstrates how to create secure connections with a custom SSL
+ * context.
  */
-public class ZeroCopyHttpExchange {
+public class AsyncClientCustomSSL {
 
-    public static void main(final String[] args) throws Exception {
-        CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
+    public final static void main(String[] args) throws Exception {
+        KeyStore trustStore  = KeyStore.getInstance(KeyStore.getDefaultType());
+        FileInputStream instream = new FileInputStream(new File("my.keystore"));
+        try {
+            trustStore.load(instream, "nopassword".toCharArray());
+        } finally {
+            instream.close();
+        }
+        SSLContext sslcontext = SSLContexts.custom()
+                .loadTrustMaterial(trustStore)
+                .build();
+        SSLIOSessionStrategy sslSessionStrategy = new SSLIOSessionStrategy(sslcontext,
+                SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+        CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
+                .setSSLStrategy(sslSessionStrategy)
+                .build();
         try {
             httpclient.start();
-            File upload = new File(args[0]);
-            File download = new File(args[1]);
-            ZeroCopyPost httpost = new ZeroCopyPost("http://localhost:8080/", upload,
-                    ContentType.create("text/plain"));
-            ZeroCopyConsumer<File> consumer = new ZeroCopyConsumer<File>(download) {
-
-                @Override
-                protected File process(
-                        final HttpResponse response,
-                        final File file,
-                        final ContentType contentType) throws Exception {
-                    if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                        throw new ClientProtocolException("Upload failed: " + response.getStatusLine());
-                    }
-                    return file;
-                }
-
-            };
-            Future<File> future = httpclient.execute(httpost, consumer, null);
-            File result = future.get();
-            System.out.println("Response file length: " + result.length());
+            HttpGet request = new HttpGet("https://issues.apache.org/");
+            Future<HttpResponse> future = httpclient.execute(request, null);
+            HttpResponse response = future.get();
+            System.out.println("Response: " + response.getStatusLine());
             System.out.println("Shutting down");
         } finally {
             httpclient.close();

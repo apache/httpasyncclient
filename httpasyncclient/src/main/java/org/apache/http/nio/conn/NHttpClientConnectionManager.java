@@ -47,55 +47,116 @@ import org.apache.http.protocol.HttpContext;
  * Implementations of this interface must be thread-safe. Access to shared
  * data must be synchronized as methods of this interface may be executed
  * from multiple threads.
+ *
+ * @since 4.0
  */
 public interface NHttpClientConnectionManager {
 
     /**
      * Returns a {@link Future} for a {@link NHttpClientConnection}.
+     * <p/>
+     * Please note that the consumer of that connection is responsible
+     * for fully establishing the route the to the connection target
+     * by calling {@link #startRoute(org.apache.http.nio.NHttpClientConnection,
+     *   org.apache.http.conn.routing.HttpRoute,
+     *   org.apache.http.protocol.HttpContext) startRoute} in order to start
+     * the process of connection initialization, optionally calling
+     * {@link #upgrade(org.apache.http.nio.NHttpClientConnection,
+     *   org.apache.http.conn.routing.HttpRoute,
+     *   org.apache.http.protocol.HttpContext) upgrade} method to upgrade
+     * the connection after having executed <code>CONNECT</code> method to
+     * all intermediate proxy hops and and finally calling
+     * {@link #routeComplete(org.apache.http.nio.NHttpClientConnection,
+     *   org.apache.http.conn.routing.HttpRoute,
+     *   org.apache.http.protocol.HttpContext) routeComplete} to mark the route
+     * as fully completed.
+     *
+     * @param route HTTP route of the requested connection.
+     * @param state expected state of the connection or <code>null</code>
+     *              if the connection is not expected to carry any state.
+     * @param connectTimeout connect timeout.
+     * @param connectionRequestTimeout  connection request timeout.
+     * @param timeUnit time unit of the previous two timeout values.
+     * @param callback future callback.
      */
     Future<NHttpClientConnection> requestConnection(
-            HttpRoute route, Object state,
-            long connectTimeout, long leaseTimeout, TimeUnit timeUnit,
+            HttpRoute route,
+            Object state,
+            long connectTimeout,
+            long connectionRequestTimeout,
+            TimeUnit timeUnit,
             FutureCallback<NHttpClientConnection> callback);
 
     /**
-     * Releases a connection for use by others.
-     * You may optionally specify how long the connection is valid
-     * to be reused.  Values <= 0 are considered to be valid forever.
-     * If the connection is not marked as reusable, the connection will
-     * not be reused regardless of the valid duration.
+     * Releases the connection back to the manager making it potentially
+     * re-usable by other consumers. Optionally, the maximum period
+     * of how long the manager should keep the connection alive can be
+     * defined using <code>validDuration</code> and <code>timeUnit</code>
+     * parameters.
      *
-     * If the connection has been released before,
-     * the call will be ignored.
-     *
-     * @param conn      the connection to release
-     * @param validDuration the duration of time this connection is valid for reuse
-     * @param timeUnit the unit of time validDuration is measured in
+     * @param conn      the managed connection to release.
+     * @param validDuration the duration of time this connection is valid for reuse.
+     * @param timeUnit the time unit.
      *
      * @see #closeExpiredConnections()
      */
     void releaseConnection(
             NHttpClientConnection conn, Object newState, long validDuration, TimeUnit timeUnit);
 
-    void initialize(
+    /**
+     * Starts the process of connection initialization. Connection route may consist of several
+     * intermediate hops and may require a protocol upgrade. Once the route is fully established
+     * the {@link #routeComplete(org.apache.http.nio.NHttpClientConnection,
+     *   org.apache.http.conn.routing.HttpRoute,
+     *   org.apache.http.protocol.HttpContext) routeComplete} method must be called.
+     *
+     * @param conn the managed connection to initialize.
+     * @param route the connection route.
+     * @param context the context
+     */
+    void startRoute(
             NHttpClientConnection conn,
             HttpRoute route,
             HttpContext context) throws IOException;
 
+    /**
+     * Upgrades the underlying connection I/O session to TLS/SSL (or another layering
+     * protocol) after having executed <code>CONNECT</code> method to all
+     * intermediate proxy hops.
+     *
+     * @param conn the managed connection to upgrade.
+     * @param route the connection route.
+     * @param context the context
+     */
     void upgrade(
             NHttpClientConnection conn,
             HttpRoute route,
             HttpContext context) throws IOException;
 
+    /**
+     * Marks the connection as fully established with all its intermediate
+     * hops completed.
+     *
+     * @param conn the managed connection to mark as route complete.
+     * @param route the connection route.
+     * @param context the context
+     */
     void routeComplete(
             NHttpClientConnection conn,
             HttpRoute route,
             HttpContext context);
 
+    /**
+     * Determines if the given connection has been fully established and
+     * marked as route complete.
+     *
+     * @param conn the managed connection.
+     */
     boolean isRouteComplete(NHttpClientConnection conn);
 
     /**
      * Closes idle connections in the pool.
+     * <p/>
      * Open connections in the pool that have not been used for the
      * timespan given by the argument will be closed.
      * Currently allocated connections are not subject to this method.
@@ -112,6 +173,7 @@ public interface NHttpClientConnectionManager {
 
     /**
      * Closes all expired connections in the pool.
+     * <p/>
      * Open connections in the pool that have not been used for
      * the timespan defined when the connection was released will be closed.
      * Currently allocated connections are not subject to this method.
@@ -119,6 +181,10 @@ public interface NHttpClientConnectionManager {
      */
     void closeExpiredConnections();
 
+    /**
+     * Starts the underlying I/O reactor and initiates the dispatch of
+     * I/O event notifications to the given {@link IOEventDispatch}.
+     */
     void execute(IOEventDispatch eventDispatch) throws IOException;
 
     /**

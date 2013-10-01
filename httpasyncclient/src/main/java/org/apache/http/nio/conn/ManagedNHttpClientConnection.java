@@ -32,14 +32,38 @@ import org.apache.http.HttpInetConnection;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 
+/**
+ * Represents a managed connection whose state and life cycle is managed by
+ * a connection manager. This interface extends {@link NHttpClientConnection}
+ * with methods to bind the connection to an arbitrary {@link IOSession} and
+ * to obtain SSL session details.
+ *
+ * @since 4.0
+ */
 public interface ManagedNHttpClientConnection extends NHttpClientConnection, HttpInetConnection {
 
+    /**
+     * Returns connection ID which is expected to be unique
+     * for the life span of the connection manager.
+     */
     String getId();
 
+    /**
+     * Binds connection to the given I/O session.
+     */
     void bind(IOSession iosession);
 
+    /**
+     * Returns the underlying I/O session.
+     */
     IOSession getIOSession();
 
+    /**
+     * Obtains the SSL session of the underlying connection, if any.
+     *
+     * @return  the underlying SSL session if available,
+     *          <code>null</code> otherwise
+     */
     SSLSession getSSLSession();
 
 }

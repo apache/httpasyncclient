@@ -24,19 +24,9 @@
  * <http://www.apache.org/>.
  *
  */
-package org.apache.http.nio.conn;
-
-import org.apache.http.config.ConnectionConfig;
-import org.apache.http.nio.NHttpConnection;
-import org.apache.http.nio.reactor.IOSession;
 
 /**
- * Generic {@link NHttpConnection} factory.
- *
- * @since 4.0
+ * Default implementations of client connection management
+ * functions.
  */
-public interface NHttpConnectionFactory<T extends NHttpConnection> {
-
-    T create(IOSession iosession, ConnectionConfig config);
-
-}
+package org.apache.http.impl.nio.conn;

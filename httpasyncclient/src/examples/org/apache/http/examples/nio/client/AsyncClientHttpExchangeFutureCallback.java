@@ -35,18 +35,21 @@ import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 
+/**
+ * This example demonstrates a fully asynchronous execution of multiple HTTP exchanges
+ * where the result of an individual operation is reported using a callback interface.
+ */
 public class AsyncClientHttpExchangeFutureCallback {
 
     public static void main(final String[] args) throws Exception {
-        final RequestConfig requestConfig = RequestConfig.custom()
+        RequestConfig requestConfig = RequestConfig.custom()
             .setSocketTimeout(3000)
             .setConnectTimeout(3000).build();
-        final CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
+        CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
             .setDefaultRequestConfig(requestConfig)
             .build();
-
-        httpclient.start();
         try {
+            httpclient.start();
             final HttpGet[] requests = new HttpGet[] {
                     new HttpGet("http://www.apache.org/"),
                     new HttpGet("https://www.verisign.com/"),

@@ -48,6 +48,11 @@ import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.util.ByteBufferAllocator;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 
+/**
+ * Default factory for {@link ManagedNHttpClientConnection} instances.
+ *
+ * @since 4.0
+ */
 public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFactory<ManagedNHttpClientConnection> {
 
     private final Log headerlog = LogFactory.getLog("org.apache.http.headers");

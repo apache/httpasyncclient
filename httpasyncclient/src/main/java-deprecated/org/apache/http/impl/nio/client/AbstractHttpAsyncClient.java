@@ -386,7 +386,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         if (this.protocolProcessor == null) {
             // Get mutable HTTP processor
             final BasicHttpProcessor proc = getHttpProcessor();
-            // and create an immutable copy of it
+            // and upgrade an immutable copy of it
             final int reqc = proc.getRequestInterceptorCount();
             final HttpRequestInterceptor[] reqinterceptors = new HttpRequestInterceptor[reqc];
             for (int i = 0; i < reqc; i++) {

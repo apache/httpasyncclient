@@ -54,9 +54,9 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.NHttpConnectionFactory;
-import org.apache.http.nio.conn.PlainIOSessionFactory;
-import org.apache.http.nio.conn.SchemeIOSessionFactory;
-import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
+import org.apache.http.nio.conn.NoopIOSessionStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
@@ -78,12 +78,12 @@ public class PoolingNHttpClientConnectionManager
     private final ConnectingIOReactor ioreactor;
     private final ConfigData configData;
     private final CPool pool;
-    private final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry;
+    private final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry;
 
-    private static Registry<SchemeIOSessionFactory> getDefaultRegistry() {
-        return RegistryBuilder.<SchemeIOSessionFactory>create()
-                .register("http", PlainIOSessionFactory.INSTANCE)
-                .register("https", SSLIOSessionFactory.getDefaultStrategy())
+    private static Registry<SchemeIOSessionStrategy> getDefaultRegistry() {
+        return RegistryBuilder.<SchemeIOSessionStrategy>create()
+                .register("http", NoopIOSessionStrategy.INSTANCE)
+                .register("https", SSLIOSessionStrategy.getDefaultStrategy())
                 .build();
     }
 
@@ -93,7 +93,7 @@ public class PoolingNHttpClientConnectionManager
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
         this(ioreactor, null, iosessionFactoryRegistry, null);
     }
 
@@ -113,14 +113,14 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
         this(ioreactor, connFactory, iosessionFactoryRegistry, null);
     }
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
             final DnsResolver dnsResolver) {
         this(ioreactor, connFactory, iosessionFactoryRegistry, null, dnsResolver,
             -1, TimeUnit.MILLISECONDS);
@@ -129,7 +129,7 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
             final long timeToLive, final TimeUnit tunit) {
@@ -148,7 +148,7 @@ public class PoolingNHttpClientConnectionManager
     PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final CPool pool,
-            final Registry<SchemeIOSessionFactory> iosessionFactoryRegistry) {
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
         super();
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
@@ -231,7 +231,7 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final SchemeIOSessionFactory sf = this.iosessionFactoryRegistry.lookup(
+        final SchemeIOSessionStrategy sf = this.iosessionFactoryRegistry.lookup(
                 host.getSchemeName());
         if (sf == null) {
             future.failed(new UnsupportedSchemeException(host.getSchemeName() +
@@ -279,9 +279,9 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
-    private Lookup<SchemeIOSessionFactory> getIOSessionFactoryRegistry(final HttpContext context) {
+    private Lookup<SchemeIOSessionStrategy> getIOSessionFactoryRegistry(final HttpContext context) {
         @SuppressWarnings("unchecked")
-        Lookup<SchemeIOSessionFactory> reg = (Lookup<SchemeIOSessionFactory>) context.getAttribute(
+        Lookup<SchemeIOSessionStrategy> reg = (Lookup<SchemeIOSessionStrategy>) context.getAttribute(
                 IOSESSION_FACTORY_REGISTRY);
         if (reg == null) {
             reg = this.iosessionFactoryRegistry;
@@ -289,7 +289,7 @@ public class PoolingNHttpClientConnectionManager
         return reg;
     }
 
-    public void initialize(
+    public void startRoute(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
             final HttpContext context) throws IOException {
@@ -301,17 +301,19 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final Lookup<SchemeIOSessionFactory> reg = getIOSessionFactoryRegistry(context);
-        final SchemeIOSessionFactory sf = reg.lookup(host.getSchemeName());
+        final Lookup<SchemeIOSessionStrategy> reg = getIOSessionFactoryRegistry(context);
+        final SchemeIOSessionStrategy sf = reg.lookup(host.getSchemeName());
         if (sf == null) {
             throw new UnsupportedSchemeException(host.getSchemeName() +
                     " protocol is not supported");
         }
-        synchronized (managedConn) {
-            final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
-            final ManagedNHttpClientConnection conn = entry.getConnection();
-            final IOSession currentSession = sf.create(host, conn.getIOSession());
-            conn.bind(currentSession);
+        if (sf.isLayeringRequired()) {
+            synchronized (managedConn) {
+                final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
+                final ManagedNHttpClientConnection conn = entry.getConnection();
+                final IOSession currentSession = sf.upgrade(host, conn.getIOSession());
+                conn.bind(currentSession);
+            }
         }
     }
 
@@ -322,20 +324,20 @@ public class PoolingNHttpClientConnectionManager
         Args.notNull(managedConn, "Managed connection");
         Args.notNull(route, "HTTP route");
         final HttpHost host  = route.getTargetHost();
-        final Lookup<SchemeIOSessionFactory> reg = getIOSessionFactoryRegistry(context);
-        final SchemeIOSessionFactory sf = reg.lookup(host.getSchemeName());
+        final Lookup<SchemeIOSessionStrategy> reg = getIOSessionFactoryRegistry(context);
+        final SchemeIOSessionStrategy sf = reg.lookup(host.getSchemeName());
         if (sf == null) {
             throw new UnsupportedSchemeException(host.getSchemeName() +
                     " protocol is not supported");
         }
-        if (!sf.isLayering()) {
+        if (!sf.isLayeringRequired()) {
             throw new UnsupportedSchemeException(host.getSchemeName() +
                     " protocol does not support connection upgrade");
         }
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.getPoolEntry(managedConn);
             final ManagedNHttpClientConnection conn = entry.getConnection();
-            final IOSession currentSession = sf.create(host, conn.getIOSession());
+            final IOSession currentSession = sf.upgrade(host, conn.getIOSession());
             conn.bind(currentSession);
         }
     }

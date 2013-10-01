@@ -39,37 +39,43 @@ import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.nio.conn.SchemeIOSessionFactory;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.reactor.ssl.SSLMode;
 import org.apache.http.nio.reactor.ssl.SSLSetupHandler;
+import org.apache.http.util.Asserts;
 
-public class SSLIOSessionFactory implements SchemeIOSessionFactory {
+/**
+ * TLS/SSL transport level security strategy.
+ *
+ * @since 4.0
+ */
+public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
-    public static SSLIOSessionFactory getDefaultStrategy() {
-        return new SSLIOSessionFactory(SSLContexts.createDefault());
+    public static SSLIOSessionStrategy getDefaultStrategy() {
+        return new SSLIOSessionStrategy(SSLContexts.createDefault());
     }
 
-    public static SSLIOSessionFactory getSystemDefaultStrategy() {
-        return new SSLIOSessionFactory(SSLContexts.createSystemDefault());
+    public static SSLIOSessionStrategy getSystemDefaultStrategy() {
+        return new SSLIOSessionStrategy(SSLContexts.createSystemDefault());
     }
 
     private final SSLContext sslContext;
     private final X509HostnameVerifier hostnameVerifier;
 
-    public SSLIOSessionFactory(
-            final SSLContext sslContext, final X509HostnameVerifier hostnameVerifier) {
+    public SSLIOSessionStrategy(final SSLContext sslContext, final X509HostnameVerifier hostnameVerifier) {
         super();
         this.sslContext = sslContext;
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    public SSLIOSessionFactory(final SSLContext sslcontext) {
+    public SSLIOSessionStrategy(final SSLContext sslcontext) {
         this(sslcontext, new BrowserCompatHostnameVerifier());
     }
 
-    public SSLIOSession create(final HttpHost host, final IOSession iosession) {
+    public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) {
+        Asserts.check(!(iosession instanceof SSLIOSession), "I/O session is already upgraded to TLS/SSL");
         final SSLIOSession ssliosession = new SSLIOSession(
             iosession,
             SSLMode.CLIENT,
@@ -104,8 +110,8 @@ public class SSLIOSessionFactory implements SchemeIOSessionFactory {
         this.hostnameVerifier.verify(host.getHostName(), x509);
     }
 
-    public boolean isLayering() {
-        return false;
+    public boolean isLayeringRequired() {
+        return true;
     }
 
 }

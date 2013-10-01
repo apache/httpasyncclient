@@ -92,9 +92,9 @@ import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
-import org.apache.http.nio.conn.PlainIOSessionFactory;
-import org.apache.http.nio.conn.SchemeIOSessionFactory;
-import org.apache.http.nio.conn.ssl.SSLIOSessionFactory;
+import org.apache.http.nio.conn.NoopIOSessionStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
@@ -116,7 +116,7 @@ public class HttpAsyncClientBuilder {
 
     private NHttpClientConnectionManager connManager;
     private SchemePortResolver schemePortResolver;
-    private SchemeIOSessionFactory iosessionFactory;
+    private SchemeIOSessionStrategy sslStrategy;
     private SSLContext sslcontext;
     private ConnectionReuseStrategy reuseStrategy;
     private ConnectionKeepAliveStrategy keepAliveStrategy;
@@ -304,9 +304,8 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
-    public final HttpAsyncClientBuilder setSSLIOSessionFactory(
-            final SchemeIOSessionFactory iosessionFactory) {
-        this.iosessionFactory = iosessionFactory;
+    public final HttpAsyncClientBuilder setSSLStrategy(final SchemeIOSessionStrategy strategy) {
+        this.sslStrategy = strategy;
         return this;
     }
 
@@ -363,8 +362,8 @@ public class HttpAsyncClientBuilder {
     public CloseableHttpAsyncClient build() {
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
-            SchemeIOSessionFactory iosessionFactory = this.iosessionFactory;
-            if (iosessionFactory == null) {
+            SchemeIOSessionStrategy sslStrategy = this.sslStrategy;
+            if (sslStrategy == null) {
                 SSLContext sslcontext = this.sslcontext;
                 if (sslcontext == null) {
                     if (systemProperties) {
@@ -373,15 +372,15 @@ public class HttpAsyncClientBuilder {
                         sslcontext = SSLContexts.createSystemDefault();
                     }
                 }
-                iosessionFactory = new SSLIOSessionFactory(sslcontext);
+                sslStrategy = new SSLIOSessionStrategy(sslcontext);
             }
             final ConnectingIOReactor ioreactor = IOReactorUtils.create(
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
                     ioreactor,
-                    RegistryBuilder.<SchemeIOSessionFactory>create()
-                        .register("http", PlainIOSessionFactory.INSTANCE)
-                        .register("https", iosessionFactory)
+                    RegistryBuilder.<SchemeIOSessionStrategy>create()
+                        .register("http", NoopIOSessionStrategy.INSTANCE)
+                        .register("https", sslStrategy)
                         .build());
             if (defaultConnectionConfig != null) {
                 poolingmgr.setDefaultConnectionConfig(defaultConnectionConfig);

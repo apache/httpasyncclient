@@ -29,15 +29,21 @@ package org.apache.http.nio.conn;
 import org.apache.http.HttpHost;
 import org.apache.http.nio.reactor.IOSession;
 
-public class PlainIOSessionFactory implements SchemeIOSessionFactory {
+/**
+ * Noop implementation for protocol schemes that have no transport level
+ * security.
+ *
+ * @since 4.0
+ */
+public class NoopIOSessionStrategy implements SchemeIOSessionStrategy {
 
-    public static final PlainIOSessionFactory INSTANCE = new PlainIOSessionFactory();
+    public static final NoopIOSessionStrategy INSTANCE = new NoopIOSessionStrategy();
 
-    public IOSession create(final HttpHost host, final IOSession iosession) {
+    public IOSession upgrade(final HttpHost host, final IOSession iosession) {
         return iosession;
     }
 
-    public boolean isLayering() {
+    public boolean isLayeringRequired() {
         return false;
     }
 
