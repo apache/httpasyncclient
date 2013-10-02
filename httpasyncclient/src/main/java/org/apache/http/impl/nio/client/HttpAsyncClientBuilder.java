@@ -62,6 +62,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.cookie.CookieSpecProvider;
@@ -386,6 +387,10 @@ public class HttpAsyncClientBuilder {
                         System.getProperty("https.protocols")) : null;
                 final String[] supportedCipherSuites = systemProperties ? split(
                         System.getProperty("https.cipherSuites")) : null;
+                X509HostnameVerifier hostnameVerifier = this.hostnameVerifier;
+                if (hostnameVerifier == null) {
+                    hostnameVerifier = SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+                }
                 sslStrategy = new SSLIOSessionStrategy(
                         sslcontext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
             }
