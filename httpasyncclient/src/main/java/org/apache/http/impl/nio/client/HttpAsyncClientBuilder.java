@@ -63,6 +63,7 @@ import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.NoConnectionReuseStrategy;
@@ -101,6 +102,7 @@ import org.apache.http.protocol.HttpProcessorBuilder;
 import org.apache.http.protocol.RequestContent;
 import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
+import org.apache.http.util.TextUtils;
 import org.apache.http.util.VersionInfo;
 
 @NotThreadSafe
@@ -117,6 +119,7 @@ public class HttpAsyncClientBuilder {
     private NHttpClientConnectionManager connManager;
     private SchemePortResolver schemePortResolver;
     private SchemeIOSessionStrategy sslStrategy;
+    private X509HostnameVerifier hostnameVerifier;
     private SSLContext sslcontext;
     private ConnectionReuseStrategy reuseStrategy;
     private ConnectionKeepAliveStrategy keepAliveStrategy;
@@ -359,6 +362,13 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
+    private static String[] split(final String s) {
+        if (TextUtils.isBlank(s)) {
+            return null;
+        }
+        return s.split(" *, *");
+    }
+
     public CloseableHttpAsyncClient build() {
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
@@ -372,7 +382,12 @@ public class HttpAsyncClientBuilder {
                         sslcontext = SSLContexts.createSystemDefault();
                     }
                 }
-                sslStrategy = new SSLIOSessionStrategy(sslcontext);
+                final String[] supportedProtocols = systemProperties ? split(
+                        System.getProperty("https.protocols")) : null;
+                final String[] supportedCipherSuites = systemProperties ? split(
+                        System.getProperty("https.cipherSuites")) : null;
+                sslStrategy = new SSLIOSessionStrategy(
+                        sslcontext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
             }
             final ConnectingIOReactor ioreactor = IOReactorUtils.create(
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);

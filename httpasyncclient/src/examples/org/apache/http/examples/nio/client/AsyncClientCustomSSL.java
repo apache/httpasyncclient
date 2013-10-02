@@ -35,8 +35,8 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
@@ -55,11 +55,16 @@ public class AsyncClientCustomSSL {
         } finally {
             instream.close();
         }
+        // Trust own CA and all self-signed certs
         SSLContext sslcontext = SSLContexts.custom()
-                .loadTrustMaterial(trustStore)
+                .loadTrustMaterial(trustStore, new TrustSelfSignedStrategy())
                 .build();
-        SSLIOSessionStrategy sslSessionStrategy = new SSLIOSessionStrategy(sslcontext,
-                SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+        // Allow TLSv1 protocol only
+        SSLIOSessionStrategy sslSessionStrategy = new SSLIOSessionStrategy(
+                sslcontext,
+                new String[] { "TLSv1" },
+                null,
+                SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
                 .setSSLStrategy(sslSessionStrategy)
                 .build();

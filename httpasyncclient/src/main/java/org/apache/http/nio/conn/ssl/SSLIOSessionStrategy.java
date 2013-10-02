@@ -37,15 +37,19 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
 import org.apache.http.HttpHost;
+import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.reactor.ssl.SSLMode;
 import org.apache.http.nio.reactor.ssl.SSLSetupHandler;
+import org.apache.http.util.Args;
 import org.apache.http.util.Asserts;
+import org.apache.http.util.TextUtils;
 
 /**
  * TLS/SSL transport level security strategy.
@@ -54,25 +58,61 @@ import org.apache.http.util.Asserts;
  */
 public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
+    public static final X509HostnameVerifier ALLOW_ALL_HOSTNAME_VERIFIER =
+            new AllowAllHostnameVerifier();
+
+    public static final X509HostnameVerifier BROWSER_COMPATIBLE_HOSTNAME_VERIFIER =
+            new BrowserCompatHostnameVerifier();
+
+    public static final X509HostnameVerifier STRICT_HOSTNAME_VERIFIER =
+            new StrictHostnameVerifier();
+
+    private static String[] split(final String s) {
+        if (TextUtils.isBlank(s)) {
+            return null;
+        }
+        return s.split(" *, *");
+    }
+
     public static SSLIOSessionStrategy getDefaultStrategy() {
-        return new SSLIOSessionStrategy(SSLContexts.createDefault());
+        return new SSLIOSessionStrategy(
+                SSLContexts.createDefault(),
+                BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
     }
 
     public static SSLIOSessionStrategy getSystemDefaultStrategy() {
-        return new SSLIOSessionStrategy(SSLContexts.createSystemDefault());
+        return new SSLIOSessionStrategy(
+                SSLContexts.createSystemDefault(),
+                split(System.getProperty("https.protocols")),
+                split(System.getProperty("https.cipherSuites")),
+                BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
     }
 
     private final SSLContext sslContext;
+    private final String[] supportedProtocols;
+    private final String[] supportedCipherSuites;
     private final X509HostnameVerifier hostnameVerifier;
 
-    public SSLIOSessionStrategy(final SSLContext sslContext, final X509HostnameVerifier hostnameVerifier) {
+    public SSLIOSessionStrategy(
+            final SSLContext sslContext,
+            final String[] supportedProtocols,
+            final String[] supportedCipherSuites,
+            final X509HostnameVerifier hostnameVerifier) {
         super();
-        this.sslContext = sslContext;
-        this.hostnameVerifier = hostnameVerifier;
+        this.sslContext = Args.notNull(sslContext, "SSL context");
+        this.supportedProtocols = supportedProtocols;
+        this.supportedCipherSuites = supportedCipherSuites;
+        this.hostnameVerifier = hostnameVerifier != null ? hostnameVerifier : BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+    }
+
+    public SSLIOSessionStrategy(
+            final SSLContext sslcontext,
+            final X509HostnameVerifier hostnameVerifier) {
+        this(sslcontext, null, null, hostnameVerifier);
     }
 
     public SSLIOSessionStrategy(final SSLContext sslcontext) {
-        this(sslcontext, new BrowserCompatHostnameVerifier());
+        this(sslcontext, null, null, BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
     }
 
     public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) throws IOException {
@@ -85,6 +125,12 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
                 public void initalize(
                         final SSLEngine sslengine) throws SSLException {
+                    if (supportedProtocols != null) {
+                        sslengine.setEnabledProtocols(supportedProtocols);
+                    }
+                    if (supportedCipherSuites != null) {
+                        sslengine.setEnabledCipherSuites(supportedCipherSuites);
+                    }
                     initializeEngine(sslengine);
                 }
 
