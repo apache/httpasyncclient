@@ -60,6 +60,7 @@ import org.apache.http.client.methods.Configurable;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.BasicRouteDirector;
@@ -77,6 +78,8 @@ import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.HttpProcessor;
+import org.apache.http.protocol.ImmutableHttpProcessor;
+import org.apache.http.protocol.RequestTargetHost;
 
 class MainClientExec implements InternalClientExec {
 
@@ -84,6 +87,7 @@ class MainClientExec implements InternalClientExec {
 
     private final NHttpClientConnectionManager connmgr;
     private final HttpProcessor httpProcessor;
+    private final HttpProcessor proxyHttpProcessor;
     private final HttpRoutePlanner routePlanner;
     private final ConnectionReuseStrategy connReuseStrategy;
     private final ConnectionKeepAliveStrategy keepaliveStrategy;
@@ -107,6 +111,8 @@ class MainClientExec implements InternalClientExec {
         super();
         this.connmgr = connmgr;
         this.httpProcessor = httpProcessor;
+        this.proxyHttpProcessor = new ImmutableHttpProcessor(
+                new RequestTargetHost(), new RequestClientConnControl());
         this.routePlanner = routePlanner;
         this.connReuseStrategy = connReuseStrategy;
         this.keepaliveStrategy = keepaliveStrategy;
@@ -177,7 +183,7 @@ class MainClientExec implements InternalClientExec {
                     if (this.log.isDebugEnabled()) {
                         this.log.debug("[exchange: " + state.getId() + "] Tunnel required");
                     }
-                    final HttpRequest connect = createConnectRequest(route);
+                    final HttpRequest connect = createConnectRequest(route, state);
                     state.setCurrentRequest(HttpRequestWrapper.wrap(connect));
                     break loop;
                 case HttpRouteDirector.TUNNEL_PROXY:
@@ -521,7 +527,8 @@ class MainClientExec implements InternalClientExec {
         this.httpProcessor.process(currentRequest, localContext);
     }
 
-    private HttpRequest createConnectRequest(final HttpRoute route) {
+    private HttpRequest createConnectRequest(
+            final HttpRoute route, final InternalState state) throws IOException, HttpException {
         // see RFC 2817, section 5.2 and
         // INTERNET-DRAFT: Tunneling TCP based protocols through
         // Web proxy servers
@@ -532,7 +539,10 @@ class MainClientExec implements InternalClientExec {
         buffer.append(host);
         buffer.append(':');
         buffer.append(Integer.toString(port));
-        return new BasicHttpRequest("CONNECT", buffer.toString(), HttpVersion.HTTP_1_1);
+        final HttpRequest request = new BasicHttpRequest("CONNECT", buffer.toString(), HttpVersion.HTTP_1_1);
+        final HttpClientContext localContext = state.getLocalContext();
+        this.proxyHttpProcessor.process(request, localContext);
+        return request;
     }
 
     private boolean handleConnectResponse(final InternalState state) throws HttpException {
