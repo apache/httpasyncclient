@@ -36,6 +36,13 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.util.Asserts;
 
+/**
+ * {@link org.apache.http.nio.protocol.HttpAsyncResponseConsumer} implementation that
+ * provides convenience methods for processing of binary content entities enclosed
+ * in an HTTP response.
+ *
+ * @since 4.0
+ */
 public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final int bufSize;
@@ -50,6 +57,15 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
         this(8 * 1024);
     }
 
+    /**
+     * Invoked to process a {@link ByteBuffer chunk} of content.
+     * The {@link IOControl} interface can be used to suspend input events
+     * if the consumer is temporarily unable to consume more content.
+     *
+     * @param buf chunk of content.
+     * @param ioctrl I/O control of the underlying connection.
+     * @throws IOException in case of an I/O error
+     */
     protected abstract void onByteReceived(
             ByteBuffer buf, IOControl ioctrl) throws IOException;
 

@@ -45,6 +45,15 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
 
+/**
+ * {@link org.apache.http.nio.protocol.HttpAsyncResponseConsumer} implementation that
+ * streams content entity enclosed in an HTTP response directly into a file
+ * without an intermediate in-memory buffer.
+ * <p/>
+ * This consumer can be useful for file downloads.
+ *
+ * @since 4.0
+ */
 public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
     private final File file;
@@ -97,6 +106,14 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
         }
     }
 
+    /**
+     * Invoked to process received file.
+     *
+     * @param response original response head.
+     * @param file file containing response content.
+     * @param contentType the cotnent type.
+     * @return result of the response processing
+     */
     protected abstract T process(
             HttpResponse response, File file, ContentType contentType) throws Exception;
 

@@ -34,6 +34,11 @@ import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.util.Args;
 
+/**
+ * Factory methods for {@link CloseableHttpAsyncClient} instances.
+ *
+ * @since 4.0
+ */
 @Immutable
 public class HttpAsyncClients {
 
@@ -41,29 +46,53 @@ public class HttpAsyncClients {
         super();
     }
 
+    /**
+     * Creates builder object for construction of custom
+     * {@link CloseableHttpAsyncClient} instances.
+     */
     public static HttpAsyncClientBuilder custom() {
         return HttpAsyncClientBuilder.create();
     }
 
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance with default
+     * configuration.
+     */
     public static CloseableHttpAsyncClient createDefault() {
         return HttpAsyncClientBuilder.create().build();
     }
 
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance with default
+     * configuration based on ssytem properties.
+     */
     public static CloseableHttpAsyncClient createSystem() {
         return HttpAsyncClientBuilder.create().useSystemProperties().build();
     }
 
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance that implements
+     * the most basic HTTP protocol support.
+     */
     public static CloseableHttpAsyncClient createMinimal() {
         return new MinimalHttpAsyncClient(
                 new PoolingNHttpClientConnectionManager(IOReactorUtils.create(IOReactorConfig.DEFAULT)));
     }
 
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance that implements
+     * the most basic HTTP protocol support.
+     */
     public static CloseableHttpAsyncClient createMinimal(final ConnectingIOReactor ioreactor) {
         Args.notNull(ioreactor, "I/O reactor");
         return new MinimalHttpAsyncClient(
                 new PoolingNHttpClientConnectionManager(ioreactor));
     }
 
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance that implements
+     * the most basic HTTP protocol support.
+     */
     public static CloseableHttpAsyncClient createMinimal(final NHttpClientConnectionManager connManager) {
         Args.notNull(connManager, "Connection manager");
         return new MinimalHttpAsyncClient(connManager);

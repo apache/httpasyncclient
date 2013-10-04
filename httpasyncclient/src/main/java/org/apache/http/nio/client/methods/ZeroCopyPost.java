@@ -35,6 +35,14 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 
+/**
+ * {@link org.apache.http.nio.protocol.HttpAsyncRequestProducer} implementation
+ * that generates an HTTP <code>POST</code> request enclosing content of a file.
+ * The request content will be streamed out directly from the underlying file
+ * without an intermediate in-memory buffer.
+ *
+ * @since 4.0
+ */
 public class ZeroCopyPost extends BaseZeroCopyRequestProducer {
 
     public ZeroCopyPost(

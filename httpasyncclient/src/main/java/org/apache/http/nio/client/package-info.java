@@ -26,6 +26,6 @@
  */
 
 /**
- * Asynchronous client connection management APIs.
+ * Asynchronous HTTP client communication APIs.
  */
-package org.apache.http.nio.conn;
+package org.apache.http.nio.client;

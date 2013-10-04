@@ -106,6 +106,40 @@ import org.apache.http.protocol.RequestUserAgent;
 import org.apache.http.util.TextUtils;
 import org.apache.http.util.VersionInfo;
 
+/**
+ * Builder for {@link CloseableHttpAsyncClient} instances.
+ * <p/>
+ * When a particular component is not explicitly this class will
+ * use its default implementation. System properties will be taken
+ * into account when configuring the default implementations when
+ * {@link #useSystemProperties()} method is called prior to calling
+ * {@link #build()}.
+ * <ul>
+ *  <li>ssl.TrustManagerFactory.algorithm</li>
+ *  <li>javax.net.ssl.trustStoreType</li>
+ *  <li>javax.net.ssl.trustStore</li>
+ *  <li>javax.net.ssl.trustStoreProvider</li>
+ *  <li>javax.net.ssl.trustStorePassword</li>
+ *  <li>ssl.KeyManagerFactory.algorithm</li>
+ *  <li>javax.net.ssl.keyStoreType</li>
+ *  <li>javax.net.ssl.keyStore</li>
+ *  <li>javax.net.ssl.keyStoreProvider</li>
+ *  <li>javax.net.ssl.keyStorePassword</li>
+ *  <li>https.protocols</li>
+ *  <li>https.cipherSuites</li>
+ *  <li>http.proxyHost</li>
+ *  <li>http.proxyPort</li>
+ *  <li>http.keepAlive</li>
+ *  <li>http.maxConnections</li>
+ *  <li>http.agent</li>
+ * </ul>
+ * <p/>
+ * Please note that some settings used by this class can be mutually
+ * exclusive and may not apply when building {@link CloseableHttpAsyncClient}
+ * instances.
+ *
+ * @since 4.0
+ */
 @NotThreadSafe
 public class HttpAsyncClientBuilder {
 
@@ -165,62 +199,109 @@ public class HttpAsyncClientBuilder {
         super();
     }
 
+    /**
+     * Assigns {@link NHttpClientConnectionManager} instance.
+     */
     public final HttpAsyncClientBuilder setConnectionManager(
             final NHttpClientConnectionManager connManager) {
         this.connManager = connManager;
         return this;
     }
 
+    /**
+     * Assigns {@link SchemePortResolver} instance.
+     */
     public final HttpAsyncClientBuilder setSchemePortResolver(
             final SchemePortResolver schemePortResolver) {
         this.schemePortResolver = schemePortResolver;
         return this;
     }
 
+    /**
+     * Assigns maximum total connection value.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
     public final HttpAsyncClientBuilder setMaxConnTotal(final int maxConnTotal) {
         this.maxConnTotal = maxConnTotal;
         return this;
     }
 
+    /**
+     * Assigns maximum connection per route value.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
     public final HttpAsyncClientBuilder setMaxConnPerRoute(final int maxConnPerRoute) {
         this.maxConnPerRoute = maxConnPerRoute;
         return this;
     }
 
+    /**
+     * Assigns {@link ConnectionReuseStrategy} instance.
+     */
     public final HttpAsyncClientBuilder setConnectionReuseStrategy(
             final ConnectionReuseStrategy reuseStrategy) {
         this.reuseStrategy = reuseStrategy;
         return this;
     }
 
+    /**
+     * Assigns {@link ConnectionKeepAliveStrategy} instance.
+     */
     public final HttpAsyncClientBuilder setKeepAliveStrategy(
             final ConnectionKeepAliveStrategy keepAliveStrategy) {
         this.keepAliveStrategy = keepAliveStrategy;
         return this;
     }
 
+    /**
+     * Assigns {@link UserTokenHandler} instance.
+     * <p/>
+     * Please note this value can be overridden by the {@link #disableConnectionState()}
+     * method.
+     */
     public final HttpAsyncClientBuilder setUserTokenHandler(final UserTokenHandler userTokenHandler) {
         this.userTokenHandler = userTokenHandler;
         return this;
     }
 
+    /**
+     * Assigns {@link AuthenticationStrategy} instance for proxy
+     * authentication.
+     */
     public final HttpAsyncClientBuilder setTargetAuthenticationStrategy(
             final AuthenticationStrategy targetAuthStrategy) {
         this.targetAuthStrategy = targetAuthStrategy;
         return this;
     }
 
+    /**
+     * Assigns {@link AuthenticationStrategy} instance for target
+     * host authentication.
+     */
     public final HttpAsyncClientBuilder setProxyAuthenticationStrategy(
             final AuthenticationStrategy proxyAuthStrategy) {
         this.proxyAuthStrategy = proxyAuthStrategy;
         return this;
     }
 
+    /**
+     * Assigns {@link HttpProcessor} instance.
+     */
     public final HttpAsyncClientBuilder setHttpProcessor(final HttpProcessor httpprocessor) {
         this.httpprocessor = httpprocessor;
         return this;
     }
 
+    /**
+     * Adds this protocol interceptor to the head of the protocol processing list.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder addInterceptorFirst(final HttpResponseInterceptor itcp) {
         if (itcp == null) {
             return this;
@@ -232,6 +313,12 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
+    /**
+     * Adds this protocol interceptor to the tail of the protocol processing list.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder addInterceptorLast(final HttpResponseInterceptor itcp) {
         if (itcp == null) {
             return this;
@@ -243,6 +330,12 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
+    /**
+     * Adds this protocol interceptor to the head of the protocol processing list.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder addInterceptorFirst(final HttpRequestInterceptor itcp) {
         if (itcp == null) {
             return this;
@@ -254,6 +347,12 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
+    /**
+     * Adds this protocol interceptor to the tail of the protocol processing list.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder addInterceptorLast(final HttpRequestInterceptor itcp) {
         if (itcp == null) {
             return this;
@@ -265,99 +364,207 @@ public class HttpAsyncClientBuilder {
         return this;
     }
 
+    /**
+     * Assigns {@link HttpRoutePlanner} instance.
+     */
     public final HttpAsyncClientBuilder setRoutePlanner(final HttpRoutePlanner routePlanner) {
         this.routePlanner = routePlanner;
         return this;
     }
 
+    /**
+     * Assigns {@link RedirectStrategy} instance.
+     */
     public final HttpAsyncClientBuilder setRedirectStrategy(final RedirectStrategy redirectStrategy) {
         this.redirectStrategy = redirectStrategy;
         return this;
     }
 
+    /**
+     * Assigns default {@link CookieStore} instance which will be used for
+     * request execution if not explicitly set in the client execution context.
+     */
     public final HttpAsyncClientBuilder setDefaultCookieStore(final CookieStore cookieStore) {
         this.cookieStore = cookieStore;
         return this;
     }
 
+    /**
+     * Assigns default {@link CredentialsProvider} instance which will be used
+     * for request execution if not explicitly set in the client execution
+     * context.
+     */
     public final HttpAsyncClientBuilder setDefaultCredentialsProvider(
             final CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
         return this;
     }
 
+
+    /**
+     * Assigns default {@link org.apache.http.auth.AuthScheme} registry which will
+     * be used for request execution if not explicitly set in the client execution
+     * context.
+     */
     public final HttpAsyncClientBuilder setDefaultAuthSchemeRegistry(
             final Lookup<AuthSchemeProvider> authSchemeRegistry) {
         this.authSchemeRegistry = authSchemeRegistry;
         return this;
     }
 
+    /**
+     * Assigns default {@link org.apache.http.cookie.CookieSpec} registry which will
+     * be used for request execution if not explicitly set in the client execution
+     * context.
+     */
     public final HttpAsyncClientBuilder setDefaultCookieSpecRegistry(
             final Lookup<CookieSpecProvider> cookieSpecRegistry) {
         this.cookieSpecRegistry = cookieSpecRegistry;
         return this;
     }
 
+    /**
+     * Assigns <tt>User-Agent</tt> value.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder setUserAgent(final String userAgent) {
         this.userAgent = userAgent;
         return this;
     }
 
+    /**
+     * Assigns default proxy value.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setRoutePlanner(
+     *   org.apache.http.conn.routing.HttpRoutePlanner)} method.
+     */
     public final HttpAsyncClientBuilder setProxy(final HttpHost proxy) {
         this.proxy = proxy;
         return this;
     }
 
+    /**
+     * Assigns {@link SchemeIOSessionStrategy} instance.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
     public final HttpAsyncClientBuilder setSSLStrategy(final SchemeIOSessionStrategy strategy) {
         this.sslStrategy = strategy;
         return this;
     }
 
+    /**
+     * Assigns {@link SSLContext} instance.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
+     *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
+     */
     public final HttpAsyncClientBuilder setSSLContext(final SSLContext sslcontext) {
         this.sslcontext = sslcontext;
         return this;
     }
 
+    /**
+     * Assigns {@link X509HostnameVerifier} instance.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
+     *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
+     */
+    public final HttpAsyncClientBuilder setHostnameVerifier(final X509HostnameVerifier hostnameVerifier) {
+        this.hostnameVerifier = hostnameVerifier;
+        return this;
+    }
+
+    /**
+     * Assigns default request header values.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder setDefaultHeaders(final Collection<? extends Header> defaultHeaders) {
         this.defaultHeaders = defaultHeaders;
         return this;
     }
 
+    /**
+     * Assigns default {@link IOReactorConfig}.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
     public final HttpAsyncClientBuilder setDefaultIOReactorConfig(final IOReactorConfig config) {
         this.defaultIOReactorConfig = config;
         return this;
     }
 
+    /**
+     * Assigns default {@link ConnectionConfig}.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
     public final HttpAsyncClientBuilder setDefaultConnectionConfig(final ConnectionConfig config) {
         this.defaultConnectionConfig = config;
         return this;
     }
 
+    /**
+     * Assigns default {@link RequestConfig} instance which will be used
+     * for request execution if not explicitly set in the client execution
+     * context.
+     */
     public final HttpAsyncClientBuilder setDefaultRequestConfig(final RequestConfig config) {
         this.defaultRequestConfig = config;
         return this;
     }
 
+    /**
+     * Assigns {@link ThreadFactory} instance.
+     */
     public final HttpAsyncClientBuilder setThreadFactory(final ThreadFactory threadFactory) {
         this.threadFactory = threadFactory;
         return this;
     }
 
+    /**
+     * Disables connection state tracking.
+     */
     public final HttpAsyncClientBuilder disableConnectionState() {
         connectionStateDisabled = true;
         return this;
     }
 
+    /**
+     * Disables state (cookie) management.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder disableCookieManagement() {
         cookieManagementDisabled = true;
         return this;
     }
 
+    /**
+     * Disables authentication scheme caching.
+     * <p/>
+     * Please note this value can be overridden by the {@link #setHttpProcessor(
+     * org.apache.http.protocol.HttpProcessor)} method.
+     */
     public final HttpAsyncClientBuilder disableAuthCaching() {
         authCachingDisabled = true;
         return this;
     }
 
+    /**
+     * Use system properties when creating and configuring default
+     * implementations.
+     */
     public final HttpAsyncClientBuilder useSystemProperties() {
         systemProperties = true;
         return this;

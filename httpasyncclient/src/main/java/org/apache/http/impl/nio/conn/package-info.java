@@ -26,7 +26,7 @@
  */
 
 /**
- * Default implementations of client connection management
- * functions.
+ * Default implementations of asynchronous client connection
+ * management functions.
  */
 package org.apache.http.impl.nio.conn;

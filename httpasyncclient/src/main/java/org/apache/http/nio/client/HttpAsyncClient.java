@@ -37,31 +37,112 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.HttpContext;
 
+/**
+ * This interface represents only the most basic contract for HTTP request
+ * execution. It imposes no restrictions or particular details on the request
+ * execution process and leaves the specifics of state management,
+ * authentication and redirect handling up to individual implementations.
+ *
+ * @since 4.0
+ */
 public interface HttpAsyncClient {
 
+    /**
+     * Initiates asynchronous HTTP request execution using the given context.
+     * <p/>
+     * The request producer passed to this method will be used to generate
+     * a request message and stream out its content without buffering it
+     * in memory. The response consumer passed to this method will be used
+     * to process a response message without buffering its content in memory.
+     *
+     * @param <T> the result type of request execution.
+     * @param requestProducer request producer callback.
+     * @param responseConsumer response consumer callaback.
+     * @param context HTTP context
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     <T> Future<T> execute(
             HttpAsyncRequestProducer requestProducer,
             HttpAsyncResponseConsumer<T> responseConsumer,
             HttpContext context,
             FutureCallback<T> callback);
 
+    /**
+     * Initiates asynchronous HTTP request execution using the default
+     * context.
+     * <p/>
+     * The request producer passed to this method will be used to generate
+     * a request message and stream out its content without buffering it
+     * in memory. The response consumer passed to this method will be used
+     * to process a response message without buffering its content in memory.
+     *
+     * @param <T> the result type of request execution.
+     * @param requestProducer request producer callback.
+     * @param responseConsumer response consumer callaback.
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     <T> Future<T> execute(
             HttpAsyncRequestProducer requestProducer,
             HttpAsyncResponseConsumer<T> responseConsumer,
             FutureCallback<T> callback);
 
+    /**
+     * Initiates asynchronous HTTP request execution against the given target
+     * using the given context.
+     *
+     * @param target    the target host for the request.
+     *                  Implementations may accept <code>null</code>
+     *                  if they can still determine a route, for example
+     *                  to a default target or by inspecting the request.
+     * @param request   the request to execute
+     * @param context   the context to use for the execution, or
+     *                  <code>null</code> to use the default context
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     Future<HttpResponse> execute(
             HttpHost target, HttpRequest request, HttpContext context,
             FutureCallback<HttpResponse> callback);
 
+    /**
+     * Initiates asynchronous HTTP request execution against the given target
+     * using the default context.
+     *
+     * @param target    the target host for the request.
+     *                  Implementations may accept <code>null</code>
+     *                  if they can still determine a route, for example
+     *                  to a default target or by inspecting the request.
+     * @param request   the request to execute
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     Future<HttpResponse> execute(
             HttpHost target, HttpRequest request,
             FutureCallback<HttpResponse> callback);
 
+    /**
+     * Initiates asynchronous HTTP request execution using the given
+     * context.
+     *
+     * @param request   the request to execute
+     * @param context HTTP context
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     Future<HttpResponse> execute(
             HttpUriRequest request, HttpContext context,
             FutureCallback<HttpResponse> callback);
 
+    /**
+     * Initiates asynchronous HTTP request execution using the default
+     * context.
+     *
+     * @param request   the request to execute
+     * @param callback future callback.
+     * @return future representing pending completion of the operation.
+     */
     Future<HttpResponse> execute(
             HttpUriRequest request,
             FutureCallback<HttpResponse> callback);

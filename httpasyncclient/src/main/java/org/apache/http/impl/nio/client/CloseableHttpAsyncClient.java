@@ -33,6 +33,7 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIUtils;
@@ -46,6 +47,12 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
 
+/**
+ * Base implementation of {@link HttpAsyncClient} that also implements {@link Closeable}.
+ *
+ * @since 4.0
+ */
+@ThreadSafe
 public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Closeable {
 
     public abstract boolean isRunning();

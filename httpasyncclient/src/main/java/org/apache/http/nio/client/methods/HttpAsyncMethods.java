@@ -53,60 +53,146 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.util.Args;
 
+/**
+ * Factory methods for asynchronous request producers and response consumers.
+ *
+ * @since 4.0
+ */
 public final class HttpAsyncMethods {
 
+    /**
+     * Creates asynchronous request generator for the given request message.
+     *
+     * @param target request target.
+     * @param request request message.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer create(final HttpHost target, final HttpRequest request) {
         Args.notNull(target, "HTTP host");
         Args.notNull(request, "HTTP request");
         return new RequestProducerImpl(target, request);
     }
 
+    /**
+     * Creates asynchronous request generator for the given request message.
+     *
+     * @param request request message.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer create(final HttpUriRequest request) {
         Args.notNull(request, "HTTP request");
         final HttpHost target = URIUtils.extractHost(request.getURI());
         return new RequestProducerImpl(target, request);
     }
 
+    /**
+     * Creates asynchronous <code>GET<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createGet(final URI requestURI) {
         return create(new HttpGet(requestURI));
     }
 
+    /**
+     * Creates asynchronous <code>GET<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createGet(final String requestURI) {
         return create(new HttpGet(URI.create(requestURI)));
     }
 
+    /**
+     * Creates asynchronous <code>HEAD<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createHead(final URI requestURI) {
         return create(new HttpGet(requestURI));
     }
 
+    /**
+     * Creates asynchronous <code>HEAD<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createHead(final String requestURI) {
         return create(new HttpGet(URI.create(requestURI)));
     }
 
+    /**
+     * Creates asynchronous <code>DELETE<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createDelete(final URI requestURI) {
         return create(new HttpDelete(requestURI));
     }
 
+    /**
+     * Creates asynchronous <code>DELETE<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createDelete(final String requestURI) {
         return create(new HttpDelete(URI.create(requestURI)));
     }
 
+    /**
+     * Creates asynchronous <code>OPTIONS<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createOptions(final URI requestURI) {
         return create(new HttpOptions(requestURI));
     }
 
+    /**
+     * Creates asynchronous <code>OPTIONS<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createOptions(final String requestURI) {
         return create(new HttpOptions(URI.create(requestURI)));
     }
 
+    /**
+     * Creates asynchronous <code>TRACE<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createTrace(final URI requestURI) {
         return create(new HttpTrace(requestURI));
     }
 
+    /**
+     * Creates asynchronous <code>TRACE<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createTrace(final String requestURI) {
         return create(new HttpTrace(URI.create(requestURI)));
     }
 
+    /**
+     * Creates asynchronous <code>POST<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPost(
             final URI requestURI,
             final String content,
@@ -118,6 +204,14 @@ public final class HttpAsyncMethods {
         return new RequestProducerImpl(target, httppost, entity);
     }
 
+    /**
+     * Creates asynchronous <code>POST<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPost(
             final String requestURI,
             final String content,
@@ -125,6 +219,14 @@ public final class HttpAsyncMethods {
         return createPost(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates asynchronous <code>POST<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPost(
             final URI requestURI,
             final byte[] content,
@@ -135,6 +237,14 @@ public final class HttpAsyncMethods {
         return new RequestProducerImpl(target, httppost, entity);
     }
 
+    /**
+     * Creates asynchronous <code>POST<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPost(
             final String requestURI,
             final byte[] content,
@@ -142,6 +252,14 @@ public final class HttpAsyncMethods {
         return createPost(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates asynchronous <code>PUT<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPut(
             final URI requestURI,
             final String content,
@@ -153,6 +271,14 @@ public final class HttpAsyncMethods {
         return new RequestProducerImpl(target, httpput, entity);
     }
 
+    /**
+     * Creates asynchronous <code>PUT<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPut(
             final String requestURI,
             final String content,
@@ -160,6 +286,14 @@ public final class HttpAsyncMethods {
         return createPut(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates asynchronous <code>PUT<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPut(
             final URI requestURI,
             final byte[] content,
@@ -170,6 +304,14 @@ public final class HttpAsyncMethods {
         return new RequestProducerImpl(target, httpput, entity);
     }
 
+    /**
+     * Creates asynchronous <code>PUT<code/> request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createPut(
             final String requestURI,
             final byte[] content,
@@ -177,6 +319,14 @@ public final class HttpAsyncMethods {
         return createPut(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates asynchronous zero-copy <code>POST<code/>request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final URI requestURI,
             final File content,
@@ -184,6 +334,14 @@ public final class HttpAsyncMethods {
         return new ZeroCopyPost(requestURI, content, contentType);
     }
 
+    /**
+     * Creates asynchronous zero-copy <code>POST<code/>request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createZeroCopyPost(
             final String requestURI,
             final File content,
@@ -191,6 +349,14 @@ public final class HttpAsyncMethods {
         return new ZeroCopyPost(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates asynchronous zero-copy <code>PUT<code/>request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final URI requestURI,
             final File content,
@@ -198,6 +364,14 @@ public final class HttpAsyncMethods {
         return new ZeroCopyPut(requestURI, content, contentType);
     }
 
+    /**
+     * Creates asynchronous zero-copy <code>PUT<code/>request generator.
+     *
+     * @param requestURI request URI.
+     * @param content request content.
+     * @param contentType request contentType.
+     * @return asynchronous request generator
+     */
     public static HttpAsyncRequestProducer createZeroCopyPut(
             final String requestURI,
             final File content,
@@ -205,10 +379,19 @@ public final class HttpAsyncMethods {
         return new ZeroCopyPut(URI.create(requestURI), content, contentType);
     }
 
+    /**
+     * Creates basic response consumer that will buffer response content in memory.
+     * @return asynchronous response consumer.
+     */
     public static HttpAsyncResponseConsumer<HttpResponse> createConsumer() {
         return new BasicAsyncResponseConsumer();
     }
 
+    /**
+     * Creates zero-copy response consumer that will stream response content
+     * directly to the given file.
+     * @return asynchronous response consumer.
+     */
     public static HttpAsyncResponseConsumer<HttpResponse> createZeroCopyConsumer(
             final File file) throws FileNotFoundException {
         return new ZeroCopyConsumer<HttpResponse>(file) {

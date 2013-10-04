@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.ConnectionConfig;
@@ -68,6 +69,25 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
 import org.apache.http.util.Asserts;
 
+/**
+ * <tt>PoolingNHttpClientConnectionManager</tt> maintains a pool of
+ * {@link NHttpClientConnection}s and is able to service connection requests
+ * from multiple execution threads. Connections are pooled on a per route
+ * basis. A request for a route which already the manager has persistent
+ * connections for available in the pool will be services by leasing
+ * a connection from the pool rather than creating a brand new connection.
+ * <p/>
+ * <tt>PoolingNHttpClientConnectionManager</tt> maintains a maximum limit
+ * of connection on a per route basis and in total. Per default this
+ * implementation will create no more than than 2 concurrent connections
+ * per given route and no more 20 connections in total. For many real-world
+ * applications these limits may prove too constraining, especially if they
+ * use HTTP as a transport protocol for their services. Connection limits,
+ * however, can be adjusted using {@link ConnPoolControl} methods.
+ *
+ * @since 4.0
+ */
+@ThreadSafe
 public class PoolingNHttpClientConnectionManager
        implements NHttpClientConnectionManager, ConnPoolControl<HttpRoute> {
 

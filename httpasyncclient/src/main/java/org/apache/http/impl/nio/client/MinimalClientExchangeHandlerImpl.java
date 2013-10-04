@@ -59,7 +59,7 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpProcessor;
 
-public class MinimalClientExchangeHandlerImpl<T>
+class MinimalClientExchangeHandlerImpl<T>
     implements HttpAsyncClientExchangeHandler, Cancellable {
 
     private static final AtomicLong COUNTER = new AtomicLong(1);

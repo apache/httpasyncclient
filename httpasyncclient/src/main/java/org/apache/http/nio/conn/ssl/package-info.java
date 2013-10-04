@@ -26,6 +26,6 @@
  */
 
 /**
- * Client TLS/SSL support.
+ * Asynchronous client TLS/SSL support.
  */
 package org.apache.http.nio.conn.ssl;

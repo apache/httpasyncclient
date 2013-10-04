@@ -255,7 +255,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        this.log.warn("CachingHttpAsyncClient does not caching for streaming HTTP exchanges");
+        this.log.warn("CachingHttpAsyncClient does not support caching for streaming HTTP exchanges");
         return this.backend.execute(requestProducer, responseConsumer, context, callback);
     }
 

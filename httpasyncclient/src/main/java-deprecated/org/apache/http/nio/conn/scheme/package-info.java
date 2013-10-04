@@ -26,6 +26,6 @@
  */
 
 /**
- * Asynchronous client connection management APIs.
+ * Deprecated
  */
-package org.apache.http.nio.conn;
+package org.apache.http.nio.conn.scheme;

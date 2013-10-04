@@ -26,6 +26,6 @@
  */
 
 /**
- * Asynchronous client connection management APIs.
+ * HTTP/1.1 client-side caching.
  */
-package org.apache.http.nio.conn;
+package org.apache.http.impl.client.cache;

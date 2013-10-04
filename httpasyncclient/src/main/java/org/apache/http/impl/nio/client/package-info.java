@@ -26,6 +26,21 @@
  */
 
 /**
- * Asynchronous client connection management APIs.
+ * Default asynchronous HTTP client implementation.
+ * <p/>
+ * The usual execution flow can be demonstrated by the code snippet below:
+ * <pre>
+ * CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
+ * try {
+ *     httpclient.start();
+ *     HttpGet request = new HttpGet("http://www.apache.org/");
+ *     Future<HttpResponse> future = httpclient.execute(request, null);
+ *     HttpResponse response = future.get();
+ *     System.out.println(response.getStatusLine());
+ *     // Do something useful with the response body
+ * } finally {
+ *     httpclient.close();
+ * }
+ * </pre>
  */
-package org.apache.http.nio.conn;
+package org.apache.http.impl.nio.client;
