@@ -77,7 +77,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.http.impl.client.DefaultUserTokenHandler;
 import org.apache.http.impl.client.NoopUserTokenHandler;
 import org.apache.http.impl.client.ProxyAuthenticationStrategy;
 import org.apache.http.impl.client.TargetAuthenticationStrategy;
@@ -658,7 +657,7 @@ public class HttpAsyncClientBuilder {
         UserTokenHandler userTokenHandler = this.userTokenHandler;
         if (userTokenHandler == null) {
             if (!connectionStateDisabled) {
-                userTokenHandler = DefaultUserTokenHandler.INSTANCE;
+                userTokenHandler = DefaultAsyncUserTokenHandler.INSTANCE;
             } else {
                 userTokenHandler = NoopUserTokenHandler.INSTANCE;
             }
