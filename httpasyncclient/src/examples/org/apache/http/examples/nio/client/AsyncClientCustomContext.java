@@ -27,44 +27,52 @@
 
 package org.apache.http.examples.nio.client;
 
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 
+import java.util.List;
 import java.util.concurrent.Future;
 
 /**
- * This example demonstrates a basic asynchronous HTTP request / response exchange
- * over a secure connection tunneled through an authenticating proxy.
+ * This example demonstrates the use of a local HTTP context populated with
+ * custom attributes.
  */
-public class AsyncClientProxyAuthentication {
+public class AsyncClientCustomContext {
 
-    public static void main(String[] args)throws Exception {
-        CredentialsProvider credsProvider = new BasicCredentialsProvider();
-        credsProvider.setCredentials(
-                new AuthScope("someproxy", 8080),
-                new UsernamePasswordCredentials("username", "password"));
-        CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
-                .setDefaultCredentialsProvider(credsProvider)
-                .build();
+    public final static void main(String[] args) throws Exception {
+        CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         try {
+            // Create a local instance of cookie store
+            CookieStore cookieStore = new BasicCookieStore();
+
+            // Create local HTTP context
+            HttpClientContext localContext = HttpClientContext.create();
+            // Bind custom cookie store to the local context
+            localContext.setCookieStore(cookieStore);
+
+            HttpGet httpget = new HttpGet("http://localhost/");
+            System.out.println("Executing request " + httpget.getRequestLine());
+
             httpclient.start();
-            HttpHost proxy = new HttpHost("someproxy", 8080);
-            RequestConfig config = RequestConfig.custom()
-                    .setProxy(proxy)
-                    .build();
-            HttpGet httpget = new HttpGet("https://issues.apache.org/");
-            httpget.setConfig(config);
-            Future<HttpResponse> future = httpclient.execute(httpget, null);
+
+            // Pass local context as a parameter
+            Future<HttpResponse> future = httpclient.execute(httpget, localContext, null);
+
+            // Please note that it may be unsafe to access HttpContext instance
+            // while the request is still being executed
+
             HttpResponse response = future.get();
             System.out.println("Response: " + response.getStatusLine());
+            List<Cookie> cookies = cookieStore.getCookies();
+            for (int i = 0; i < cookies.size(); i++) {
+                System.out.println("Local cookie: " + cookies.get(i));
+            }
             System.out.println("Shutting down");
         } finally {
             httpclient.close();
@@ -72,3 +80,4 @@ public class AsyncClientProxyAuthentication {
     }
 
 }
+
