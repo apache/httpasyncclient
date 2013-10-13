@@ -32,12 +32,10 @@ import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
@@ -58,22 +56,23 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
-    private final HttpProcessor httpProcessor;
-    private final ConnectionReuseStrategy connReuseStrategy;
-    private final ConnectionKeepAliveStrategy keepaliveStrategy;
+    private final InternalClientExec execChain;
 
     public MinimalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
             final ThreadFactory threadFactory) {
         super(connmgr, threadFactory);
         this.connmgr = connmgr;
-        this.httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
+        final HttpProcessor httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
                 new RequestTargetHost(),
                 new RequestClientConnControl(),
                 new RequestUserAgent(VersionInfo.getUserAgent(
                         "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass())));
-        this.connReuseStrategy = DefaultConnectionReuseStrategy.INSTANCE;
-        this.keepaliveStrategy = DefaultConnectionKeepAliveStrategy.INSTANCE;
+        this.execChain = new MinimalClientExec(
+                connmgr,
+                httpProcessor,
+                DefaultConnectionReuseStrategy.INSTANCE,
+                DefaultConnectionKeepAliveStrategy.INSTANCE);
     }
 
     public MinimalHttpAsyncClient(
@@ -94,16 +93,14 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             context != null ? context : new BasicHttpContext());
 
         @SuppressWarnings("resource")
-        final MinimalClientExchangeHandlerImpl<T> handler = new MinimalClientExchangeHandlerImpl<T>(
+        final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
             responseConsumer,
             localcontext,
             future,
             this.connmgr,
-            this.httpProcessor,
-            this.connReuseStrategy,
-            this.keepaliveStrategy);
+            this.execChain);
         try {
             handler.start();
         } catch (final Exception ex) {
