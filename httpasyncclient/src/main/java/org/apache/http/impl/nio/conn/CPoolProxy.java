@@ -46,7 +46,6 @@ class CPoolProxy implements InvocationHandler {
     private static final Method SHUTDOWN_METHOD;
     private static final Method IS_OPEN_METHOD;
     private static final Method IS_STALE_METHOD;
-    private static final Method TO_STRING;
 
     static {
         try {
@@ -54,7 +53,6 @@ class CPoolProxy implements InvocationHandler {
             SHUTDOWN_METHOD = HttpConnection.class.getMethod("shutdown");
             IS_OPEN_METHOD = HttpConnection.class.getMethod("isOpen");
             IS_STALE_METHOD = HttpConnection.class.getMethod("isStale");
-            TO_STRING = Object.class.getMethod("toString");
         } catch (final NoSuchMethodException ex) {
             throw new Error(ex);
         }
@@ -129,8 +127,6 @@ class CPoolProxy implements InvocationHandler {
             return Boolean.valueOf(isOpen());
         } else if (method.equals(IS_STALE_METHOD)) {
             return Boolean.valueOf(isStale());
-        } else if (method.equals(TO_STRING)) {
-            return "Managed connection";
         } else {
             final NHttpClientConnection conn = getConnection();
             if (conn == null) {

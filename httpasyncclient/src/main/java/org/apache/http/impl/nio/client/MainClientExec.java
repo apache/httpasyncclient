@@ -163,10 +163,12 @@ class MainClientExec implements InternalClientExec {
         final HttpRoute route = state.getRoute();
         final NHttpClientConnection managedConn = connManager.getConnection();
         if (!state.isRouteEstablished() && state.getRouteTracker() == null) {
-            this.log.debug("Start connection routing");
             state.setRouteEstablished(this.connmgr.isRouteComplete(managedConn));
             if (!state.isRouteEstablished()) {
+                this.log.debug("Start connection routing");
                 state.setRouteTracker(new RouteTracker(route));
+            } else {
+                this.log.debug("Connection route already established");
             }
         }
 
@@ -207,6 +209,7 @@ class MainClientExec implements InternalClientExec {
                     this.connmgr.routeComplete(managedConn, route, localContext);
                     state.setRouteEstablished(true);
                     state.setRouteTracker(null);
+                    this.log.debug("Connection route established");
                     break;
                 default:
                     throw new IllegalStateException("Unknown step indicator "
