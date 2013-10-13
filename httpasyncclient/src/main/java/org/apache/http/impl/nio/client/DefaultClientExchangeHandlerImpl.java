@@ -203,6 +203,19 @@ class DefaultClientExchangeHandlerImpl<T>
                 this.connmgr.releaseConnection(localConn,
                         this.localContext.getUserToken(),
                         this.state.getValidDuration(), TimeUnit.MILLISECONDS);
+            } else {
+                try {
+                    localConn.close();
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug("[exchange: " + this.state.getId() + "] connection discarded");
+                    }
+                } catch (final IOException ex) {
+                    if (this.log.isDebugEnabled()) {
+                        this.log.debug(ex.getMessage(), ex);
+                    }
+                } finally {
+                    this.connmgr.releaseConnection(localConn, null, 0, TimeUnit.MILLISECONDS);
+                }
             }
         }
     }
@@ -213,7 +226,7 @@ class DefaultClientExchangeHandlerImpl<T>
             try {
                 localConn.shutdown();
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("[exchange: " + this.state.getId() + "] connection discarded");
+                    this.log.debug("[exchange: " + this.state.getId() + "] connection aborted");
                 }
             } catch (final IOException ex) {
                 if (this.log.isDebugEnabled()) {
