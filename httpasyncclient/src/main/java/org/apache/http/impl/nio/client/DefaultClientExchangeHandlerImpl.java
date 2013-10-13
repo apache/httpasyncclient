@@ -44,7 +44,6 @@ import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.Cancellable;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -54,7 +53,6 @@ import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.HttpCoreContext;
 
 /**
  * Default implementation of {@link HttpAsyncClientExchangeHandler}.
@@ -271,28 +269,16 @@ class DefaultClientExchangeHandlerImpl<T>
                 this.log.debug("[exchange: " + this.state.getId() + "] Connection allocated: " + managedConn);
             }
             this.managedConn.set(managedConn);
-            this.state.setValidDuration(0);
-            this.state.setNonReusable();
 
             if (this.closed.get()) {
                 releaseConnection();
                 return;
             }
 
-            this.localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, managedConn);
-            this.state.setRouteEstablished(this.connmgr.isRouteComplete(managedConn));
-            if (!this.state.isRouteEstablished()) {
-                this.state.setRouteTracker(new RouteTracker(this.state.getRoute()));
-            }
-
             if (!managedConn.isOpen()) {
                 failed(new ConnectionClosedException("Connection closed"));
             } else {
                 managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-                final RequestConfig config = this.localContext.getRequestConfig();
-                if (config.getSocketTimeout() > 0) {
-                    managedConn.setSocketTimeout(config.getSocketTimeout());
-                }
                 managedConn.requestOutput();
             }
         } catch (final RuntimeException runex) {
@@ -328,6 +314,11 @@ class DefaultClientExchangeHandlerImpl<T>
             this.log.debug("[exchange: " + this.state.getId() + "] Request connection for " +
                 this.state.getRoute());
         }
+        this.state.setValidDuration(0);
+        this.state.setNonReusable();
+        this.state.setRouteEstablished(false);
+        this.state.setRouteTracker(null);
+
         final HttpRoute route = this.state.getRoute();
         final Object userToken = this.localContext.getUserToken();
         final RequestConfig config = this.localContext.getRequestConfig();

@@ -77,6 +77,7 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.RequestTargetHost;
@@ -159,11 +160,18 @@ class MainClientExec implements InternalClientExec {
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
-        final HttpAsyncRequestProducer requestProducer = state.getRequestProducer();
         final HttpRoute route = state.getRoute();
-        final RouteTracker routeTracker = state.getRouteTracker();
         final NHttpClientConnection managedConn = connManager.getConnection();
+        if (!state.isRouteEstablished() && state.getRouteTracker() == null) {
+            this.log.debug("Start connection routing");
+            state.setRouteEstablished(this.connmgr.isRouteComplete(managedConn));
+            if (!state.isRouteEstablished()) {
+                state.setRouteTracker(new RouteTracker(route));
+            }
+        }
+
         if (!state.isRouteEstablished()) {
+            final RouteTracker routeTracker = state.getRouteTracker();
             int step;
             loop:
             do {
@@ -216,6 +224,7 @@ class MainClientExec implements InternalClientExec {
         if (state.isRouteEstablished()) {
             state.incrementExecCount();
             if (state.getExecCount() > 1) {
+                final HttpAsyncRequestProducer requestProducer = state.getRequestProducer();
                 if (!requestProducer.isRepeatable() && state.isRequestContentProduced()) {
                     throw new NonRepeatableRequestException("Cannot retry request " +
                             "with a non-repeatable request entity.");
@@ -249,6 +258,12 @@ class MainClientExec implements InternalClientExec {
                 }
                 this.authenticator.generateAuthResponse(currentRequest, proxyAuthState, localContext);
             }
+        }
+
+        localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, managedConn);
+        final RequestConfig config = localContext.getRequestConfig();
+        if (config.getSocketTimeout() > 0) {
+            managedConn.setSocketTimeout(config.getSocketTimeout());
         }
         return currentRequest;
     }

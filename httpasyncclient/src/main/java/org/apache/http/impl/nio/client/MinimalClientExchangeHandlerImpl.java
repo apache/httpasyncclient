@@ -173,6 +173,11 @@ class MinimalClientExchangeHandlerImpl<T>
             this.connmgr.startRoute(localConn, this.route, this.localContext);
             this.connmgr.routeComplete(localConn, this.route, this.localContext);
         }
+        this.localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, localConn);
+        final RequestConfig config = this.localContext.getRequestConfig();
+        if (config.getSocketTimeout() > 0) {
+            localConn.setSocketTimeout(config.getSocketTimeout());
+        }
         return this.request;
     }
 
@@ -312,16 +317,10 @@ class MinimalClientExchangeHandlerImpl<T>
                 return;
             }
 
-            this.localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, managedConn);
-
             if (!managedConn.isOpen()) {
                 failed(new ConnectionClosedException("Connection closed"));
             } else {
                 managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-                final RequestConfig config = this.localContext.getRequestConfig();
-                if (config.getSocketTimeout() > 0) {
-                    managedConn.setSocketTimeout(config.getSocketTimeout());
-                }
                 managedConn.requestOutput();
             }
         } catch (final RuntimeException runex) {
