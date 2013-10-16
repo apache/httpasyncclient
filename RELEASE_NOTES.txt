@@ -1,5 +1,23 @@
-Change since Release 4.0 Beta 4
+Release 4.0
 -------------------
+
+This is the first stable (GA) release of Apache HttpAsyncClient 4.0. HttpAsyncClient is a library 
+for asynchronous client-side HTTP communication built on top of HttpCore NIO transport. 
+It is a complementary library to Apache HttpClient intended and optimized for special cases 
+whereby ability to scale to many thousands of concurrent connections is more important than 
+performance in terms of raw data throughput. 
+
+HttpAsyncClient 4.0 is designed to have similar APIs as Apache HttpClient 4.3 and a comparable
+feature set. In addition HttpAsyncClient provides full support for zero-copy file upload and 
+download operations. It presently does not support transparent content decompression and automatic 
+I/O error recovery. These features may be added in future releases.
+
+
+Changelog:
+-------------------
+
+* [ HTTPASYNC-56] Fixed thread deadlock in DefaultClientExchangeHandlerImpl.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
 
 * [HTTPASYNC-52] Proxy configuration set at the request level does not apply.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
