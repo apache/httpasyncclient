@@ -19,6 +19,9 @@ Changelog:
 * [ HTTPASYNC-56] Fixed thread deadlock in DefaultClientExchangeHandlerImpl.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
+* [HTTPASYNC-57] HTTPS request execution via a HTTP proxy can cause an infinite loop.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-52] Proxy configuration set at the request level does not apply.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
