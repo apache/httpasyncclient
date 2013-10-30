@@ -73,6 +73,7 @@
     <easymock.version>2.5.2</easymock.version>
     <mockito.version>1.8.5</mockito.version>
     <hc.stylecheck.version>1</hc.stylecheck.version>
+    <api.comparison.version>4.0</api.comparison.version>
   </properties>
 
   <dependencyManagement>
@@ -253,6 +254,14 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>clirr-maven-plugin</artifactId>
+        <version>${hc.clirr.version}</version>
+        <configuration>
+          <comparisonVersion>${api.comparison.version}</comparisonVersion>
+        </configuration>
       </plugin>
     </plugins>
   </build>
