@@ -56,7 +56,7 @@
         <configuration>
           <instructions>
             <Bundle-Name>Apache ${project.name}</Bundle-Name>
-            <Bundle-SymbolicName>${project.groupId}.httpclient</Bundle-SymbolicName>
+            <Bundle-SymbolicName>${project.groupId}.httpasyncclient</Bundle-SymbolicName>
             <_exportcontents>
             org.apache.http.nio.client.*;version=${project.version},
             org.apache.http.nio.conn.*;version=${project.version},

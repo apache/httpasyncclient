@@ -1,3 +1,11 @@
+Changes since 4.0
+-------------------
+
+* [HTTPASYNC-60] Fixed incorrect OSGi Symbolic-BundleName.
+  Contributed by M. van Cuijk <mark at phedny.net>
+
+
+
 Release 4.0
 -------------------
 
@@ -16,7 +24,7 @@ I/O error recovery. These features may be added in future releases.
 Changelog:
 -------------------
 
-* [ HTTPASYNC-56] Fixed thread deadlock in DefaultClientExchangeHandlerImpl.
+* [HTTPASYNC-56] Fixed thread deadlock in DefaultClientExchangeHandlerImpl.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
 * [HTTPASYNC-57] HTTPS request execution via a HTTP proxy can cause an infinite loop.
