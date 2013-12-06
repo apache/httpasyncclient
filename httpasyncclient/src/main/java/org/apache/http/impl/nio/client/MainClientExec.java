@@ -589,9 +589,14 @@ class MainClientExec implements InternalClientExec {
         if (config.isAuthenticationEnabled()) {
             if (needAuthentication(state)) {
                 // discard previous auth headers
-                final HttpRequest currentRequest = state.getCurrentRequest();
-                currentRequest.removeHeaders(AUTH.WWW_AUTH_RESP);
-                currentRequest.removeHeaders(AUTH.PROXY_AUTH_RESP);
+                final HttpRequestWrapper currentRequest = state.getCurrentRequest();
+                final HttpRequest original = currentRequest.getOriginal();
+                if (!original.containsHeader(AUTH.WWW_AUTH_RESP)) {
+                    currentRequest.removeHeaders(AUTH.WWW_AUTH_RESP);
+                }
+                if (!original.containsHeader(AUTH.PROXY_AUTH_RESP)) {
+                    currentRequest.removeHeaders(AUTH.PROXY_AUTH_RESP);
+                }
                 return true;
             }
         }

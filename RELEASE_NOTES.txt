@@ -1,6 +1,10 @@
 Changes since 4.0
 -------------------
 
+* [HTTPCLIENT-1442] Authentication header set by the user gets removed in case
+  of proxy authentication.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-60] Fixed incorrect OSGi Symbolic-BundleName.
   Contributed by M. van Cuijk <mark at phedny.net>
 
