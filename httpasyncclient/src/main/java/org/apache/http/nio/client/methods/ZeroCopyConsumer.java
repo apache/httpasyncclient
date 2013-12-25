@@ -119,9 +119,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     @Override
     protected T buildResult(final HttpContext context) throws Exception {
-        final FileEntity entity = new FileEntity(this.file);
-        entity.setContentType(this.response.getFirstHeader(HTTP.CONTENT_TYPE));
-        this.response.setEntity(entity);
+        this.response.setEntity(new FileEntity(this.file, this.contentType));
         return process(this.response, this.file, this.contentType);
     }
 
