@@ -41,7 +41,6 @@ import org.apache.http.nio.ContentDecoderChannel;
 import org.apache.http.nio.FileContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
 
