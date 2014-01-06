@@ -364,7 +364,8 @@ class MainClientExec implements InternalClientExec {
             }
         }
 
-        if (this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
+        final NHttpClientConnection managedConn = connManager.getConnection();
+        if (managedConn.isOpen() && this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
             final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
                     currentResponse, localContext);
             if (this.log.isDebugEnabled()) {
@@ -380,7 +381,9 @@ class MainClientExec implements InternalClientExec {
             state.setReusable();
         } else {
             if (this.log.isDebugEnabled()) {
-                this.log.debug("[exchange: " + state.getId() + "] Connection cannot be kept alive");
+                if (managedConn.isOpen()) {
+                    this.log.debug("[exchange: " + state.getId() + "] Connection cannot be kept alive");
+                }
             }
             state.setNonReusable();
             connManager.releaseConnection();

@@ -172,9 +172,10 @@ class DefaultClientExchangeHandlerImpl<T>
             }
             this.completed.set(true);
         } else {
-            final NHttpClientConnection localConn = this.managedConn.get();
-            if (localConn != null &&!localConn.isOpen()) {
+            NHttpClientConnection localConn = this.managedConn.get();
+            if (localConn != null && !localConn.isOpen()) {
                 releaseConnection();
+                localConn = null;
             }
             if (localConn != null) {
                 localConn.requestOutput();

@@ -35,6 +35,7 @@ import java.lang.reflect.Proxy;
 import org.apache.http.HttpConnection;
 import org.apache.http.annotation.NotThreadSafe;
 import org.apache.http.impl.conn.ConnectionShutdownException;
+import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.util.Asserts;
@@ -130,7 +131,12 @@ class CPoolProxy implements InvocationHandler {
         } else {
             final NHttpClientConnection conn = getConnection();
             if (conn == null) {
-                throw new ConnectionShutdownException();
+                if (method.getDeclaringClass().equals(IOControl.class)) {
+                    // Ignore IOControl operations on closed connections
+                    return null;
+                } else {
+                    throw new ConnectionShutdownException();
+                }
             }
             try {
                 return method.invoke(conn, args);
