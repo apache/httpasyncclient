@@ -638,15 +638,24 @@ class MainClientExec implements InternalClientExec {
                         target.getSchemeName());
             }
             final AuthState targetAuthState = localContext.getTargetAuthState();
-            if (this.authenticator.isAuthenticationRequested(target, currentResponse,
-                    this.targetAuthStrategy, targetAuthState, localContext)) {
+            final AuthState proxyAuthState = localContext.getProxyAuthState();
+
+            final boolean targetAuthRequested = this.authenticator.isAuthenticationRequested(
+                    target, currentResponse, this.targetAuthStrategy, targetAuthState, localContext);
+
+            HttpHost proxy = route.getProxyHost();
+            // if proxy is not set use target host instead
+            if (proxy == null) {
+                proxy = route.getTargetHost();
+            }
+            final boolean proxyAuthRequested = this.authenticator.isAuthenticationRequested(
+                    proxy, currentResponse, this.proxyAuthStrategy, proxyAuthState, localContext);
+
+            if (targetAuthRequested) {
                 return this.authenticator.handleAuthChallenge(target, currentResponse,
                         this.targetAuthStrategy, targetAuthState, localContext);
             }
-            final HttpHost proxy = route.getProxyHost();
-            final AuthState proxyAuthState = localContext.getProxyAuthState();
-            if (this.authenticator.isAuthenticationRequested(proxy, currentResponse,
-                    this.proxyAuthStrategy, proxyAuthState, localContext)) {
+            if (proxyAuthRequested) {
                 return this.authenticator.handleAuthChallenge(proxy, currentResponse,
                         this.proxyAuthStrategy, proxyAuthState, localContext);
             }
