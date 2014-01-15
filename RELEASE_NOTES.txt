@@ -1,6 +1,9 @@
 Changes since 4.0
 -------------------
 
+* [HTTPASYNC-65] Relaxed OSGi dependency import version ranges
+  Contributed by Christian Schneider <chris at die-schneider.net> 
+
 * [HTTPCLIENT-1446] NTLM proxy + BASIC target auth fails with 'Unexpected state:
   MSG_TYPE3_GENERATED'.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
