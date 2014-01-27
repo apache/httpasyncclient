@@ -26,37 +26,23 @@
  */
 package org.apache.http.impl.client.cache;
 
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpExecutionAware;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.execchain.ClientExecChain;
-
-import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.util.concurrent.ExecutionException;
 
 public class CachingHttpAsyncClientExecChain implements ClientExecChain {
 
     private final CachingHttpAsyncClient client;
-    private final FutureCallback<HttpResponse> dummyCallback = new FutureCallback<HttpResponse>() {
-        public void failed(final Exception ex) {
-            // failed
-        }
-
-        public void completed(final HttpResponse result) {
-            // completed
-        }
-
-        public void cancelled() {
-            // cancelled
-        }
-    };
 
     public CachingHttpAsyncClientExecChain(final ClientExecChain backend) {
         this(backend, new BasicHttpCache(), CacheConfig.DEFAULT);
@@ -111,9 +97,8 @@ public class CachingHttpAsyncClientExecChain implements ClientExecChain {
             final HttpClientContext context,
             final HttpExecutionAware execAware) throws IOException, HttpException {
         try {
-            return Proxies.enhanceResponse(client.execute(
-                    route.getTargetHost(), request, context, dummyCallback)
-                    .get());
+            final Future<HttpResponse> future = client.execute(route.getTargetHost(), request, context, null);
+            return Proxies.enhanceResponse(future.get());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -144,35 +129,6 @@ public class CachingHttpAsyncClientExecChain implements ClientExecChain {
 
     public long getCacheUpdates() {
         return client.getCacheUpdates();
-    }
-
-    CloseableHttpResponse revalidateCacheEntry(
-            final HttpRoute route,
-            final HttpRequestWrapper request,
-            final HttpClientContext context,
-            final HttpCacheEntry cacheEntry) throws IOException, HttpException {
-        try {
-            return Proxies.enhanceResponse(client.revalidateCacheEntry(
-                    route.getTargetHost(), request, context, cacheEntry,
-                    dummyCallback).get());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        } catch (ExecutionException e) {
-            try {
-                throw e.getCause();
-            } catch (IOException ex) {
-                throw ex;
-            } catch (HttpException ex) {
-                throw ex;
-            } catch (RuntimeException ex) {
-                throw ex;
-            } catch (Error ex) {
-                throw ex;
-            } catch (Throwable ex) {
-                throw new UndeclaredThrowableException(ex);
-            }
-        }
     }
 
 }
