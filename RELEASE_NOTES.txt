@@ -1,6 +1,9 @@
 Changes since 4.0
 -------------------
 
+* [HTTPASYNC-64] Race conditions in async caching module.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-65] Relaxed OSGi dependency import version ranges
   Contributed by Christian Schneider <chris at die-schneider.net> 
 
