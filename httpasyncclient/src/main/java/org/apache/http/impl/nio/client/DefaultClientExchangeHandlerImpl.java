@@ -154,23 +154,22 @@ class DefaultClientExchangeHandlerImpl<T>
     }
 
     public void responseCompleted() throws IOException, HttpException {
-        if (this.resultFuture.isDone()) {
-            this.completed.set(true);
-            releaseConnection();
-            return;
-        }
         this.exec.responseCompleted(this.state, this);
 
-        if (this.state.getFinalResponse() != null) {
-            releaseConnection();
-            final T result = this.responseConsumer.getResult();
-            final Exception ex = this.responseConsumer.getException();
-            if (ex == null) {
-                this.resultFuture.completed(result);
-            } else {
-                this.resultFuture.failed(ex);
+        if (this.state.getFinalResponse() != null || this.resultFuture.isDone()) {
+            try {
+                this.completed.set(true);
+                releaseConnection();
+                final T result = this.responseConsumer.getResult();
+                final Exception ex = this.responseConsumer.getException();
+                if (ex == null) {
+                    this.resultFuture.completed(result);
+                } else {
+                    this.resultFuture.failed(ex);
+                }
+            } finally {
+                close();
             }
-            this.completed.set(true);
         } else {
             NHttpClientConnection localConn = this.managedConn.get();
             if (localConn != null && !localConn.isOpen()) {

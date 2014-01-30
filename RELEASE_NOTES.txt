@@ -1,6 +1,10 @@
 Changes since 4.0
 -------------------
 
+* Persistent connections always get discarded in case of a response future cancellation
+  even if they can be kept alive.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-64] Race conditions in async caching module.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
