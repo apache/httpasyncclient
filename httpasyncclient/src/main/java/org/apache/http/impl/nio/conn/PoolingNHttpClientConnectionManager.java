@@ -275,6 +275,9 @@ public class PoolingNHttpClientConnectionManager
             if (entry == null) {
                 return;
             }
+            if (this.log.isDebugEnabled()) {
+                this.log.debug("Releasing connection: " + format(entry) + formatStats(entry.getRoute()));
+            }
             final NHttpClientConnection conn = entry.getConnection();
             try {
                 if (conn.isOpen()) {
