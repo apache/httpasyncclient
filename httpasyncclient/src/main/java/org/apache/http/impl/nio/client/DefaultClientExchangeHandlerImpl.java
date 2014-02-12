@@ -221,6 +221,10 @@ class DefaultClientExchangeHandlerImpl<T>
     }
 
     public void abortConnection() {
+        discardConnection();
+    }
+
+    private void discardConnection() {
         final NHttpClientConnection localConn = this.managedConn.getAndSet(null);
         if (localConn != null) {
             try {
@@ -327,6 +331,9 @@ class DefaultClientExchangeHandlerImpl<T>
             this.log.debug("[exchange: " + this.state.getId() + "] Request connection for " +
                 this.state.getRoute());
         }
+
+        discardConnection();
+
         this.state.setValidDuration(0);
         this.state.setNonReusable();
         this.state.setRouteEstablished(false);

@@ -1,6 +1,10 @@
 Changes since 4.0
 -------------------
 
+* [HTTPASYNC-68] Connection closed by the opposite endpoint immediately upon its lease from
+  the pool is never released back and reclaimed by the pool (collection leak).
+  Contributed by Dmitry Potapov <potapov.d at gmail.com>
+
 * Persistent connections always get discarded in case of a response future cancellation
   even if they can be kept alive.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
