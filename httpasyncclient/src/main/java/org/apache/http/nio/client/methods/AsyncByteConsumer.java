@@ -91,7 +91,7 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
         } else {
             iosession = null;
         }
-        for (;;) {
+        while (!this.isDone()) {
             final int bytesRead = decoder.read(this.bbuf);
             if (bytesRead <= 0) {
                 break;
@@ -99,8 +99,13 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
             this.bbuf.flip();
             onByteReceived(this.bbuf, ioctrl);
             this.bbuf.clear();
-            if (iosession != null && (iosession.getEventMask() & SelectionKey.OP_READ) == 0) {
+            if (decoder.isCompleted()) {
                 break;
+            } else {
+                if (iosession != null && (iosession.isClosed()
+                        || (iosession.getEventMask() & SelectionKey.OP_READ) == 0)) {
+                    break;
+                }
             }
         }
     }

@@ -1,6 +1,10 @@
 Changes since 4.0
 -------------------
 
+* [HTTPASYNC-69] Premature cancellation of the response consumer to immediately shut down
+  and release the underlying connection.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-68] Connection closed by the opposite endpoint immediately upon its lease from
   the pool is never released back and reclaimed by the pool (collection leak).
   Contributed by Dmitry Potapov <potapov.d at gmail.com>

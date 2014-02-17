@@ -151,6 +151,13 @@ class DefaultClientExchangeHandlerImpl<T>
     public void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         this.exec.consumeContent(this.state, decoder, ioctrl);
+        if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
+            if (this.completed.compareAndSet(false, true)) {
+                this.resultFuture.cancel();
+            }
+            this.state.setNonReusable();
+            releaseConnection();
+        }
     }
 
     public void responseCompleted() throws IOException, HttpException {

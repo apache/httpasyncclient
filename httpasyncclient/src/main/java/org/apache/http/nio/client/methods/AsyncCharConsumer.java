@@ -106,7 +106,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
         } else {
             iosession = null;
         }
-        for (;;) {
+        while (!this.isDone()) {
             final int bytesRead = decoder.read(this.bbuf);
             if (bytesRead <= 0) {
                 break;
@@ -119,9 +119,12 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
             if (completed) {
                 result = this.chardecoder.flush(this.cbuf);
                 handleDecodingResult(result, ioctrl);
-            }
-            if (iosession != null && (iosession.getEventMask() & SelectionKey.OP_READ) == 0) {
                 break;
+            } else {
+                if (iosession != null && (iosession.isClosed() ||
+                        (iosession.getEventMask() & SelectionKey.OP_READ) == 0)) {
+                    break;
+                }
             }
         }
     }
