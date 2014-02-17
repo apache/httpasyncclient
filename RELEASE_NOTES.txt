@@ -1,4 +1,13 @@
-Changes since 4.0
+Release 4.0.1
+-------------------
+
+This maintenance release fixes a number of bugs including incorrect OSGi bundle metadata
+found since release 4.0. This release also upgrades HttpCore and HttpClient dependencies to 
+the latest stable versions. 
+
+All users of HttpAsyncClient 4.0 are advised to upgrade.
+
+Changelog
 -------------------
 
 * [HTTPASYNC-69] Premature cancellation of the response consumer to immediately shut down
