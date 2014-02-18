@@ -48,12 +48,11 @@ import org.apache.http.util.Asserts;
  */
 public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
-    private final int bufSize;
-    private ByteBuffer bbuf;
+    private final ByteBuffer bbuf;
 
     public AsyncByteConsumer(final int bufSize) {
         super();
-        this.bufSize = bufSize;
+        this.bbuf = ByteBuffer.allocate(bufSize);
     }
 
     public AsyncByteConsumer() {
@@ -74,8 +73,7 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
 
     @Override
     protected final void onEntityEnclosed(
-            final HttpEntity entity, final ContentType contentType) {
-        this.bbuf = ByteBuffer.allocate(this.bufSize);
+            final HttpEntity entity, final ContentType contentType) throws IOException {
     }
 
     @Override
@@ -112,7 +110,6 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
 
     @Override
     protected void releaseResources() {
-        this.bbuf = null;
     }
 
 }

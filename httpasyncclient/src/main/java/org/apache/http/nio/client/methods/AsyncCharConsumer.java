@@ -53,15 +53,16 @@ import org.apache.http.util.Asserts;
  */
 public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer<T> {
 
-    private final int bufSize;
-    private ContentType contentType;
+    private final ByteBuffer bbuf;
+    private final CharBuffer cbuf;
+
     private CharsetDecoder chardecoder;
-    private ByteBuffer bbuf;
-    private CharBuffer cbuf;
+    private ContentType contentType;
 
     public AsyncCharConsumer(final int bufSize) {
         super();
-        this.bufSize = bufSize;
+        this.bbuf = ByteBuffer.allocate(bufSize);
+        this.cbuf = CharBuffer.allocate(bufSize);
     }
 
     public AsyncCharConsumer() {
@@ -89,8 +90,6 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
             charset = HTTP.DEF_CONTENT_CHARSET;
         }
         this.chardecoder = charset.newDecoder();
-        this.bbuf = ByteBuffer.allocate(this.bufSize);
-        this.cbuf = CharBuffer.allocate(this.bufSize);
     }
 
     @Override
@@ -143,9 +142,6 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
 
     @Override
     protected void releaseResources() {
-        this.chardecoder = null;
-        this.bbuf = null;
-        this.cbuf = null;
     }
 
 }
