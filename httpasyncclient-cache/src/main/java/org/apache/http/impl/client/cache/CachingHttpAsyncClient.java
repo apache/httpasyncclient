@@ -56,6 +56,7 @@ import org.apache.http.client.cache.HttpCacheContext;
 import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.cache.HttpCacheStorage;
 import org.apache.http.client.cache.ResourceFactory;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -668,7 +669,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             public void completed(final HttpResponse httpResponse) {
                 httpResponse.addHeader(HeaderConstants.VIA, generateViaHeader(httpResponse));
                 try {
-                    final HttpResponse backendResponse = handleBackendResponse(target, request, requestDate, getCurrentDate(), httpResponse);
+                    final CloseableHttpResponse backendResponse = handleBackendResponse(
+                            target, request, requestDate, getCurrentDate(),
+                            Proxies.enhanceResponse(httpResponse));
                     super.completed(backendResponse);
                 } catch (final IOException e) {
                     super.failed(e);
@@ -715,7 +718,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
                 if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_MODIFIED) {
                     try {
-                        future.completed(handleBackendResponse(target, request, requestDate, responseDate, httpResponse));
+                        future.completed(handleBackendResponse(
+                                target, request, requestDate, responseDate,
+                                Proxies.enhanceResponse(httpResponse)));
                         return;
                     } catch (final IOException e) {
                         future.failed(e);
@@ -907,8 +912,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         }
 
         try {
-            final HttpResponse backendResponse = handleBackendResponse(target, conditionalRequest,
-                    requestDate, responseDate, httpResponse);
+            final CloseableHttpResponse backendResponse = handleBackendResponse(
+                    target, conditionalRequest, requestDate, responseDate,
+                    Proxies.enhanceResponse(httpResponse));
             future.completed(backendResponse);
         } catch (final IOException e) {
             future.failed(e);
@@ -922,12 +928,12 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 || statusCode == HttpStatus.SC_GATEWAY_TIMEOUT;
     }
 
-    HttpResponse handleBackendResponse(
+    CloseableHttpResponse handleBackendResponse(
             final HttpHost target,
             final HttpRequestWrapper request,
             final Date requestDate,
             final Date responseDate,
-            final HttpResponse backendResponse) throws IOException {
+            final CloseableHttpResponse backendResponse) throws IOException {
 
         this.log.debug("Handling Backend response");
         this.responseCompliance.ensureProtocolCompliance(request, backendResponse);
