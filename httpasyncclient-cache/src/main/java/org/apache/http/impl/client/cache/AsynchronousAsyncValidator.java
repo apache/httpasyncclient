@@ -38,9 +38,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
+import org.apache.http.client.cache.HttpCacheContext;
 import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.methods.HttpRequestWrapper;
-import org.apache.http.protocol.HttpContext;
 
 /**
  * Class used for asynchronous revalidations to be used when the "stale-
@@ -96,13 +96,13 @@ class AsynchronousAsyncValidator {
      * Schedules an asynchronous revalidation
      */
     public synchronized void revalidateCacheEntry(final HttpHost target, final HttpRequestWrapper request,
-            final HttpContext context, final HttpCacheEntry entry) {
+            final HttpCacheContext clientContext, final HttpCacheEntry entry) {
         // getVariantURI will fall back on getURI if no variants exist
         final String uri = this.cacheKeyGenerator.getVariantURI(target, request, entry);
 
         if (!this.queued.contains(uri)) {
             final AsynchronousAsyncValidationRequest asyncRevalidationRequest = new AsynchronousAsyncValidationRequest(
-                    this, this.cachingAsyncClient, target, request, context, entry, uri);
+                    this, this.cachingAsyncClient, target, request, clientContext, entry, uri);
 
             try {
                 this.executor.execute(asyncRevalidationRequest);

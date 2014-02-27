@@ -33,11 +33,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolException;
+import org.apache.http.client.cache.HttpCacheContext;
 import org.apache.http.client.cache.HttpCacheEntry;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.protocol.HttpContext;
 
 /**
  * Class used to represent an asynchronous revalidation event, such as with
@@ -48,7 +48,7 @@ class AsynchronousAsyncValidationRequest implements Runnable {
     private final CachingHttpAsyncClient cachingAsyncClient;
     private final HttpHost target;
     private final HttpRequestWrapper request;
-    private final HttpContext context;
+    private final HttpCacheContext clientContext;
     private final HttpCacheEntry cacheEntry;
     private final String identifier;
 
@@ -60,12 +60,12 @@ class AsynchronousAsyncValidationRequest implements Runnable {
      */
     AsynchronousAsyncValidationRequest(final AsynchronousAsyncValidator parent,
             final CachingHttpAsyncClient cachingClient, final HttpHost target, final HttpRequestWrapper request,
-            final HttpContext context, final HttpCacheEntry cacheEntry, final String identifier) {
+            final HttpCacheContext clientContext, final HttpCacheEntry cacheEntry, final String identifier) {
         this.parent = parent;
         this.cachingAsyncClient = cachingClient;
         this.target = target;
         this.request = request;
-        this.context = context;
+        this.clientContext = clientContext;
         this.cacheEntry = cacheEntry;
         this.identifier = identifier;
     }
@@ -85,8 +85,8 @@ class AsynchronousAsyncValidationRequest implements Runnable {
                 }
             };
             final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(callback);
-            this.cachingAsyncClient.revalidateCacheEntry(future, this.target, this.request, this.context,
-                    this.cacheEntry);
+            this.cachingAsyncClient.revalidateCacheEntry(future, this.target, this.request,
+                    this.clientContext, this.cacheEntry);
             future.get();
         } catch (final ProtocolException pe) {
             this.log.error("ProtocolException thrown during asynchronous revalidation", pe);
