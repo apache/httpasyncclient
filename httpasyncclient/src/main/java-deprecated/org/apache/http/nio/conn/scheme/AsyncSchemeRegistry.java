@@ -103,7 +103,7 @@ public final class AsyncSchemeRegistry {
         }
 
         // leave it to the caller to use the correct name - all lowercase
-        //name = name.toLowerCase();
+        //name = name.toLowerCase(Locale.ENGLISH);
         final AsyncScheme found = registeredSchemes.get(name);
         return found;
     }
@@ -141,7 +141,7 @@ public final class AsyncSchemeRegistry {
         }
 
         // leave it to the caller to use the correct name - all lowercase
-        //name = name.toLowerCase();
+        //name = name.toLowerCase(Locale.ENGLISH);
         final AsyncScheme gone = registeredSchemes.remove(name);
         return gone;
     }
