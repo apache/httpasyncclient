@@ -1,3 +1,11 @@
+Changes since 4.0.1
+-------------------
+
+* [HTTPASYNC-73] Original request headers are not copied upon redirect
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+
+
 Release 4.0.1
 -------------------
 

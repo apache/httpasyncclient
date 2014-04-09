@@ -452,6 +452,11 @@ class MainClientExec implements InternalClientExec {
                     }
                 }
 
+                if (!redirect.headerIterator().hasNext()) {
+                    final HttpRequest original = state.getMainRequest().getOriginal();
+                    redirect.setHeaders(original.getAllHeaders());
+                }
+
                 final HttpRequestWrapper newRequest = HttpRequestWrapper.wrap(redirect);
                 final HttpRoute newRoute = this.routePlanner.determineRoute(
                     newTarget, newRequest, localContext);
