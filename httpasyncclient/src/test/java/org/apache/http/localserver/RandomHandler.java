@@ -28,7 +28,6 @@
 package org.apache.http.localserver;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 
 import org.apache.http.Consts;

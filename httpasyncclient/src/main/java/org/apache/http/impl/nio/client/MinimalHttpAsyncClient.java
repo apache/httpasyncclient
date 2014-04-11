@@ -38,6 +38,7 @@ import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
@@ -60,8 +61,9 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     public MinimalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
-            final ThreadFactory threadFactory) {
-        super(connmgr, threadFactory);
+            final ThreadFactory threadFactory,
+            final NHttpClientEventHandler eventHandler) {
+        super(connmgr, threadFactory, eventHandler);
         this.connmgr = connmgr;
         final HttpProcessor httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
                 new RequestTargetHost(),
@@ -73,6 +75,12 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
                 httpProcessor,
                 DefaultConnectionReuseStrategy.INSTANCE,
                 DefaultConnectionKeepAliveStrategy.INSTANCE);
+    }
+
+    public MinimalHttpAsyncClient(
+            final NHttpClientConnectionManager connmgr,
+            final ThreadFactory threadFactory) {
+        this(connmgr, threadFactory, new LoggingAsyncRequestExecutor());
     }
 
     public MinimalHttpAsyncClient(

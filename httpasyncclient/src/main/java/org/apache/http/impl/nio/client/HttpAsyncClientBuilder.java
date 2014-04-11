@@ -92,6 +92,7 @@ import org.apache.http.impl.cookie.RFC2109SpecFactory;
 import org.apache.http.impl.cookie.RFC2965SpecFactory;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.NoopIOSessionStrategy;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
@@ -181,6 +182,7 @@ public class HttpAsyncClientBuilder {
     private RequestConfig defaultRequestConfig;
 
     private ThreadFactory threadFactory;
+    private NHttpClientEventHandler eventHandler;
 
     private boolean systemProperties;
     private boolean cookieManagementDisabled;
@@ -531,6 +533,16 @@ public class HttpAsyncClientBuilder {
     }
 
     /**
+     * Assigns {@link NHttpClientEventHandler} instance.
+     *
+     * @since 4.1
+     */
+    public final HttpAsyncClientBuilder setEventHandler(final NHttpClientEventHandler eventHandler) {
+        this.eventHandler = eventHandler;
+        return this;
+    }
+
+    /**
      * Disables connection state tracking.
      */
     public final HttpAsyncClientBuilder disableConnectionState() {
@@ -779,6 +791,11 @@ public class HttpAsyncClientBuilder {
             threadFactory = Executors.defaultThreadFactory();
         }
 
+        NHttpClientEventHandler eventHandler = this.eventHandler;
+        if (eventHandler == null) {
+            eventHandler = new LoggingAsyncRequestExecutor();
+        }
+
         final MainClientExec exec = new MainClientExec(
             connManager,
             httpprocessor,
@@ -798,7 +815,8 @@ public class HttpAsyncClientBuilder {
             defaultCookieStore,
             defaultCredentialsProvider,
             defaultRequestConfig,
-            threadFactory);
+            threadFactory,
+            eventHandler);
     }
 
 }

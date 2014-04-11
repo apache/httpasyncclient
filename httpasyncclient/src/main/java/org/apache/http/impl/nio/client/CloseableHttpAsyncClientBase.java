@@ -28,6 +28,7 @@ package org.apache.http.impl.nio.client;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.IOEventDispatch;
 
@@ -48,22 +49,23 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
 
     public CloseableHttpAsyncClientBase(
             final NHttpClientConnectionManager connmgr,
-            final ThreadFactory threadFactory) {
+            final ThreadFactory threadFactory,
+            final NHttpClientEventHandler handler) {
         super();
         this.connmgr = connmgr;
         this.reactorThread = threadFactory.newThread(new Runnable() {
 
             public void run() {
-                doExecute();
+                doExecute(handler);
             }
 
         });
         this.status = new AtomicReference<Status>(Status.INACTIVE);
     }
 
-    private void doExecute() {
+    private void doExecute(final NHttpClientEventHandler handler) {
         try {
-            final IOEventDispatch ioEventDispatch = new InternalIODispatch();
+            final IOEventDispatch ioEventDispatch = new InternalIODispatch(handler);
             this.connmgr.execute(ioEventDispatch);
         } catch (final Exception ex) {
             this.log.error("I/O reactor terminated abnormally", ex);

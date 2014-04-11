@@ -38,9 +38,9 @@ class InternalIODispatch extends AbstractIODispatch<DefaultNHttpClientConnection
 
     private final NHttpClientEventHandler handler;
 
-    public InternalIODispatch() {
+    public InternalIODispatch(final NHttpClientEventHandler handler) {
         super();
-        this.handler = new LoggingAsyncRequestExecutor();
+        this.handler = handler;
     }
 
     @Override

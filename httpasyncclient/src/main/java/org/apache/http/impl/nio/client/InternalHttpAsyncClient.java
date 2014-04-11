@@ -41,6 +41,7 @@ import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.Lookup;
 import org.apache.http.cookie.CookieSpecProvider;
+import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
@@ -68,8 +69,9 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final CookieStore cookieStore,
             final CredentialsProvider credentialsProvider,
             final RequestConfig defaultConfig,
-            final ThreadFactory threadFactory) {
-        super(connmgr, threadFactory);
+            final ThreadFactory threadFactory,
+            final NHttpClientEventHandler eventHandler) {
+        super(connmgr, threadFactory, eventHandler);
         this.connmgr = connmgr;
         this.exec = exec;
         this.cookieSpecRegistry = cookieSpecRegistry;
