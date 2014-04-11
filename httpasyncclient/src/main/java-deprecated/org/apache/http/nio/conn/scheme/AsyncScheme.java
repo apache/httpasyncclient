@@ -56,7 +56,7 @@ public final class AsyncScheme {
         if ((port <= 0) || (port > 0xffff)) {
             throw new IllegalArgumentException("Port is invalid: " + port);
         }
-        this.name = name.toLowerCase(Locale.ENGLISH);
+        this.name = name.toLowerCase(Locale.ROOT);
         this.strategy = strategy;
         this.defaultPort = port;
     }

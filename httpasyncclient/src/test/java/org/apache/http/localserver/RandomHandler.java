@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 
+import org.apache.http.Consts;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -48,15 +49,9 @@ public class RandomHandler implements HttpRequestHandler {
 
     private final static byte[] RANGE;
     static {
-        byte[] range = null;
-        try {
-            range = ("abcdefghijklmnopqrstuvwxyz" +
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "0123456789"
-                ).getBytes("US-ASCII");
-        } catch (final UnsupportedEncodingException uex) {
-            // never, US-ASCII is guaranteed
-        }
-        RANGE = range;
+        RANGE = ("abcdefghijklmnopqrstuvwxyz" +
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "0123456789"
+        ).getBytes(Consts.ASCII);
     }
 
     /**
@@ -79,7 +74,7 @@ public class RandomHandler implements HttpRequestHandler {
                        final HttpContext context)
         throws HttpException, IOException {
 
-        final String method = request.getRequestLine().getMethod().toUpperCase(Locale.ENGLISH);
+        final String method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT);
         if (!"GET".equals(method) && !"HEAD".equals(method)) {
             throw new MethodNotSupportedException
                 (method + " not supported by " + getClass().getName());
