@@ -45,6 +45,7 @@ import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
@@ -241,6 +242,38 @@ public class TestHttpAsync extends HttpAsyncTestBase {
             Assert.assertTrue(t instanceof IOException);
             Assert.assertEquals("Kaboom", t.getMessage());
         }
+    }
+
+    @Test
+    public void testSharedPool() throws Exception {
+        final HttpHost target = start();
+        final HttpGet httpget = new HttpGet("/random/2048");
+        final Future<HttpResponse> future = this.httpclient.execute(target, httpget, null);
+        final HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+
+        final CloseableHttpAsyncClient httpclient2 = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr, true)
+                .build();
+        try {
+            httpclient2.start();
+            final HttpGet httpget2 = new HttpGet("/random/2048");
+            final Future<HttpResponse> future2 = httpclient2.execute(target, httpget2, null);
+            final HttpResponse response2 = future2.get();
+            Assert.assertNotNull(response2);
+            Assert.assertEquals(200, response2.getStatusLine().getStatusCode());
+
+        } finally {
+            httpclient2.close();
+        }
+
+        final HttpGet httpget3 = new HttpGet("/random/2048");
+        final Future<HttpResponse> future3 = this.httpclient.execute(target, httpget3, null);
+        final HttpResponse response3 = future3.get();
+        Assert.assertNotNull(response3);
+        Assert.assertEquals(200, response3.getStatusLine().getStatusCode());
     }
 
 }

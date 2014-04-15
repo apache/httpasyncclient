@@ -26,21 +26,22 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.io.IOException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.IOEventDispatch;
-
-import java.io.IOException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicReference;
+import org.apache.http.util.Asserts;
 
 abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    static enum Status { INACTIVE, ACTIVE, STOPPED }
+    static enum Status {INACTIVE, ACTIVE, STOPPED}
 
     private final NHttpClientConnectionManager connmgr;
     private final Thread reactorThread;
@@ -53,60 +54,66 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
             final NHttpClientEventHandler handler) {
         super();
         this.connmgr = connmgr;
-        this.reactorThread = threadFactory.newThread(new Runnable() {
+        if (threadFactory != null && handler != null) {
+            this.reactorThread = threadFactory.newThread(new Runnable() {
 
-            public void run() {
-                doExecute(handler);
-            }
+                @Override
+                public void run() {
+                    try {
+                        final IOEventDispatch ioEventDispatch = new InternalIODispatch(handler);
+                        connmgr.execute(ioEventDispatch);
+                    } catch (final Exception ex) {
+                        log.error("I/O reactor terminated abnormally", ex);
+                    } finally {
+                        status.set(Status.STOPPED);
+                    }
+                }
 
-        });
+            });
+        } else {
+            this.reactorThread = null;
+        }
         this.status = new AtomicReference<Status>(Status.INACTIVE);
     }
 
-    private void doExecute(final NHttpClientEventHandler handler) {
-        try {
-            final IOEventDispatch ioEventDispatch = new InternalIODispatch(handler);
-            this.connmgr.execute(ioEventDispatch);
-        } catch (final Exception ex) {
-            this.log.error("I/O reactor terminated abnormally", ex);
-        } finally {
-            this.status.set(Status.STOPPED);
-        }
+    void startConnManager(final NHttpClientEventHandler handler) {
     }
 
     @Override
     public void start() {
         if (this.status.compareAndSet(Status.INACTIVE, Status.ACTIVE)) {
-            this.reactorThread.start();
+            if (this.reactorThread != null) {
+                this.reactorThread.start();
+            }
         }
     }
 
-    public void shutdown() {
-        if (this.status.compareAndSet(Status.ACTIVE, Status.STOPPED)) {
-            try {
-                this.connmgr.shutdown();
-            } catch (final IOException ex) {
-                this.log.error("I/O error shutting down connection manager", ex);
-            }
-            try {
-                this.reactorThread.join();
-            } catch (final InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-        }
+    protected void ensureRunning() {
+        final Status currentStatus = this.status.get();
+        Asserts.check(currentStatus == Status.ACTIVE, "Request cannot be executed; " +
+                "I/O reactor status: %s", currentStatus);
     }
 
     public void close() {
-        shutdown();
+        if (this.status.compareAndSet(Status.ACTIVE, Status.STOPPED)) {
+            if (this.reactorThread != null) {
+                try {
+                    this.connmgr.shutdown();
+                } catch (IOException ex) {
+                    this.log.error("I/O error shutting down connection manager", ex);
+                }
+                try {
+                    this.reactorThread.join();
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 
     @Override
     public boolean isRunning() {
-        return getStatus() == Status.ACTIVE;
-    }
-
-    Status getStatus() {
-        return this.status.get();
+        return this.status.get() == Status.ACTIVE;
     }
 
 }

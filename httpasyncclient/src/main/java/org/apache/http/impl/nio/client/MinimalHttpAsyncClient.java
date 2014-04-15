@@ -49,7 +49,6 @@ import org.apache.http.protocol.ImmutableHttpProcessor;
 import org.apache.http.protocol.RequestContent;
 import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
-import org.apache.http.util.Asserts;
 import org.apache.http.util.VersionInfo;
 
 class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
@@ -78,14 +77,8 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
     }
 
     public MinimalHttpAsyncClient(
-            final NHttpClientConnectionManager connmgr,
-            final ThreadFactory threadFactory) {
-        this(connmgr, threadFactory, new LoggingAsyncRequestExecutor());
-    }
-
-    public MinimalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr) {
-        this(connmgr, Executors.defaultThreadFactory());
+        this(connmgr, Executors.defaultThreadFactory(), new LoggingAsyncRequestExecutor());
     }
 
     public <T> Future<T> execute(
@@ -93,9 +86,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        final Status status = getStatus();
-        Asserts.check(status == Status.ACTIVE, "Request cannot be executed; " +
-                "I/O reactor status: %s", status);
+        ensureRunning();
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());

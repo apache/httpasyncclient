@@ -152,6 +152,7 @@ public class HttpAsyncClientBuilder {
     }
 
     private NHttpClientConnectionManager connManager;
+    private boolean connManagerShared;
     private SchemePortResolver schemePortResolver;
     private SchemeIOSessionStrategy sslStrategy;
     private X509HostnameVerifier hostnameVerifier;
@@ -205,7 +206,26 @@ public class HttpAsyncClientBuilder {
      */
     public final HttpAsyncClientBuilder setConnectionManager(
             final NHttpClientConnectionManager connManager) {
+        return setConnectionManager(connManager, false);
+    }
+
+    /**
+     * Assigns {@link NHttpClientConnectionManager} instance.
+     * <p/>
+     * If the connection manager is shared its life-cycle is expected
+     * to be managed by the caller and it will not be shut down
+     * if the client is closed.
+     *
+     * @param connManager connection manager
+     * @param shared defines whether or not the connection manager can be shared
+     *  by multiple clients.
+     *
+     * @since 4.1
+     */
+    public final HttpAsyncClientBuilder setConnectionManager(
+            final NHttpClientConnectionManager connManager, final boolean shared) {
         this.connManager = connManager;
+        this.connManagerShared = shared;
         return this;
     }
 
@@ -786,16 +806,6 @@ public class HttpAsyncClientBuilder {
             defaultRequestConfig = RequestConfig.DEFAULT;
         }
 
-        ThreadFactory threadFactory = this.threadFactory;
-        if (threadFactory == null) {
-            threadFactory = Executors.defaultThreadFactory();
-        }
-
-        NHttpClientEventHandler eventHandler = this.eventHandler;
-        if (eventHandler == null) {
-            eventHandler = new LoggingAsyncRequestExecutor();
-        }
-
         final MainClientExec exec = new MainClientExec(
             connManager,
             httpprocessor,
@@ -807,16 +817,28 @@ public class HttpAsyncClientBuilder {
             proxyAuthStrategy,
             userTokenHandler);
 
+        ThreadFactory threadFactory = null;
+        NHttpClientEventHandler eventHandler = null;
+        if (!this.connManagerShared) {
+            threadFactory = this.threadFactory;
+            if (threadFactory == null) {
+                threadFactory = Executors.defaultThreadFactory();
+            }
+            eventHandler = this.eventHandler;
+            if (eventHandler == null) {
+                eventHandler = new LoggingAsyncRequestExecutor();
+            }
+        }
         return new InternalHttpAsyncClient(
             connManager,
+            threadFactory,
+            eventHandler,
             exec,
             cookieSpecRegistry,
             authSchemeRegistry,
             defaultCookieStore,
             defaultCredentialsProvider,
-            defaultRequestConfig,
-            threadFactory,
-            eventHandler);
+            defaultRequestConfig);
     }
 
 }

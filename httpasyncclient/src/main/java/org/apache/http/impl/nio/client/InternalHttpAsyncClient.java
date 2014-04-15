@@ -47,7 +47,6 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.Asserts;
 
 class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
@@ -63,15 +62,15 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     public InternalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
+            final ThreadFactory threadFactory,
+            final NHttpClientEventHandler handler,
             final InternalClientExec exec,
             final Lookup<CookieSpecProvider> cookieSpecRegistry,
             final Lookup<AuthSchemeProvider> authSchemeRegistry,
             final CookieStore cookieStore,
             final CredentialsProvider credentialsProvider,
-            final RequestConfig defaultConfig,
-            final ThreadFactory threadFactory,
-            final NHttpClientEventHandler eventHandler) {
-        super(connmgr, threadFactory, eventHandler);
+            final RequestConfig defaultConfig) {
+        super(connmgr, threadFactory, handler);
         this.connmgr = connmgr;
         this.exec = exec;
         this.cookieSpecRegistry = cookieSpecRegistry;
@@ -110,9 +109,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpContext context,
             final FutureCallback<T> callback) {
-        final Status status = getStatus();
-        Asserts.check(status == Status.ACTIVE, "Request cannot be executed; " +
-                "I/O reactor status: %s", status);
+        ensureRunning();
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
