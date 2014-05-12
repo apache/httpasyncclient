@@ -255,7 +255,8 @@ public class TestHttpAsync extends HttpAsyncTestBase {
 
 
         final CloseableHttpAsyncClient httpclient2 = HttpAsyncClients.custom()
-                .setConnectionManager(this.connMgr, true)
+                .setConnectionManager(this.connMgr)
+                .setConnectionManagerShared(true)
                 .build();
         try {
             httpclient2.start();

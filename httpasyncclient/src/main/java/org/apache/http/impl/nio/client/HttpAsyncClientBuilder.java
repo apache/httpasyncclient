@@ -206,25 +206,25 @@ public class HttpAsyncClientBuilder {
      */
     public final HttpAsyncClientBuilder setConnectionManager(
             final NHttpClientConnectionManager connManager) {
-        return setConnectionManager(connManager, false);
+        this.connManager = connManager;
+        return this;
     }
 
     /**
-     * Assigns {@link NHttpClientConnectionManager} instance.
+     * Defines the connection manager is to be shared by multiple
+     * client instances.
      * <p/>
      * If the connection manager is shared its life-cycle is expected
      * to be managed by the caller and it will not be shut down
      * if the client is closed.
      *
-     * @param connManager connection manager
      * @param shared defines whether or not the connection manager can be shared
      *  by multiple clients.
      *
      * @since 4.1
      */
-    public final HttpAsyncClientBuilder setConnectionManager(
-            final NHttpClientConnectionManager connManager, final boolean shared) {
-        this.connManager = connManager;
+    public final HttpAsyncClientBuilder setConnectionManagerShared(
+            final boolean shared) {
         this.connManagerShared = shared;
         return this;
     }
