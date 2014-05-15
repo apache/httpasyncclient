@@ -143,14 +143,6 @@ import org.apache.http.util.VersionInfo;
 @NotThreadSafe
 public class HttpAsyncClientBuilder {
 
-    final static String DEFAULT_USER_AGENT;
-    static {
-        final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.nio.client",
-                HttpAsyncClientBuilder.class.getClassLoader());
-        final String release = vi != null ? vi.getRelease() : VersionInfo.UNAVAILABLE;
-        DEFAULT_USER_AGENT = "Apache-HttpAsyncClient/" + release + " (java 1.5)";
-    }
-
     private NHttpClientConnectionManager connManager;
     private boolean connManagerShared;
     private SchemePortResolver schemePortResolver;
@@ -708,7 +700,9 @@ public class HttpAsyncClientBuilder {
                     userAgent = System.getProperty("http.agent");
                 }
                 if (userAgent == null) {
-                    userAgent = DEFAULT_USER_AGENT;
+                    userAgent = VersionInfo.getUserAgent(
+                            "Apache-HttpAsyncClient",
+                            "org.apache.http.nio.client", getClass());
                 }
             }
 

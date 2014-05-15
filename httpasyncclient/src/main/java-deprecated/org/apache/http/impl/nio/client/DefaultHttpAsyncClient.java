@@ -47,6 +47,7 @@ import org.apache.http.protocol.RequestContent;
 import org.apache.http.protocol.RequestExpectContinue;
 import org.apache.http.protocol.RequestTargetHost;
 import org.apache.http.protocol.RequestUserAgent;
+import org.apache.http.util.VersionInfo;
 
 @Deprecated
 public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
@@ -75,7 +76,9 @@ public class DefaultHttpAsyncClient extends AbstractHttpAsyncClient {
         HttpProtocolParams.setContentCharset(params, HTTP.DEF_CONTENT_CHARSET.name());
         HttpConnectionParams.setTcpNoDelay(params, true);
         HttpConnectionParams.setSocketBufferSize(params, 8192);
-        HttpProtocolParams.setUserAgent(params, HttpAsyncClientBuilder.DEFAULT_USER_AGENT);
+        HttpProtocolParams.setUserAgent(params, VersionInfo.getUserAgent(
+                "Apache-HttpAsyncClient",
+                "org.apache.http.nio.client", DefaultHttpAsyncClient.class));
     }
 
     @Override
