@@ -27,37 +27,23 @@
 package org.apache.http.impl.nio.conn;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.net.InetAddress;
 
-import org.apache.http.HttpConnection;
+import javax.net.ssl.SSLSession;
+
+import org.apache.http.HttpConnectionMetrics;
+import org.apache.http.HttpException;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.annotation.NotThreadSafe;
 import org.apache.http.impl.conn.ConnectionShutdownException;
-import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
-import org.apache.http.util.Asserts;
+import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.protocol.HttpContext;
 
 @NotThreadSafe
-class CPoolProxy implements InvocationHandler {
-
-    private static final Method CLOSE_METHOD;
-    private static final Method SHUTDOWN_METHOD;
-    private static final Method IS_OPEN_METHOD;
-    private static final Method IS_STALE_METHOD;
-
-    static {
-        try {
-            CLOSE_METHOD = HttpConnection.class.getMethod("close");
-            SHUTDOWN_METHOD = HttpConnection.class.getMethod("shutdown");
-            IS_OPEN_METHOD = HttpConnection.class.getMethod("isOpen");
-            IS_STALE_METHOD = HttpConnection.class.getMethod("isStale");
-        } catch (final NoSuchMethodException ex) {
-            throw new Error(ex);
-        }
-    }
+class CPoolProxy implements ManagedNHttpClientConnection {
 
     private volatile CPoolEntry poolEntry;
 
@@ -76,7 +62,7 @@ class CPoolProxy implements InvocationHandler {
         return local;
     }
 
-    NHttpClientConnection getConnection() {
+    ManagedNHttpClientConnection getConnection() {
         final CPoolEntry local = this.poolEntry;
         if (local == null) {
             return null;
@@ -84,6 +70,15 @@ class CPoolProxy implements InvocationHandler {
         return local.getConnection();
     }
 
+    ManagedNHttpClientConnection getValidConnection() {
+        final ManagedNHttpClientConnection conn = getConnection();
+        if (conn == null) {
+            throw new ConnectionShutdownException();
+        }
+        return conn;
+    }
+
+    @Override
     public void close() throws IOException {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -91,6 +86,7 @@ class CPoolProxy implements InvocationHandler {
         }
     }
 
+    @Override
     public void shutdown() throws IOException {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -98,6 +94,64 @@ class CPoolProxy implements InvocationHandler {
         }
     }
 
+    @Override
+    public HttpConnectionMetrics getMetrics() {
+        return getValidConnection().getMetrics();
+    }
+
+    @Override
+    public void requestInput() {
+        final NHttpClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.requestInput();
+        }
+    }
+
+    @Override
+    public void suspendInput() {
+        final NHttpClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.suspendInput();
+        }
+    }
+
+    @Override
+    public void requestOutput() {
+        final NHttpClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.requestOutput();
+        }
+    }
+
+    @Override
+    public void suspendOutput() {
+        final NHttpClientConnection conn = getConnection();
+        if (conn != null) {
+            conn.suspendOutput();
+        }
+    }
+
+    @Override
+    public InetAddress getLocalAddress() {
+        return getValidConnection().getLocalAddress();
+    }
+
+    @Override
+    public int getLocalPort() {
+        return getValidConnection().getLocalPort();
+    }
+
+    @Override
+    public InetAddress getRemoteAddress() {
+        return getValidConnection().getRemoteAddress();
+    }
+
+    @Override
+    public int getRemotePort() {
+        return getValidConnection().getRemotePort();
+    }
+
+    @Override
     public boolean isOpen() {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -107,6 +161,7 @@ class CPoolProxy implements InvocationHandler {
         }
     }
 
+    @Override
     public boolean isStale() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -116,59 +171,69 @@ class CPoolProxy implements InvocationHandler {
         }
     }
 
-    public Object invoke(
-            final Object proxy, final Method method, final Object[] args) throws Throwable {
-        if (method.equals(CLOSE_METHOD)) {
-            close();
-            return null;
-        } else if (method.equals(SHUTDOWN_METHOD)) {
-            shutdown();
-            return null;
-        } else if (method.equals(IS_OPEN_METHOD)) {
-            return Boolean.valueOf(isOpen());
-        } else if (method.equals(IS_STALE_METHOD)) {
-            return Boolean.valueOf(isStale());
-        } else {
-            final NHttpClientConnection conn = getConnection();
-            if (conn == null) {
-                if (method.getDeclaringClass().equals(IOControl.class)) {
-                    // Ignore IOControl operations on closed connections
-                    return null;
-                } else {
-                    throw new ConnectionShutdownException();
-                }
-            }
-            try {
-                return method.invoke(conn, args);
-            } catch (final InvocationTargetException ex) {
-                final Throwable cause = ex.getCause();
-                if (cause != null) {
-                    throw cause;
-                } else {
-                    throw ex;
-                }
-            }
+    @Override
+    public void setSocketTimeout(final int i) {
+        getValidConnection().setSocketTimeout(i);
+    }
+
+    @Override
+    public int getSocketTimeout() {
+        return getValidConnection().getSocketTimeout();
+    }
+
+    @Override
+    public void submitRequest(final HttpRequest request) throws IOException, HttpException {
+        getValidConnection().submitRequest(request);
+    }
+
+    @Override
+    public boolean isRequestSubmitted() {
+        return getValidConnection().isRequestSubmitted();
+    }
+
+    @Override
+    public void resetOutput() {
+        getValidConnection().resetOutput();
+    }
+
+    @Override
+    public void resetInput() {
+        getValidConnection().resetInput();
+    }
+
+    @Override
+    public int getStatus() {
+        return getValidConnection().getStatus();
+    }
+
+    @Override
+    public HttpRequest getHttpRequest() {
+        return getValidConnection().getHttpRequest();
+    }
+
+    @Override
+    public HttpResponse getHttpResponse() {
+        return getValidConnection().getHttpResponse();
+    }
+
+    @Override
+    public HttpContext getContext() {
+        return getValidConnection().getContext();
+    }
+
+    public static NHttpClientConnection newProxy(final CPoolEntry poolEntry) {
+        return new CPoolProxy(poolEntry);
+    }
+
+    private static CPoolProxy getProxy(final NHttpClientConnection conn) {
+        if (!CPoolProxy.class.isInstance(conn)) {
+            throw new IllegalStateException("Unexpected connection proxy class: " + conn.getClass());
         }
-    }
-
-    public static NHttpClientConnection newProxy(
-            final CPoolEntry poolEntry) {
-        return (NHttpClientConnection) Proxy.newProxyInstance(
-                CPoolProxy.class.getClassLoader(),
-                new Class<?>[] { ManagedNHttpClientConnection.class },
-                new CPoolProxy(poolEntry));
-    }
-
-    private static CPoolProxy getHandler(
-            final NHttpClientConnection proxy) {
-        final InvocationHandler handler = Proxy.getInvocationHandler(proxy);
-        Asserts.check(CPoolProxy.class.isInstance(handler),
-                "Unexpected proxy handler class: %s", handler.getClass());
-        return CPoolProxy.class.cast(handler);
+        return CPoolProxy.class.cast(conn);
     }
 
     public static CPoolEntry getPoolEntry(final NHttpClientConnection proxy) {
-        final CPoolEntry entry = getHandler(proxy).getPoolEntry();
+        final CPoolEntry entry = getProxy(proxy).getPoolEntry();
         if (entry == null) {
             throw new ConnectionShutdownException();
         }
@@ -176,7 +241,40 @@ class CPoolProxy implements InvocationHandler {
     }
 
     public static CPoolEntry detach(final NHttpClientConnection proxy) {
-        return getHandler(proxy).detach();
+        return getProxy(proxy).detach();
+    }
+
+    @Override
+    public String getId() {
+        return getValidConnection().getId();
+    }
+
+    @Override
+    public void bind(final IOSession iosession) {
+        getValidConnection().bind(iosession);
+    }
+
+    @Override
+    public IOSession getIOSession() {
+        return getValidConnection().getIOSession();
+    }
+
+    @Override
+    public SSLSession getSSLSession() {
+        return getValidConnection().getSSLSession();
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("CPoolProxy{");
+        final ManagedNHttpClientConnection conn = getConnection();
+        if (conn != null) {
+            sb.append(conn);
+        } else {
+            sb.append("detached");
+        }
+        sb.append('}');
+        return sb.toString();
     }
 
 }

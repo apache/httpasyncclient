@@ -26,15 +26,12 @@
  */
 package org.apache.http.impl.nio.conn;
 
-import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Calendar;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.Assert;
 
 import org.apache.commons.logging.Log;
 import org.apache.http.HttpHost;
@@ -58,6 +55,7 @@ import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.SessionRequest;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -146,7 +144,6 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Assert.assertTrue(future.isDone());
         final NHttpClientConnection managedConn = future.get();
-        Assert.assertTrue(Proxy.isProxyClass(managedConn.getClass()));
         Mockito.verify(connCallback).completed(Mockito.<NHttpClientConnection>any());
 
         Mockito.when(conn.isOpen()).thenReturn(Boolean.TRUE);
@@ -182,7 +179,6 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Assert.assertTrue(future.isDone());
         final NHttpClientConnection managedConn = future.get();
-        Assert.assertTrue(Proxy.isProxyClass(managedConn.getClass()));
         Mockito.verify(connCallback).completed(Mockito.<NHttpClientConnection>any());
 
         Mockito.when(conn.isOpen()).thenReturn(Boolean.TRUE);
