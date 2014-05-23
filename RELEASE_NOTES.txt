@@ -1,6 +1,9 @@
 Changes since 4.0.1
 -------------------
 
+* Replaced dynamic proxies with custom proxy classes to reduce thread contention.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-73] Original request headers are not copied upon redirect
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
