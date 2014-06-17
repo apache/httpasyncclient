@@ -78,7 +78,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         return conn;
     }
 
-    @Override
     public void close() throws IOException {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -86,7 +85,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public void shutdown() throws IOException {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -94,12 +92,10 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public HttpConnectionMetrics getMetrics() {
         return getValidConnection().getMetrics();
     }
 
-    @Override
     public void requestInput() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -107,7 +103,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public void suspendInput() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -115,7 +110,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public void requestOutput() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -123,7 +117,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public void suspendOutput() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -131,27 +124,22 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public InetAddress getLocalAddress() {
         return getValidConnection().getLocalAddress();
     }
 
-    @Override
     public int getLocalPort() {
         return getValidConnection().getLocalPort();
     }
 
-    @Override
     public InetAddress getRemoteAddress() {
         return getValidConnection().getRemoteAddress();
     }
 
-    @Override
     public int getRemotePort() {
         return getValidConnection().getRemotePort();
     }
 
-    @Override
     public boolean isOpen() {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
@@ -161,7 +149,6 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public boolean isStale() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
@@ -171,52 +158,42 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         }
     }
 
-    @Override
     public void setSocketTimeout(final int i) {
         getValidConnection().setSocketTimeout(i);
     }
 
-    @Override
     public int getSocketTimeout() {
         return getValidConnection().getSocketTimeout();
     }
 
-    @Override
     public void submitRequest(final HttpRequest request) throws IOException, HttpException {
         getValidConnection().submitRequest(request);
     }
 
-    @Override
     public boolean isRequestSubmitted() {
         return getValidConnection().isRequestSubmitted();
     }
 
-    @Override
     public void resetOutput() {
         getValidConnection().resetOutput();
     }
 
-    @Override
     public void resetInput() {
         getValidConnection().resetInput();
     }
 
-    @Override
     public int getStatus() {
         return getValidConnection().getStatus();
     }
 
-    @Override
     public HttpRequest getHttpRequest() {
         return getValidConnection().getHttpRequest();
     }
 
-    @Override
     public HttpResponse getHttpResponse() {
         return getValidConnection().getHttpResponse();
     }
 
-    @Override
     public HttpContext getContext() {
         return getValidConnection().getContext();
     }
@@ -244,22 +221,18 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         return getProxy(proxy).detach();
     }
 
-    @Override
     public String getId() {
         return getValidConnection().getId();
     }
 
-    @Override
     public void bind(final IOSession iosession) {
         getValidConnection().bind(iosession);
     }
 
-    @Override
     public IOSession getIOSession() {
         return getValidConnection().getIOSession();
     }
 
-    @Override
     public SSLSession getSSLSession() {
         return getValidConnection().getSSLSession();
     }
