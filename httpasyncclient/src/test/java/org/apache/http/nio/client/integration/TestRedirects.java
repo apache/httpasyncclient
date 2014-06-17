@@ -40,7 +40,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.Header;
-import org.apache.http.HttpAsyncTestBase;
+import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpInetConnection;

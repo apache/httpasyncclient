@@ -34,7 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.Consts;
-import org.apache.http.HttpAsyncTestBase;
+import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;

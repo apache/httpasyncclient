@@ -25,11 +25,13 @@
  *
  */
 
-package org.apache.http;
+package org.apache.http.localserver;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.ExceptionLogger;
+import org.apache.http.HttpHost;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.impl.nio.bootstrap.HttpServer;

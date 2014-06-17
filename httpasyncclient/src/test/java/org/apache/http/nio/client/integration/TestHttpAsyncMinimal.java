@@ -33,7 +33,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Future;
 
-import org.apache.http.HttpAsyncTestBase;
+import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
