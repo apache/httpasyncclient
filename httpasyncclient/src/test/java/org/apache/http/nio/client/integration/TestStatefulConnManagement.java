@@ -27,7 +27,6 @@
 package org.apache.http.nio.client.integration;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
@@ -40,83 +39,25 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.UserTokenHandler;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.config.ConnectionConfig;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.DefaultConnectionReuseStrategy;
-import org.apache.http.impl.DefaultHttpResponseFactory;
-import org.apache.http.impl.nio.DefaultNHttpServerConnection;
-import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.conn.CPoolUtils;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
-import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
-import org.apache.http.nio.protocol.HttpAsyncService;
-import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.reactor.IOEventDispatch;
-import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.pool.PoolEntry;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestStatefulConnManagement extends HttpAsyncTestBase {
-
-    @Before
-    public void setUp() throws Exception {
-        initServer();
-        initConnectionManager();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        shutDownClient();
-        shutDownServer();
-    }
-
-    @Override
-    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final ConnectionConfig config) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(config);
-    }
-
-    @Override
-    protected String getSchemeName() {
-        return "http";
-    }
-
-    private HttpHost start(
-            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
-            final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        final HttpAsyncService serviceHandler = new HttpAsyncService(
-                this.serverHttpProc,
-                new DefaultConnectionReuseStrategy(),
-                new DefaultHttpResponseFactory(),
-                requestHandlerResolver,
-                expectationVerifier);
-        this.server.start(serviceHandler);
-        this.httpclient.start();
-
-        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
-        endpoint.waitFor();
-
-        Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        return new HttpHost("localhost", address.getPort(), getSchemeName());
-    }
 
     static class SimpleService implements HttpRequestHandler {
 
@@ -136,8 +77,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
     @Test
     public void testStatefulConnections() throws Exception {
-        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
-        registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
+        this.serverBootstrap.registerHandler("*", new BasicAsyncRequestHandler(new SimpleService()));
 
         final UserTokenHandler userTokenHandler = new UserTokenHandler() {
 
@@ -146,13 +86,8 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
             }
 
         };
-
-        this.httpclient = HttpAsyncClients.custom()
-                .setConnectionManager(this.connMgr)
-                .setUserTokenHandler(userTokenHandler)
-                .build();
-
-        final HttpHost target = start(registry, null);
+        this.clientBuilder.setUserTokenHandler(userTokenHandler);
+        final HttpHost target = start();
 
         final int workerCount = 2;
         final int requestCount = 5;
@@ -280,6 +215,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
     @Test
     public void testRouteSpecificPoolRecylcing() throws Exception {
+        this.serverBootstrap.registerHandler("*", new BasicAsyncRequestHandler(new SimpleService()));
         // This tests what happens when a maxed connection pool needs
         // to kill the last idle connection to a route to build a new
         // one to the same route.
@@ -290,21 +226,13 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
             }
 
         };
+        this.clientBuilder.setUserTokenHandler(userTokenHandler);
 
-        this.httpclient = HttpAsyncClients.custom()
-                .setConnectionManager(this.connMgr)
-                .setUserTokenHandler(userTokenHandler)
-                .build();
-
+        final HttpHost target = start();
         final int maxConn = 2;
         // We build a client with 2 max active // connections, and 2 max per route.
         this.connMgr.setMaxTotal(maxConn);
         this.connMgr.setDefaultMaxPerRoute(maxConn);
-
-        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
-        registry.register("*", new BasicAsyncRequestHandler(new SimpleService()));
-
-        final HttpHost target = start(registry, null);
 
         // Bottom of the pool : a *keep alive* connection to Route 1.
         final HttpContext context1 = new BasicHttpContext();

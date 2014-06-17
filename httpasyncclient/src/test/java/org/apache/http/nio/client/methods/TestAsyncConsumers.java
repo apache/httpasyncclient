@@ -27,7 +27,6 @@
 package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.concurrent.ExecutionException;
@@ -39,27 +38,13 @@ import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.config.ConnectionConfig;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.DefaultConnectionReuseStrategy;
-import org.apache.http.impl.DefaultHttpResponseFactory;
-import org.apache.http.impl.nio.DefaultNHttpServerConnection;
-import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
-import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
-import org.apache.http.nio.protocol.HttpAsyncRequestHandlerMapper;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.nio.protocol.HttpAsyncService;
-import org.apache.http.nio.protocol.UriHttpAsyncRequestHandlerMapper;
-import org.apache.http.nio.reactor.IOReactorStatus;
-import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.apache.http.protocol.HttpContext;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,57 +52,11 @@ import org.mockito.Mockito;
 
 public class TestAsyncConsumers extends HttpAsyncTestBase {
 
-    @Before
+    @Before @Override
     public void setUp() throws Exception {
-        initServer();
-        initConnectionManager();
-        this.httpclient = HttpAsyncClients.custom()
-                .setConnectionManager(this.connMgr)
-                .build();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        shutDownClient();
-        shutDownServer();
-    }
-
-    @Override
-    protected NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            final ConnectionConfig config) throws Exception {
-        return new DefaultNHttpServerConnectionFactory(config);
-    }
-
-    @Override
-    protected String getSchemeName() {
-        return "http";
-    }
-
-    private HttpHost start(
-            final HttpAsyncRequestHandlerMapper requestHandlerResolver,
-            final HttpAsyncExpectationVerifier expectationVerifier) throws Exception {
-        final HttpAsyncService serviceHandler = new HttpAsyncService(
-                this.serverHttpProc,
-                new DefaultConnectionReuseStrategy(),
-                new DefaultHttpResponseFactory(),
-                requestHandlerResolver,
-                expectationVerifier);
-        this.server.start(serviceHandler);
-        this.httpclient.start();
-
-        final ListenerEndpoint endpoint = this.server.getListenerEndpoint();
-        endpoint.waitFor();
-
-        Assert.assertEquals("Test server status", IOReactorStatus.ACTIVE, this.server.getStatus());
-        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        return new HttpHost("localhost", address.getPort(), getSchemeName());
-    }
-
-    private HttpHost start() throws Exception {
-        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
-        registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
-        registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
-        return start(registry, null);
+        super.setUp();
+        this.serverBootstrap.registerHandler("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
+        this.serverBootstrap.registerHandler("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
     }
 
     static class ByteCountingConsumer extends AsyncByteConsumer<Long> {

@@ -27,83 +27,95 @@
 
 package org.apache.http;
 
-import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.http.config.ConnectionConfig;
-import org.apache.http.impl.nio.DefaultNHttpServerConnection;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.impl.nio.bootstrap.HttpServer;
+import org.apache.http.impl.nio.bootstrap.ServerBootstrap;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
-import org.apache.http.localserver.HttpServerNio;
-import org.apache.http.nio.NHttpConnectionFactory;
-import org.apache.http.nio.reactor.IOReactorExceptionHandler;
-import org.apache.http.protocol.HttpProcessor;
-import org.apache.http.protocol.ImmutableHttpProcessor;
-import org.apache.http.protocol.ResponseConnControl;
-import org.apache.http.protocol.ResponseContent;
-import org.apache.http.protocol.ResponseDate;
-import org.apache.http.protocol.ResponseServer;
+import org.apache.http.nio.conn.NoopIOSessionStrategy;
+import org.apache.http.nio.conn.SchemeIOSessionStrategy;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.junit.After;
+import org.junit.Before;
 
-@SuppressWarnings("RedundantArrayCreation")
 public abstract class HttpAsyncTestBase {
 
-    protected HttpServerNio server;
-    protected IOReactorConfig serverReactorConfig;
-    protected ConnectionConfig serverConnectionConfig;
-    protected HttpProcessor serverHttpProc;
-    protected DefaultConnectingIOReactor clientIOReactor;
-    protected IOReactorConfig clientReactorConfig;
-    protected ConnectionConfig clientrConnectionConfig;
+    public enum ProtocolScheme { http, https };
+
+    protected final ProtocolScheme scheme;
+
+    protected ServerBootstrap serverBootstrap;
+    protected HttpServer server;
+    protected HttpAsyncClientBuilder clientBuilder;
     protected PoolingNHttpClientConnectionManager connMgr;
     protected CloseableHttpAsyncClient httpclient;
 
-    protected abstract NHttpConnectionFactory<DefaultNHttpServerConnection> createServerConnectionFactory(
-            ConnectionConfig config) throws Exception;
-
-    protected abstract String getSchemeName();
-
-    public static class SimpleIOReactorExceptionHandler implements IOReactorExceptionHandler {
-
-        public boolean handle(final RuntimeException ex) {
-            ex.printStackTrace(System.out);
-            return false;
-        }
-
-        public boolean handle(final IOException ex) {
-            ex.printStackTrace(System.out);
-            return false;
-        }
-
+    public HttpAsyncTestBase(final ProtocolScheme scheme) {
+        this.scheme = scheme;
     }
 
-    public void initServer() throws Exception {
-        this.server = new HttpServerNio(
-                this.serverReactorConfig, createServerConnectionFactory(this.serverConnectionConfig));
-        this.server.setExceptionHandler(new SimpleIOReactorExceptionHandler());
-        this.serverHttpProc = new ImmutableHttpProcessor(new ResponseDate(),
-                new ResponseServer("TEST-SERVER/1.1"),
-                new ResponseContent(),
-                new ResponseConnControl());
+    public HttpAsyncTestBase() {
+        this(ProtocolScheme.http);
     }
 
-    public void initConnectionManager() throws Exception {
-        this.clientIOReactor = new DefaultConnectingIOReactor(this.clientReactorConfig);
-        this.connMgr = new PoolingNHttpClientConnectionManager(this.clientIOReactor);
-     }
+    public String getSchemeName() {
+        return this.scheme.name();
+    }
+
+    public HttpHost start() throws Exception {
+        this.server = this.serverBootstrap.create();
+        this.server.start();
+
+        this.httpclient = this.clientBuilder.build();
+        this.httpclient.start();
+
+        final ListenerEndpoint endpoint = this.server.getEndpoint();
+        endpoint.waitFor();
+
+        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
+        return new HttpHost("localhost", address.getPort(), this.scheme.name());
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        this.serverBootstrap = ServerBootstrap.bootstrap();
+        final IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+                .setSoTimeout(15000)
+                .build();
+        this.serverBootstrap.setServerInfo("TEST/1.1");
+        this.serverBootstrap.setIOReactorConfig(ioReactorConfig);
+        this.serverBootstrap.setExceptionLogger(ExceptionLogger.STD_ERR);
+        if (this.scheme.equals(ProtocolScheme.https)) {
+            this.serverBootstrap.setSslContext(SSLTestContexts.createServerSSLContext());
+        }
+
+        this.clientBuilder = HttpAsyncClientBuilder.create();
+        final RegistryBuilder<SchemeIOSessionStrategy> builder = RegistryBuilder.create();
+        builder.register("http", NoopIOSessionStrategy.INSTANCE);
+        if (this.scheme.equals(ProtocolScheme.https)) {
+            builder.register("https", new SSLIOSessionStrategy(SSLTestContexts.createClientSSLContext()));
+        }
+        final Registry<SchemeIOSessionStrategy> registry =  builder.build();
+        final DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
+        this.connMgr = new PoolingNHttpClientConnectionManager(ioReactor, registry);
+        this.clientBuilder.setConnectionManager(this.connMgr);
+    }
 
     @After
-    public void shutDownClient() throws Exception {
+    public void shutDown() throws Exception {
         if (this.httpclient != null) {
             this.httpclient.close();
         }
-    }
-
-    @After
-    public void shutDownServer() throws Exception {
         if (this.server != null) {
-            this.server.shutdown();
+            this.server.shutdown(10, TimeUnit.SECONDS);
         }
     }
 
