@@ -70,14 +70,14 @@ import org.apache.http.util.Args;
 import org.apache.http.util.Asserts;
 
 /**
- * <tt>PoolingNHttpClientConnectionManager</tt> maintains a pool of
+ * {@code PoolingNHttpClientConnectionManager} maintains a pool of
  * {@link NHttpClientConnection}s and is able to service connection requests
  * from multiple execution threads. Connections are pooled on a per route
  * basis. A request for a route which already the manager has persistent
  * connections for available in the pool will be services by leasing
  * a connection from the pool rather than creating a brand new connection.
  * <p/>
- * <tt>PoolingNHttpClientConnectionManager</tt> maintains a maximum limit
+ * {@code PoolingNHttpClientConnectionManager} maintains a maximum limit
  * of connection on a per route basis and in total. Per default this
  * implementation will create no more than than 2 concurrent connections
  * per given route and no more 20 connections in total. For many real-world

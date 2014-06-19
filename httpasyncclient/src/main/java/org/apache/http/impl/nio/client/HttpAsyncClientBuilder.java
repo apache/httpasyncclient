@@ -437,7 +437,7 @@ public class HttpAsyncClientBuilder {
     }
 
     /**
-     * Assigns <tt>User-Agent</tt> value.
+     * Assigns {@code User-Agent} value.
      * <p/>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
