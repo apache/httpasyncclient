@@ -31,6 +31,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -428,6 +429,13 @@ public class PoolingNHttpClientConnectionManager
 
     public PoolStats getStats(final HttpRoute route) {
         return this.pool.getStats(route);
+    }
+
+    /**
+     * @since 4.1
+     */
+    public Set<HttpRoute> getRoutes() {
+        return this.pool.getRoutes();
     }
 
     public ConnectionConfig getDefaultConnectionConfig() {
