@@ -299,11 +299,10 @@ class DefaultClientExchangeHandlerImpl<T>
                 return;
             }
 
+            managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
+            managedConn.requestOutput();
             if (!managedConn.isOpen()) {
                 failed(new ConnectionClosedException("Connection closed"));
-            } else {
-                managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-                managedConn.requestOutput();
             }
         } catch (final RuntimeException runex) {
             failed(runex);

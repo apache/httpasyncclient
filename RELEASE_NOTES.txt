@@ -1,6 +1,10 @@
 Changes since 4.0.1
 -------------------
 
+* [HTTPASYNC-79] Rearranged sequence of operations upon connection lease to eliminate possibility
+  of a connection leak due to race condition on keep-alive boundary
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * Replaced dynamic proxies with custom proxy classes to reduce thread contention.
   Contributed by Oleg Kalnichevski <olegk at apache.org>
 
