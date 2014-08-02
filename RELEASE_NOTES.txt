@@ -1,4 +1,12 @@
-Changes since 4.0.1
+Changes since 4.0.2
+-------------------
+
+HttpAsyncClient 4.0.2 (GA) is a bug fix release that addresses several issues reported since 
+release 4.0.1. This release also upgrades HttpClient dependency to the latest stable version. 
+
+All users of HttpAsyncClient 4.0 are strongly advised to upgrade.
+
+Changelog
 -------------------
 
 * [HTTPASYNC-79] Rearranged sequence of operations upon connection lease to eliminate possibility
