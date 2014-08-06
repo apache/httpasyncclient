@@ -314,11 +314,7 @@ class DefaultClientExchangeHandlerImpl<T>
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.state.getId() + "] connection request failed");
         }
-        try {
-            this.resultFuture.failed(ex);
-        } finally {
-            close();
-        }
+        failed(ex);
     }
 
     private void connectionRequestCancelled() {
