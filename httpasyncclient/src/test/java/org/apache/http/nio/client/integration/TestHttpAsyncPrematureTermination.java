@@ -309,18 +309,15 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final HttpAsyncResponseConsumer<?> consumer = new HttpAsyncResponseConsumer<Object>() {
 
-            @Override
             public void close() throws IOException {
                 closed.set(true);
             }
 
-            @Override
             public boolean cancel() {
                 cancelled.set(true);
                 return false;
             }
 
-            @Override
             public void failed(final Exception ex) {
                 failed.set(true);
             }
@@ -347,7 +344,6 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                 return null;
             }
 
-            @Override
             public boolean isDone() {
                 return false;
             }
@@ -387,18 +383,15 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final HttpAsyncResponseConsumer<?> consumer = new HttpAsyncResponseConsumer<Object>() {
 
-            @Override
             public void close() throws IOException {
                 closed.set(true);
             }
 
-            @Override
             public boolean cancel() {
                 cancelled.set(true);
                 return false;
             }
 
-            @Override
             public void failed(final Exception ex) {
                 failed.set(true);
             }
@@ -422,7 +415,6 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                 return null;
             }
 
-            @Override
             public boolean isDone() {
                 return true; // cancels fetching the response-body
             }
