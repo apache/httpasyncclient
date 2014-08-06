@@ -50,6 +50,8 @@ import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.nio.DefaultNHttpServerConnection;
 import org.apache.http.impl.nio.DefaultNHttpServerConnectionFactory;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.localserver.EchoHandler;
+import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -57,6 +59,7 @@ import org.apache.http.nio.NHttpConnectionFactory;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestConsumer;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncResponseProducer;
 import org.apache.http.nio.protocol.HttpAsyncExchange;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
@@ -350,7 +353,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             }
         };
 
-        final Future<?> future = httpclient.execute(producer, consumer, null, null);
+        final Future<?> future = this.httpclient.execute(producer, consumer, null, null);
         try {
             future.get();
             Assert.fail();
@@ -362,6 +365,78 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         Assert.assertTrue(closed.get());
         Assert.assertFalse(cancelled.get());
         Assert.assertTrue(failed.get());
+    }
+
+    @Test
+    public void testConsumerIsDone() throws Exception {
+        final UriHttpAsyncRequestHandlerMapper registry = new UriHttpAsyncRequestHandlerMapper();
+        registry.register("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
+        registry.register("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
+
+        this.httpclient = HttpAsyncClients.custom()
+                .setConnectionManager(this.connMgr)
+                .build();
+
+        final HttpHost target = start(registry, null);
+
+        final HttpAsyncRequestProducer producer = HttpAsyncMethods.create(target, new HttpGet("/"));
+
+        final AtomicBoolean closed = new AtomicBoolean(false);
+        final AtomicBoolean cancelled = new AtomicBoolean(false);
+        final AtomicBoolean failed = new AtomicBoolean(false);
+
+        final HttpAsyncResponseConsumer<?> consumer = new HttpAsyncResponseConsumer<Object>() {
+
+            @Override
+            public void close() throws IOException {
+                closed.set(true);
+            }
+
+            @Override
+            public boolean cancel() {
+                cancelled.set(true);
+                return false;
+            }
+
+            @Override
+            public void failed(final Exception ex) {
+                failed.set(true);
+            }
+
+            public void responseReceived(
+                    final HttpResponse response) throws IOException, HttpException {
+            }
+
+            public void consumeContent(
+                    final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            }
+
+            public void responseCompleted(final HttpContext context) {
+            }
+
+            public Exception getException() {
+                return null;
+            }
+
+            public String getResult() {
+                return null;
+            }
+
+            @Override
+            public boolean isDone() {
+                return true; // cancels fetching the response-body
+            }
+        };
+
+        final Future<?> future = this.httpclient.execute(producer, consumer, null, null);
+        future.get();
+        Thread.sleep(1000);
+
+        connMgr.shutdown(1000);
+
+        Assert.assertTrue(future.isCancelled());
+        Assert.assertFalse(failed.get());
+        Assert.assertTrue(closed.get());
     }
 
 }
