@@ -153,7 +153,11 @@ class DefaultClientExchangeHandlerImpl<T>
         this.exec.consumeContent(this.state, decoder, ioctrl);
         if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
             if (this.completed.compareAndSet(false, true)) {
-                this.resultFuture.cancel();
+                try {
+                    this.resultFuture.cancel();
+                } finally {
+                    responseConsumer.close();
+                }
             }
             this.state.setNonReusable();
             releaseConnection();

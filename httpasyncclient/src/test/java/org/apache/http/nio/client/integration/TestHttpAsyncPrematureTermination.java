@@ -43,13 +43,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.HttpAsyncTestBase;
+import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestConsumer;
+import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.nio.protocol.BasicAsyncResponseProducer;
 import org.apache.http.nio.protocol.HttpAsyncExchange;
 import org.apache.http.nio.protocol.HttpAsyncRequestConsumer;
@@ -276,7 +279,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             }
         };
 
-        final Future<?> future = httpclient.execute(producer, consumer, null, null);
+        final Future<?> future = this.httpclient.execute(producer, consumer, null, null);
         try {
             future.get();
             Assert.fail();
@@ -288,6 +291,72 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         Assert.assertTrue(closed.get());
         Assert.assertFalse(cancelled.get());
         Assert.assertTrue(failed.get());
+    }
+
+    @Test
+    public void testConsumerIsDone() throws Exception {
+        this.serverBootstrap.registerHandler("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
+        this.serverBootstrap.registerHandler("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
+
+        final HttpHost target = start();
+
+        final HttpAsyncRequestProducer producer = HttpAsyncMethods.create(target, new HttpGet("/"));
+
+        final AtomicBoolean closed = new AtomicBoolean(false);
+        final AtomicBoolean cancelled = new AtomicBoolean(false);
+        final AtomicBoolean failed = new AtomicBoolean(false);
+
+        final HttpAsyncResponseConsumer<?> consumer = new HttpAsyncResponseConsumer<Object>() {
+
+            @Override
+            public void close() throws IOException {
+                closed.set(true);
+            }
+
+            @Override
+            public boolean cancel() {
+                cancelled.set(true);
+                return false;
+            }
+
+            @Override
+            public void failed(final Exception ex) {
+                failed.set(true);
+            }
+
+            public void responseReceived(
+                    final HttpResponse response) throws IOException, HttpException {
+            }
+
+            public void consumeContent(
+                    final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            }
+
+            public void responseCompleted(final HttpContext context) {
+            }
+
+            public Exception getException() {
+                return null;
+            }
+
+            public String getResult() {
+                return null;
+            }
+
+            @Override
+            public boolean isDone() {
+                return true; // cancels fetching the response-body
+            }
+        };
+
+        final Future<?> future = this.httpclient.execute(producer, consumer, null, null);
+        future.get();
+
+        connMgr.shutdown(1000);
+
+        Assert.assertTrue(future.isCancelled());
+        Assert.assertFalse(failed.get());
+        Assert.assertTrue(closed.get());
     }
 
 }
