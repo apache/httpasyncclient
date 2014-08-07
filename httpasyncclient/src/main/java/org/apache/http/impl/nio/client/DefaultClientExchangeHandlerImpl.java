@@ -152,15 +152,14 @@ class DefaultClientExchangeHandlerImpl<T>
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         this.exec.consumeContent(this.state, decoder, ioctrl);
         if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
-            if (this.completed.compareAndSet(false, true)) {
-                try {
-                    this.resultFuture.cancel();
-                } finally {
-                    responseConsumer.close();
-                }
-            }
             this.state.setNonReusable();
-            releaseConnection();
+            try {
+                this.completed.set(true);
+                releaseConnection();
+                this.resultFuture.cancel();
+            } finally {
+                close();
+            }
         }
     }
 

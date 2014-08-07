@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.HttpAsyncTestBase;
 import org.apache.http.HttpConnection;
@@ -60,6 +61,7 @@ import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestConsumer;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
+import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
 import org.apache.http.nio.protocol.BasicAsyncResponseProducer;
 import org.apache.http.nio.protocol.HttpAsyncExchange;
 import org.apache.http.nio.protocol.HttpAsyncExpectationVerifier;
@@ -375,25 +377,29 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final HttpHost target = start(registry, null);
 
-        final HttpAsyncRequestProducer producer = HttpAsyncMethods.create(target, new HttpGet("/"));
+        final AtomicInteger producerClosed = new AtomicInteger(0);
+        final AtomicInteger consumerClosed = new AtomicInteger(0);
 
-        final AtomicBoolean closed = new AtomicBoolean(false);
-        final AtomicBoolean cancelled = new AtomicBoolean(false);
-        final AtomicBoolean failed = new AtomicBoolean(false);
+        final HttpAsyncRequestProducer producer = new BasicAsyncRequestProducer(target, new HttpGet("/")) {
+
+            @Override
+            public synchronized void close() throws IOException {
+                producerClosed.incrementAndGet();
+                super.close();
+            }
+        };
 
         final HttpAsyncResponseConsumer<?> consumer = new HttpAsyncResponseConsumer<Object>() {
 
             public void close() throws IOException {
-                closed.set(true);
+                consumerClosed.incrementAndGet();
             }
 
             public boolean cancel() {
-                cancelled.set(true);
                 return false;
             }
 
             public void failed(final Exception ex) {
-                failed.set(true);
             }
 
             public void responseReceived(
@@ -427,8 +433,10 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         connMgr.shutdown(1000);
 
         Assert.assertTrue(future.isCancelled());
-        Assert.assertFalse(failed.get());
-        Assert.assertTrue(closed.get());
+        Assert.assertTrue(future.isCancelled());
+
+        Assert.assertEquals(1, producerClosed.get());
+        Assert.assertEquals(1, consumerClosed.get());
     }
 
 }
