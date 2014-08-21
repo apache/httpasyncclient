@@ -37,7 +37,7 @@ import org.apache.http.entity.ContentType;
 
 /**
  * {@link org.apache.http.nio.protocol.HttpAsyncRequestProducer} implementation
- * that generates an HTTP <code>PUT</code> request enclosing content of a file.
+ * that generates an HTTP {@code PUT} request enclosing content of a file.
  * The request content will be streamed out directly from the underlying file
  * without an intermediate in-memory buffer.
  *

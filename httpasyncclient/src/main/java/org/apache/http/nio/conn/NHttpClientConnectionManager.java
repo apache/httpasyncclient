@@ -64,7 +64,7 @@ public interface NHttpClientConnectionManager {
      * {@link #upgrade(org.apache.http.nio.NHttpClientConnection,
      *   org.apache.http.conn.routing.HttpRoute,
      *   org.apache.http.protocol.HttpContext) upgrade} method to upgrade
-     * the connection after having executed <code>CONNECT</code> method to
+     * the connection after having executed {@code CONNECT} method to
      * all intermediate proxy hops and and finally calling
      * {@link #routeComplete(org.apache.http.nio.NHttpClientConnection,
      *   org.apache.http.conn.routing.HttpRoute,
@@ -72,7 +72,7 @@ public interface NHttpClientConnectionManager {
      * as fully completed.
      *
      * @param route HTTP route of the requested connection.
-     * @param state expected state of the connection or <code>null</code>
+     * @param state expected state of the connection or {@code null}
      *              if the connection is not expected to carry any state.
      * @param connectTimeout connect timeout.
      * @param connectionRequestTimeout  connection request timeout.
@@ -91,7 +91,7 @@ public interface NHttpClientConnectionManager {
      * Releases the connection back to the manager making it potentially
      * re-usable by other consumers. Optionally, the maximum period
      * of how long the manager should keep the connection alive can be
-     * defined using <code>validDuration</code> and <code>timeUnit</code>
+     * defined using {@code validDuration} and {@code timeUnit}
      * parameters.
      *
      * @param conn      the managed connection to release.
@@ -121,7 +121,7 @@ public interface NHttpClientConnectionManager {
 
     /**
      * Upgrades the underlying connection I/O session to TLS/SSL (or another layering
-     * protocol) after having executed <code>CONNECT</code> method to all
+     * protocol) after having executed {@code CONNECT} method to all
      * intermediate proxy hops.
      *
      * @param conn the managed connection to upgrade.
@@ -165,7 +165,7 @@ public interface NHttpClientConnectionManager {
      * All expired connections will also be closed.
      *
      * @param idletime  the idle time of connections to be closed
-     * @param tunit     the unit for the <code>idletime</code>
+     * @param tunit     the unit for the {@code idletime}
      *
      * @see #closeExpiredConnections()
      */

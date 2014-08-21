@@ -57,7 +57,7 @@ public final class AsyncSchemeRegistry {
      *
      * @param name      the name of the scheme to look up (in lowercase)
      *
-     * @return  the scheme, never <code>null</code>
+     * @return  the scheme, never {@code null}
      *
      * @throws IllegalStateException
      *          if the scheme with the given name is not registered
@@ -77,7 +77,7 @@ public final class AsyncSchemeRegistry {
      *
      * @param host      the host for which to obtain the scheme
      *
-     * @return  the scheme for the given host, never <code>null</code>
+     * @return  the scheme for the given host, never {@code null}
      *
      * @throws IllegalStateException
      *          if a scheme with the respective name is not registered
@@ -95,7 +95,7 @@ public final class AsyncSchemeRegistry {
      * @param name      the name of the scheme to look up (in lowercase)
      *
      * @return  the scheme, or
-     *          <code>null</code> if there is none by this name
+     *          {@code null} if there is none by this name
      */
     public final AsyncScheme get(final String name) {
         if (name == null) {
@@ -116,7 +116,7 @@ public final class AsyncSchemeRegistry {
      * @param sch       the scheme to register
      *
      * @return  the scheme previously registered with that name, or
-     *          <code>null</code> if none was registered
+     *          {@code null} if none was registered
      */
     public final AsyncScheme register(final AsyncScheme sch) {
         if (sch == null) {
@@ -133,7 +133,7 @@ public final class AsyncSchemeRegistry {
      * @param name      the name of the scheme to unregister (in lowercase)
      *
      * @return  the unregistered scheme, or
-     *          <code>null</code> if there was none
+     *          {@code null} if there was none
      */
     public final AsyncScheme unregister(final String name) {
         if (name == null) {

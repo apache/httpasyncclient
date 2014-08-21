@@ -62,7 +62,7 @@ public interface ManagedNHttpClientConnection extends NHttpClientConnection, Htt
      * Obtains the SSL session of the underlying connection, if any.
      *
      * @return  the underlying SSL session if available,
-     *          <code>null</code> otherwise
+     *          {@code null} otherwise
      */
     SSLSession getSSLSession();
 

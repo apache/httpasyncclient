@@ -99,12 +99,12 @@ public interface HttpAsyncClient {
      * while the request is still being executed.
      *
      * @param target    the target host for the request.
-     *                  Implementations may accept <code>null</code>
+     *                  Implementations may accept {@code null}
      *                  if they can still determine a route, for example
      *                  to a default target or by inspecting the request.
      * @param request   the request to execute
      * @param context   the context to use for the execution, or
-     *                  <code>null</code> to use the default context
+     *                  {@code null} to use the default context
      * @param callback future callback.
      * @return future representing pending completion of the operation.
      */
@@ -117,7 +117,7 @@ public interface HttpAsyncClient {
      * using the default context.
      *
      * @param target    the target host for the request.
-     *                  Implementations may accept <code>null</code>
+     *                  Implementations may accept {@code null}
      *                  if they can still determine a route, for example
      *                  to a default target or by inspecting the request.
      * @param request   the request to execute
