@@ -34,7 +34,7 @@
   <artifactId>httpcomponents-asyncclient</artifactId>
   <name>Apache HttpComponents AsyncClient</name>
   <version>4.1-alpha1-SNAPSHOT</version>
-  <description>Components to build asynchronous client side HTTP services</description>
+  <description>Apache components to build asynchronous client side HTTP services</description>
   <url>http://hc.apache.org/httpcomponents-asyncclient</url>
   <inceptionYear>2010</inceptionYear>
   <packaging>pom</packaging>

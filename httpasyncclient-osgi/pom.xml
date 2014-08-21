@@ -31,9 +31,9 @@
     <version>4.1-alpha1-SNAPSHOT</version>
   </parent>
   <artifactId>httpasyncclient-osgi</artifactId>
-  <name>HttpAsyncClient OSGi bundle</name>
+  <name>Apache HttpAsyncClient OSGi bundle</name>
   <description>
-   HttpComponents AsyncClient (OSGi bundle)
+   Apache HttpComponents AsyncClient (OSGi bundle)
   </description>
   <url>http://hc.apache.org/httpcomponents-asyncclient</url>
   <packaging>bundle</packaging>

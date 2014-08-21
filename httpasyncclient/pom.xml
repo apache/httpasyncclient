@@ -33,7 +33,7 @@
   <artifactId>httpasyncclient</artifactId>
   <name>Apache HttpAsyncClient</name>
   <description>
-   HttpComponents AsyncClient
+   Apache HttpComponents AsyncClient
   </description>
   <url>http://hc.apache.org/httpcomponents-asyncclient</url>
   <packaging>jar</packaging>
