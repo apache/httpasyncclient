@@ -27,7 +27,7 @@
 
 /**
  * Default asynchronous HTTP client implementation.
- * <p/>
+ * <p>
  * The usual execution flow can be demonstrated by the code snippet below:
  * <pre>
  * CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
