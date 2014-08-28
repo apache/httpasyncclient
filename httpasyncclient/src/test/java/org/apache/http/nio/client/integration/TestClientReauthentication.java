@@ -147,6 +147,7 @@ public class TestClientReauthentication extends HttpAsyncTestBase {
             @Override
             public AuthScheme create(final HttpContext context) {
                 return new BasicScheme() {
+                    private static final long serialVersionUID = 1L;
 
                     @Override
                     public String getSchemeName() {
