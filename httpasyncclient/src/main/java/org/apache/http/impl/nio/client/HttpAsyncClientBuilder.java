@@ -108,7 +108,7 @@ import org.apache.http.util.VersionInfo;
 
 /**
  * Builder for {@link CloseableHttpAsyncClient} instances.
- * <p/>
+ * <p>
  * When a particular component is not explicitly this class will
  * use its default implementation. System properties will be taken
  * into account when configuring the default implementations when
@@ -133,7 +133,7 @@ import org.apache.http.util.VersionInfo;
  *  <li>http.maxConnections</li>
  *  <li>http.agent</li>
  * </ul>
- * <p/>
+ * <p>
  * Please note that some settings used by this class can be mutually
  * exclusive and may not apply when building {@link CloseableHttpAsyncClient}
  * instances.
@@ -205,7 +205,7 @@ public class HttpAsyncClientBuilder {
     /**
      * Defines the connection manager is to be shared by multiple
      * client instances.
-     * <p/>
+     * <p>
      * If the connection manager is shared its life-cycle is expected
      * to be managed by the caller and it will not be shut down
      * if the client is closed.
@@ -232,7 +232,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns maximum total connection value.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
      */
@@ -243,7 +243,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns maximum connection per route value.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
      */
@@ -272,7 +272,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns {@link UserTokenHandler} instance.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #disableConnectionState()}
      * method.
      */
@@ -311,7 +311,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Adds this protocol interceptor to the head of the protocol processing list.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -328,7 +328,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Adds this protocol interceptor to the tail of the protocol processing list.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -345,7 +345,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Adds this protocol interceptor to the head of the protocol processing list.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -362,7 +362,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Adds this protocol interceptor to the tail of the protocol processing list.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -438,7 +438,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns {@code User-Agent} value.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -449,7 +449,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns default proxy value.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setRoutePlanner(
      *   org.apache.http.conn.routing.HttpRoutePlanner)} method.
      */
@@ -460,7 +460,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns {@link SchemeIOSessionStrategy} instance.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
      */
@@ -471,7 +471,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns {@link SSLContext} instance.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
      *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
@@ -483,7 +483,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns {@link X509HostnameVerifier} instance.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
      *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
@@ -495,7 +495,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns default request header values.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -506,7 +506,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns default {@link IOReactorConfig}.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
      */
@@ -517,7 +517,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Assigns default {@link ConnectionConfig}.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
      */
@@ -564,7 +564,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Disables state (cookie) management.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */
@@ -575,7 +575,7 @@ public class HttpAsyncClientBuilder {
 
     /**
      * Disables authentication scheme caching.
-     * <p/>
+     * <p>
      * Please note this value can be overridden by the {@link #setHttpProcessor(
      * org.apache.http.protocol.HttpProcessor)} method.
      */

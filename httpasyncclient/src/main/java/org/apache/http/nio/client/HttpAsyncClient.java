@@ -49,12 +49,12 @@ public interface HttpAsyncClient {
 
     /**
      * Initiates asynchronous HTTP request execution using the given context.
-     * <p/>
+     * <p>
      * The request producer passed to this method will be used to generate
      * a request message and stream out its content without buffering it
      * in memory. The response consumer passed to this method will be used
      * to process a response message without buffering its content in memory.
-     * <p/>
+     * <p>
      * Please note it may be unsafe to interact with the context instance
      * while the request is still being executed.
      *
@@ -74,7 +74,7 @@ public interface HttpAsyncClient {
     /**
      * Initiates asynchronous HTTP request execution using the default
      * context.
-     * <p/>
+     * <p>
      * The request producer passed to this method will be used to generate
      * a request message and stream out its content without buffering it
      * in memory. The response consumer passed to this method will be used
@@ -94,7 +94,7 @@ public interface HttpAsyncClient {
     /**
      * Initiates asynchronous HTTP request execution against the given target
      * using the given context.
-     * <p/>
+     * <p>
      * Please note it may be unsafe to interact with the context instance
      * while the request is still being executed.
      *
@@ -131,7 +131,7 @@ public interface HttpAsyncClient {
     /**
      * Initiates asynchronous HTTP request execution using the given
      * context.
-     * <p/>
+     * <p>
      * Please note it may be unsafe to interact with the context instance
      * while the request is still being executed.
      *

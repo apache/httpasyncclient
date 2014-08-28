@@ -56,7 +56,7 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 
 /**
  * Default implementation of {@link HttpAsyncClientExchangeHandler}.
- * <p/>
+ * <p>
  * Instances of this class are expected to be accessed by one thread at a time only.
  * The {@link #cancel()} method can be called concurrently by multiple threads.
  */

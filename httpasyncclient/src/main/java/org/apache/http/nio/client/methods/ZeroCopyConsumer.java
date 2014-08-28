@@ -48,7 +48,7 @@ import org.apache.http.util.Asserts;
  * {@link org.apache.http.nio.protocol.HttpAsyncResponseConsumer} implementation that
  * streams content entity enclosed in an HTTP response directly into a file
  * without an intermediate in-memory buffer.
- * <p/>
+ * <p>
  * This consumer can be useful for file downloads.
  *
  * @since 4.0

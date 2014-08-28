@@ -35,7 +35,7 @@ import org.apache.http.impl.execchain.ClientExecChain;
  * is conditionally compliant with the rules for an HTTP/1.1 server, and that any requests we pass
  * downstream to the backend HttpClient are are conditionally compliant with the rules for an
  * HTTP/1.1 client.
- * <p/>
+ * <p>
  * There are some cases where strictly behaving as a compliant caching proxy would result in strange
  * behavior, since we're attached as part of a client and are expected to be a drop-in replacement.
  * The test cases captured here document the places where we differ from the HTTP RFC.

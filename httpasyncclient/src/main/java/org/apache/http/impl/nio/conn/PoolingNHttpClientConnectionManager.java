@@ -77,7 +77,7 @@ import org.apache.http.util.Asserts;
  * basis. A request for a route which already the manager has persistent
  * connections for available in the pool will be services by leasing
  * a connection from the pool rather than creating a brand new connection.
- * <p/>
+ * <p>
  * {@code PoolingNHttpClientConnectionManager} maintains a maximum limit
  * of connection on a per route basis and in total. Per default this
  * implementation will create no more than than 2 concurrent connections

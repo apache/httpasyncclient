@@ -86,7 +86,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>GET<code/> request generator.
+     * Creates asynchronous <code>GET</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -96,7 +96,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>GET<code/> request generator.
+     * Creates asynchronous <code>GET</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -106,7 +106,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>HEAD<code/> request generator.
+     * Creates asynchronous <code>HEAD</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -116,7 +116,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>HEAD<code/> request generator.
+     * Creates asynchronous <code>HEAD</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -126,7 +126,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>DELETE<code/> request generator.
+     * Creates asynchronous <code>DELETE</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -136,7 +136,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>DELETE<code/> request generator.
+     * Creates asynchronous <code>DELETE</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -146,7 +146,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>OPTIONS<code/> request generator.
+     * Creates asynchronous <code>OPTIONS</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -156,7 +156,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>OPTIONS<code/> request generator.
+     * Creates asynchronous <code>OPTIONS</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -166,7 +166,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>TRACE<code/> request generator.
+     * Creates asynchronous <code>TRACE</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -176,7 +176,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>TRACE<code/> request generator.
+     * Creates asynchronous <code>TRACE</code> request generator.
      *
      * @param requestURI request URI.
      * @return asynchronous request generator
@@ -186,7 +186,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>POST<code/> request generator.
+     * Creates asynchronous <code>POST</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -205,7 +205,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>POST<code/> request generator.
+     * Creates asynchronous <code>POST</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -220,7 +220,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>POST<code/> request generator.
+     * Creates asynchronous <code>POST</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -238,7 +238,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>POST<code/> request generator.
+     * Creates asynchronous <code>POST</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -253,7 +253,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>PUT<code/> request generator.
+     * Creates asynchronous <code>PUT</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -272,7 +272,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>PUT<code/> request generator.
+     * Creates asynchronous <code>PUT</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -287,7 +287,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>PUT<code/> request generator.
+     * Creates asynchronous <code>PUT</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -305,7 +305,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous <code>PUT<code/> request generator.
+     * Creates asynchronous <code>PUT</code> request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -320,7 +320,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous zero-copy <code>POST<code/>request generator.
+     * Creates asynchronous zero-copy <code>POST</code>request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -335,7 +335,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous zero-copy <code>POST<code/>request generator.
+     * Creates asynchronous zero-copy <code>POST</code>request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -350,7 +350,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous zero-copy <code>PUT<code/>request generator.
+     * Creates asynchronous zero-copy <code>PUT</code>request generator.
      *
      * @param requestURI request URI.
      * @param content request content.
@@ -365,7 +365,7 @@ public final class HttpAsyncMethods {
     }
 
     /**
-     * Creates asynchronous zero-copy <code>PUT<code/>request generator.
+     * Creates asynchronous zero-copy <code>PUT</code>request generator.
      *
      * @param requestURI request URI.
      * @param content request content.

@@ -38,12 +38,12 @@ import org.apache.http.protocol.HttpContext;
 
 /**
  * Represents a manager of persistent client connections.
- * <p/>
+ * <p>
  * The purpose of an HTTP connection manager is to serve as a factory for new
  * HTTP connections, manage persistent connections and synchronize access to
  * persistent connections making sure that only one thread of execution can
  * have access to a connection at a time.
- * <p/>
+ * <p>
  * Implementations of this interface must be thread-safe. Access to shared
  * data must be synchronized as methods of this interface may be executed
  * from multiple threads.
@@ -54,7 +54,7 @@ public interface NHttpClientConnectionManager {
 
     /**
      * Returns a {@link Future} for a {@link NHttpClientConnection}.
-     * <p/>
+     * <p>
      * Please note that the consumer of that connection is responsible
      * for fully establishing the route the to the connection target
      * by calling {@link #startRoute(org.apache.http.nio.NHttpClientConnection,
@@ -156,7 +156,7 @@ public interface NHttpClientConnectionManager {
 
     /**
      * Closes idle connections in the pool.
-     * <p/>
+     * <p>
      * Open connections in the pool that have not been used for the
      * timespan given by the argument will be closed.
      * Currently allocated connections are not subject to this method.
@@ -173,7 +173,7 @@ public interface NHttpClientConnectionManager {
 
     /**
      * Closes all expired connections in the pool.
-     * <p/>
+     * <p>
      * Open connections in the pool that have not been used for
      * the timespan defined when the connection was released will be closed.
      * Currently allocated connections are not subject to this method.

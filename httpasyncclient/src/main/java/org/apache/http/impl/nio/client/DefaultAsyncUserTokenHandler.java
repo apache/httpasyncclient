@@ -47,7 +47,7 @@ import java.security.Principal;
  * execution context. This helps ensure persistent connections created with
  * a particular user identity within a particular security context can be
  * reused by the same user only.
- * <p/>
+ * <p>
  * This implementation will use the user principle of connection based
  * authentication schemes such as NTLM or that of the SSL session with
  * the client authentication turned on. If both are unavailable,
