@@ -43,7 +43,7 @@ public interface SchemeIOSessionStrategy {
 
     /**
      * Determines whether or not protocol layering is required. If this method
-     * returns <code>false</code> the {@link #upgrade(org.apache.http.HttpHost,
+     * returns {@code false} the {@link #upgrade(org.apache.http.HttpHost,
      * org.apache.http.nio.reactor.IOSession) upgrade} method  is expected
      * to have no effect and should not be called.
      */

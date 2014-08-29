@@ -73,7 +73,7 @@ public final class AsyncSchemeRegistry {
 
     /**
      * Obtains the scheme for a host.
-     * Convenience method for <code>getScheme(host.getSchemeName())</pre>
+     * Convenience method for {@code getScheme(host.getSchemeName())}
      *
      * @param host      the host for which to obtain the scheme
      *
