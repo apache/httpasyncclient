@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
@@ -60,6 +61,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     private HttpResponse response;
     private ContentType contentType;
+    private Header contentEncoding;
     private FileChannel fileChannel;
     private long idx = -1;
 
@@ -81,6 +83,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
     protected void onEntityEnclosed(
             final HttpEntity entity, final ContentType contentType) throws IOException {
         this.contentType = contentType;
+        this.contentEncoding = entity.getContentEncoding();
         this.fileChannel = this.accessfile.getChannel();
         this.idx = 0;
     }
@@ -118,7 +121,9 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     @Override
     protected T buildResult(final HttpContext context) throws Exception {
-        this.response.setEntity(new FileEntity(this.file, this.contentType));
+        final FileEntity entity = new FileEntity(this.file, this.contentType);
+        entity.setContentEncoding(this.contentEncoding);
+        this.response.setEntity(entity);
         return process(this.response, this.file, this.contentType);
     }
 
