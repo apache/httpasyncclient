@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.ConnectionReuseStrategy;
@@ -62,9 +63,11 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.conn.util.PublicSuffixMatcher;
+import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.NoConnectionReuseStrategy;
@@ -84,12 +87,10 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.impl.conn.DefaultRoutePlanner;
 import org.apache.http.impl.conn.DefaultSchemePortResolver;
 import org.apache.http.impl.conn.SystemDefaultRoutePlanner;
-import org.apache.http.impl.cookie.BestMatchSpecFactory;
-import org.apache.http.impl.cookie.BrowserCompatSpecFactory;
-import org.apache.http.impl.cookie.IgnoreSpecFactory;
-import org.apache.http.impl.cookie.NetscapeDraftSpecFactory;
-import org.apache.http.impl.cookie.RFC2109SpecFactory;
-import org.apache.http.impl.cookie.RFC2965SpecFactory;
+import org.apache.http.impl.cookie.DefaultCookieSpecProvider;
+import org.apache.http.impl.cookie.IgnoreSpecProvider;
+import org.apache.http.impl.cookie.NetscapeDraftSpecProvider;
+import org.apache.http.impl.cookie.RFC2965SpecProvider;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.NHttpClientEventHandler;
@@ -147,7 +148,7 @@ public class HttpAsyncClientBuilder {
     private boolean connManagerShared;
     private SchemePortResolver schemePortResolver;
     private SchemeIOSessionStrategy sslStrategy;
-    private X509HostnameVerifier hostnameVerifier;
+    private HostnameVerifier hostnameVerifier;
     private SSLContext sslcontext;
     private ConnectionReuseStrategy reuseStrategy;
     private ConnectionKeepAliveStrategy keepAliveStrategy;
@@ -177,6 +178,8 @@ public class HttpAsyncClientBuilder {
     private ThreadFactory threadFactory;
     private NHttpClientEventHandler eventHandler;
 
+    private PublicSuffixMatcher publicSuffixMatcher;
+
     private boolean systemProperties;
     private boolean cookieManagementDisabled;
     private boolean authCachingDisabled;
@@ -191,6 +194,20 @@ public class HttpAsyncClientBuilder {
 
     protected HttpAsyncClientBuilder() {
         super();
+    }
+
+    /**
+     * Assigns file containing public suffix matcher. Instances of this class can be created
+     * with {@link org.apache.http.conn.util.PublicSuffixMatcherLoader}.
+     *
+     * @see org.apache.http.conn.util.PublicSuffixMatcher
+     * @see org.apache.http.conn.util.PublicSuffixMatcherLoader
+     *
+     *   @since 4.1
+     */
+    public final HttpAsyncClientBuilder setPublicSuffixMatcher(final PublicSuffixMatcher publicSuffixMatcher) {
+        this.publicSuffixMatcher = publicSuffixMatcher;
+        return this;
     }
 
     /**
@@ -487,8 +504,25 @@ public class HttpAsyncClientBuilder {
      * Please note this value can be overridden by the {@link #setConnectionManager(
      *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
      *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
+     *
+     * @deprecated (4.1) use {@link #setSSLHostnameVerifier(javax.net.ssl.HostnameVerifier)}
      */
+    @Deprecated
     public final HttpAsyncClientBuilder setHostnameVerifier(final X509HostnameVerifier hostnameVerifier) {
+        this.hostnameVerifier = hostnameVerifier;
+        return this;
+    }
+
+    /**
+     * Assigns {@link javax.net.ssl.HostnameVerifier} instance.
+     * <p>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} and the {@link #setSSLStrategy(
+     *   org.apache.http.nio.conn.SchemeIOSessionStrategy)} methods.
+     *
+     * @since 4.1
+     */
+    public final HttpAsyncClientBuilder setSSLHostnameVerifier(final HostnameVerifier hostnameVerifier) {
         this.hostnameVerifier = hostnameVerifier;
         return this;
     }
@@ -601,6 +635,12 @@ public class HttpAsyncClientBuilder {
     }
 
     public CloseableHttpAsyncClient build() {
+
+        PublicSuffixMatcher publicSuffixMatcher = this.publicSuffixMatcher;
+        if (publicSuffixMatcher == null) {
+            publicSuffixMatcher = PublicSuffixMatcherLoader.getDefault();
+        }
+
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
             SchemeIOSessionStrategy sslStrategy = this.sslStrategy;
@@ -617,9 +657,9 @@ public class HttpAsyncClientBuilder {
                         System.getProperty("https.protocols")) : null;
                 final String[] supportedCipherSuites = systemProperties ? split(
                         System.getProperty("https.cipherSuites")) : null;
-                X509HostnameVerifier hostnameVerifier = this.hostnameVerifier;
+                HostnameVerifier hostnameVerifier = this.hostnameVerifier;
                 if (hostnameVerifier == null) {
-                    hostnameVerifier = SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+                    hostnameVerifier = new DefaultHostnameVerifier(publicSuffixMatcher);
                 }
                 sslStrategy = new SSLIOSessionStrategy(
                         sslcontext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
@@ -770,13 +810,10 @@ public class HttpAsyncClientBuilder {
         Lookup<CookieSpecProvider> cookieSpecRegistry = this.cookieSpecRegistry;
         if (cookieSpecRegistry == null) {
             cookieSpecRegistry = RegistryBuilder.<CookieSpecProvider>create()
-                .register(CookieSpecs.BEST_MATCH, new BestMatchSpecFactory())
-                .register(CookieSpecs.STANDARD, new RFC2965SpecFactory())
-                .register(CookieSpecs.BROWSER_COMPATIBILITY, new BrowserCompatSpecFactory())
-                .register(CookieSpecs.NETSCAPE, new NetscapeDraftSpecFactory())
-                .register(CookieSpecs.IGNORE_COOKIES, new IgnoreSpecFactory())
-                .register("rfc2109", new RFC2109SpecFactory())
-                .register("rfc2965", new RFC2965SpecFactory())
+                .register(CookieSpecs.DEFAULT, new DefaultCookieSpecProvider(publicSuffixMatcher))
+                .register(CookieSpecs.STANDARD, new RFC2965SpecProvider(publicSuffixMatcher))
+                .register(CookieSpecs.NETSCAPE, new NetscapeDraftSpecProvider())
+                .register(CookieSpecs.IGNORE_COOKIES, new IgnoreSpecProvider())
                 .build();
         }
 

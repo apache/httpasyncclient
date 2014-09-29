@@ -64,7 +64,7 @@ public class AsyncClientCustomSSL {
                 sslcontext,
                 new String[] { "TLSv1" },
                 null,
-                SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+                SSLIOSessionStrategy.getDefaultHostnameVerifier());
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
                 .setSSLStrategy(sslSessionStrategy)
                 .build();

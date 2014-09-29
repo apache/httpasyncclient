@@ -28,9 +28,8 @@
 package org.apache.http.nio.conn.ssl;
 
 import java.io.IOException;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -39,9 +38,11 @@ import javax.net.ssl.SSLSession;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.ssl.SSLIOSession;
@@ -58,12 +59,15 @@ import org.apache.http.util.TextUtils;
  */
 public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
+    @Deprecated
     public static final X509HostnameVerifier ALLOW_ALL_HOSTNAME_VERIFIER =
             new AllowAllHostnameVerifier();
 
+    @Deprecated
     public static final X509HostnameVerifier BROWSER_COMPATIBLE_HOSTNAME_VERIFIER =
             new BrowserCompatHostnameVerifier();
 
+    @Deprecated
     public static final X509HostnameVerifier STRICT_HOSTNAME_VERIFIER =
             new StrictHostnameVerifier();
 
@@ -74,10 +78,17 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         return s.split(" *, *");
     }
 
+    /**
+     * @since 4.1
+     */
+    public static HostnameVerifier getDefaultHostnameVerifier() {
+        return new DefaultHostnameVerifier(PublicSuffixMatcherLoader.getDefault());
+    }
+
     public static SSLIOSessionStrategy getDefaultStrategy() {
         return new SSLIOSessionStrategy(
                 SSLContexts.createDefault(),
-                BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+                getDefaultHostnameVerifier());
     }
 
     public static SSLIOSessionStrategy getSystemDefaultStrategy() {
@@ -85,34 +96,63 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
                 SSLContexts.createSystemDefault(),
                 split(System.getProperty("https.protocols")),
                 split(System.getProperty("https.cipherSuites")),
-                BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+                getDefaultHostnameVerifier());
     }
 
     private final SSLContext sslContext;
     private final String[] supportedProtocols;
     private final String[] supportedCipherSuites;
-    private final X509HostnameVerifier hostnameVerifier;
+    private final HostnameVerifier hostnameVerifier;
 
+    /**
+     * @deprecated (4.1) use {@link SSLIOSessionStrategy#SSLIOSessionStrategy(
+     *   javax.net.ssl.SSLContext, String[], String[], javax.net.ssl.HostnameVerifier)}
+     */
+    @Deprecated
     public SSLIOSessionStrategy(
             final SSLContext sslContext,
             final String[] supportedProtocols,
             final String[] supportedCipherSuites,
             final X509HostnameVerifier hostnameVerifier) {
+        this(sslContext, supportedProtocols, supportedCipherSuites, (HostnameVerifier) hostnameVerifier);
+    }
+
+    /**
+     * @deprecated (4.1)
+     */
+    @Deprecated
+    public SSLIOSessionStrategy(
+            final SSLContext sslcontext,
+            final X509HostnameVerifier hostnameVerifier) {
+        this(sslcontext, null, null, (HostnameVerifier) hostnameVerifier);
+    }
+
+    /**
+     * @since 4.1
+     */
+    public SSLIOSessionStrategy(
+            final SSLContext sslContext,
+            final String[] supportedProtocols,
+            final String[] supportedCipherSuites,
+            final HostnameVerifier hostnameVerifier) {
         super();
         this.sslContext = Args.notNull(sslContext, "SSL context");
         this.supportedProtocols = supportedProtocols;
         this.supportedCipherSuites = supportedCipherSuites;
-        this.hostnameVerifier = hostnameVerifier != null ? hostnameVerifier : BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+        this.hostnameVerifier = hostnameVerifier != null ? hostnameVerifier : getDefaultHostnameVerifier();
     }
 
+    /**
+     * @since 4.1
+     */
     public SSLIOSessionStrategy(
             final SSLContext sslcontext,
-            final X509HostnameVerifier hostnameVerifier) {
+            final HostnameVerifier hostnameVerifier) {
         this(sslcontext, null, null, hostnameVerifier);
     }
 
     public SSLIOSessionStrategy(final SSLContext sslcontext) {
-        this(sslcontext, null, null, BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+        this(sslcontext, null, null, getDefaultHostnameVerifier());
     }
 
     public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) throws IOException {
@@ -153,9 +193,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
             final HttpHost host,
             final IOSession iosession,
             final SSLSession sslsession) throws SSLException {
-        final Certificate[] certs = sslsession.getPeerCertificates();
-        final X509Certificate x509 = (X509Certificate) certs[0];
-        this.hostnameVerifier.verify(host.getHostName(), x509);
+        this.hostnameVerifier.verify(host.getHostName(), sslsession);
     }
 
     public boolean isLayeringRequired() {

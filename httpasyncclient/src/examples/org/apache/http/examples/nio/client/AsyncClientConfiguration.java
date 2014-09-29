@@ -27,6 +27,15 @@
 
 package org.apache.http.examples.nio.client;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.charset.CodingErrorAction;
+import java.util.Arrays;
+import java.util.concurrent.Future;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+
 import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -46,9 +55,8 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -77,13 +85,6 @@ import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.SessionInputBuffer;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
 import org.apache.http.util.CharArrayBuffer;
-
-import javax.net.ssl.SSLContext;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.charset.CodingErrorAction;
-import java.util.Arrays;
-import java.util.concurrent.Future;
 
 /**
  * This example demonstrates how to customize and configure the most common aspects
@@ -136,7 +137,7 @@ public class AsyncClientConfiguration {
         // system or application specific properties.
         SSLContext sslcontext = SSLContexts.createSystemDefault();
         // Use custom hostname verifier to customize SSL hostname verification.
-        X509HostnameVerifier hostnameVerifier = new BrowserCompatHostnameVerifier();
+        HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
         // Create a registry of custom connection session strategies for supported
         // protocol schemes.
@@ -202,9 +203,8 @@ public class AsyncClientConfiguration {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         // Create global request configuration
         RequestConfig defaultRequestConfig = RequestConfig.custom()
-            .setCookieSpec(CookieSpecs.BEST_MATCH)
+            .setCookieSpec(CookieSpecs.DEFAULT)
             .setExpectContinueEnabled(true)
-            .setStaleConnectionCheckEnabled(true)
             .setTargetPreferredAuthSchemes(Arrays.asList(AuthSchemes.NTLM, AuthSchemes.DIGEST))
             .setProxyPreferredAuthSchemes(Arrays.asList(AuthSchemes.BASIC))
             .build();
