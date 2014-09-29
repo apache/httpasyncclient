@@ -28,15 +28,12 @@ package org.apache.http.nio.client.methods;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
-import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.util.Asserts;
 
 /**
@@ -80,32 +77,13 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
     protected final void onContentReceived(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         Asserts.notNull(this.bbuf, "Byte buffer");
-
-        //FIXME: IOControl needs to expose event mask in order to avoid this extreme ugliness
-        final IOSession iosession;
-        if (ioctrl instanceof ManagedNHttpClientConnection) {
-            final ManagedNHttpClientConnection conn = (ManagedNHttpClientConnection) ioctrl;
-            iosession = conn != null ? conn.getIOSession() : null;
-        } else {
-            iosession = null;
+        final int bytesRead = decoder.read(this.bbuf);
+        if (bytesRead <= 0) {
+            return;
         }
-        while (!this.isDone()) {
-            final int bytesRead = decoder.read(this.bbuf);
-            if (bytesRead <= 0) {
-                break;
-            }
-            this.bbuf.flip();
-            onByteReceived(this.bbuf, ioctrl);
-            this.bbuf.clear();
-            if (decoder.isCompleted()) {
-                break;
-            } else {
-                if (iosession != null && (iosession.isClosed()
-                        || (iosession.getEventMask() & SelectionKey.OP_READ) == 0)) {
-                    break;
-                }
-            }
-        }
+        this.bbuf.flip();
+        onByteReceived(this.bbuf, ioctrl);
+        this.bbuf.clear();
     }
 
     @Override

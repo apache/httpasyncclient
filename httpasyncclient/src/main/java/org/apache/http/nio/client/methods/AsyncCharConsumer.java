@@ -29,7 +29,6 @@ package org.apache.http.nio.client.methods;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
@@ -38,9 +37,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.IOControl;
-import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
-import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.Asserts;
 
@@ -97,34 +94,18 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         Asserts.notNull(this.bbuf, "Byte buffer");
 
-        //FIXME: IOControl needs to expose event mask in order to avoid this extreme ugliness
-        final IOSession iosession;
-        if (ioctrl instanceof ManagedNHttpClientConnection) {
-            final ManagedNHttpClientConnection conn = (ManagedNHttpClientConnection) ioctrl;
-            iosession = conn != null ? conn.getIOSession() : null;
-        } else {
-            iosession = null;
+        final int bytesRead = decoder.read(this.bbuf);
+        if (bytesRead <= 0) {
+            return;
         }
-        while (!this.isDone()) {
-            final int bytesRead = decoder.read(this.bbuf);
-            if (bytesRead <= 0) {
-                break;
-            }
-            this.bbuf.flip();
-            final boolean completed = decoder.isCompleted();
-            CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
+        this.bbuf.flip();
+        final boolean completed = decoder.isCompleted();
+        CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
+        handleDecodingResult(result, ioctrl);
+        this.bbuf.compact();
+        if (completed) {
+            result = this.chardecoder.flush(this.cbuf);
             handleDecodingResult(result, ioctrl);
-            this.bbuf.compact();
-            if (completed) {
-                result = this.chardecoder.flush(this.cbuf);
-                handleDecodingResult(result, ioctrl);
-                break;
-            } else {
-                if (iosession != null && (iosession.isClosed() ||
-                        (iosession.getEventMask() & SelectionKey.OP_READ) == 0)) {
-                    break;
-                }
-            }
         }
     }
 
