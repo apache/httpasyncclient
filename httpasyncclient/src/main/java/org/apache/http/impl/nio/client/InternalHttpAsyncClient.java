@@ -26,12 +26,14 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.ConnectionReuseStrategy;
+import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthState;
 import org.apache.http.client.CookieStore;
@@ -141,6 +143,16 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             handler.failed(ex);
         }
         return future;
+    }
+
+    @Override
+    public <T> Future<List<T>> execute(
+            final HttpHost target,
+            final List<? extends HttpAsyncRequestProducer> requestProducers,
+            final List<? extends HttpAsyncResponseConsumer<T>> responseConsumers,
+            final HttpContext context,
+            final FutureCallback<List<T>> callback) {
+        throw new UnsupportedOperationException("Pipelining not supported");
     }
 
 }

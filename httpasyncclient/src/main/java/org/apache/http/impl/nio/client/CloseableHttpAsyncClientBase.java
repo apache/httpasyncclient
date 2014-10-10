@@ -37,7 +37,7 @@ import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.util.Asserts;
 
-abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
+abstract class CloseableHttpAsyncClientBase extends CloseableHttpPipeliningClient {
 
     private final Log log = LogFactory.getLog(getClass());
 

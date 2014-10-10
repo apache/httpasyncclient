@@ -29,13 +29,13 @@ package org.apache.http.impl.nio.client;
 
 import org.apache.http.annotation.Immutable;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
-import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.util.Args;
 
 /**
- * Factory methods for {@link CloseableHttpAsyncClient} instances.
+ * Factory methods for {@link org.apache.http.impl.nio.client.CloseableHttpAsyncClient} and
+ * {@link org.apache.http.impl.nio.client.CloseableHttpPipeliningClient} instances.
  *
  * @since 4.0
  */
@@ -67,35 +67,111 @@ public class HttpAsyncClients {
      * configuration based on ssytem properties.
      */
     public static CloseableHttpAsyncClient createSystem() {
-        return HttpAsyncClientBuilder.create().useSystemProperties().build();
+        return HttpAsyncClientBuilder.create()
+                .useSystemProperties()
+                .build();
     }
 
     /**
-     * Creates {@link CloseableHttpAsyncClient} instance that implements
-     * the most basic HTTP protocol support.
+     * Creates {@link CloseableHttpAsyncClient} instance that supports esential HTTP protocol
+     * aspects only. This client does not support HTTP state management, authentication
+     * and automatic redirects.
      */
     public static CloseableHttpAsyncClient createMinimal() {
-        return new MinimalHttpAsyncClient(
-                new PoolingNHttpClientConnectionManager(IOReactorUtils.create(IOReactorConfig.DEFAULT)));
+        return MinimalHttpAsyncClientBuilder.create()
+                .disableCookieManagement()
+                .build();
     }
 
     /**
-     * Creates {@link CloseableHttpAsyncClient} instance that implements
-     * the most basic HTTP protocol support.
+     * Creates {@link CloseableHttpAsyncClient} instance that supports esential HTTP protocol
+     * aspects only. This client does not support HTTP state management, authentication
+     * and automatic redirects.
      */
     public static CloseableHttpAsyncClient createMinimal(final ConnectingIOReactor ioreactor) {
         Args.notNull(ioreactor, "I/O reactor");
-        return new MinimalHttpAsyncClient(
-                new PoolingNHttpClientConnectionManager(ioreactor));
+        return createMinimal(new PoolingNHttpClientConnectionManager(ioreactor), false);
     }
 
     /**
-     * Creates {@link CloseableHttpAsyncClient} instance that implements
-     * the most basic HTTP protocol support.
+     * Creates {@link CloseableHttpAsyncClient} instance that supports esential HTTP protocol
+     * aspects only. This client does not support HTTP state management, authentication
+     * and automatic redirects.
      */
     public static CloseableHttpAsyncClient createMinimal(final NHttpClientConnectionManager connManager) {
+        return createMinimal(connManager, false);
+    }
+
+    /**
+     * Creates {@link CloseableHttpAsyncClient} instance that supports esential HTTP protocol
+     * aspects only. This client does not support HTTP state management, authentication
+     * and automatic redirects.
+     * <p>
+     * Please note that clients with a shared connection manager make no attempts to control
+     * its life cycle and dealocation of resources. It is a responibility of the caller to
+     * ensure that the shared connection manager is properly started and shut down when no
+     * longer needed.
+     *
+     * @since 4.1
+     */
+    public static CloseableHttpAsyncClient createMinimal(
+            final NHttpClientConnectionManager connManager, final boolean shared) {
         Args.notNull(connManager, "Connection manager");
-        return new MinimalHttpAsyncClient(connManager);
+        return MinimalHttpAsyncClientBuilder.create()
+                .setConnectionManager(connManager)
+                .setConnectionManagerShared(shared)
+                .disableCookieManagement()
+                .build();
+    }
+
+    /**
+     * Creates {@link CloseableHttpPipeliningClient} instance that supports pipelined request
+     * execution. This client does not support authentication and automatic redirects.
+     *
+     * @since 4.1
+     */
+    public static CloseableHttpPipeliningClient createPipelining() {
+        return MinimalHttpAsyncClientBuilder.create().build();
+    }
+
+    /**
+     * Creates {@link CloseableHttpPipeliningClient} instance that supports pipelined request
+     * execution. This client does not support authentication and automatic redirects.
+     *
+     * @since 4.1
+     */
+    public static CloseableHttpPipeliningClient createPipelining(final ConnectingIOReactor ioreactor) {
+        return createPipelining(new PoolingNHttpClientConnectionManager(ioreactor), false);
+    }
+
+    /**
+     * Creates {@link CloseableHttpPipeliningClient} instance that supports pipelined request
+     * execution. This client does not support authentication and automatic redirects.
+     *
+     * @since 4.1
+     */
+    public static CloseableHttpPipeliningClient createPipelining(final NHttpClientConnectionManager connManager) {
+        return createPipelining(connManager, false);
+    }
+
+    /**
+     * Creates {@link CloseableHttpPipeliningClient} instance that supports pipelined request
+     * execution. This client does not support authentication and automatic redirects.
+     * <p>
+     * Please note that clients with a shared connection manager make no attempts to control
+     * its life cycle and dealocation of resources. It is a responibility of the caller to
+     * ensure that the shared connection manager is properly started and shut down when no
+     * longer needed.
+     *
+     * @since 4.1
+     */
+    public static CloseableHttpPipeliningClient createPipelining(
+            final NHttpClientConnectionManager connManager, final boolean shared) {
+        Args.notNull(connManager, "Connection manager");
+        return MinimalHttpAsyncClientBuilder.create()
+                .setConnectionManager(connManager)
+                .setConnectionManagerShared(shared)
+                .build();
     }
 
 }

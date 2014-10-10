@@ -26,12 +26,12 @@
  */
 package org.apache.http.nio.client;
 
+import java.util.List;
 import java.util.concurrent.Future;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
@@ -43,115 +43,95 @@ import org.apache.http.protocol.HttpContext;
  * execution process and leaves the specifics of state management,
  * authentication and redirect handling up to individual implementations.
  *
- * @since 4.0
+ * @since 4.1
  */
-public interface HttpAsyncClient {
+public interface HttpPipeliningClient extends HttpAsyncClient {
 
     /**
-     * Initiates asynchronous HTTP request execution using the given context.
+     * Initiates pipelined execution of a sequence of requests.
      * <p>
-     * The request producer passed to this method will be used to generate
+     * The request producers passed to this method will be used to generate
      * a request message and stream out its content without buffering it
-     * in memory. The response consumer passed to this method will be used
+     * in memory. The response consumers passed to this method will be used
      * to process a response message without buffering its content in memory.
      * <p>
      * Please note it may be unsafe to interact with the context instance
      * while the request is still being executed.
      *
      * @param <T> the result type of request execution.
-     * @param requestProducer request producer callback.
-     * @param responseConsumer response consumer callaback.
+     * @param target    the target host for the request.
+     * @param requestProducers list of request producers.
+     * @param responseConsumers list of response consumers.
      * @param context HTTP context
      * @param callback future callback.
      * @return future representing pending completion of the operation.
      */
-    <T> Future<T> execute(
-            HttpAsyncRequestProducer requestProducer,
-            HttpAsyncResponseConsumer<T> responseConsumer,
+    <T> Future<List<T>> execute(
+            HttpHost target,
+            List<? extends HttpAsyncRequestProducer> requestProducers,
+            List<? extends HttpAsyncResponseConsumer<T>> responseConsumers,
             HttpContext context,
-            FutureCallback<T> callback);
+            FutureCallback<List<T>> callback);
 
     /**
-     * Initiates asynchronous HTTP request execution using the default
-     * context.
+     * Initiates pipelined execution of a sequence of requests.
      * <p>
-     * The request producer passed to this method will be used to generate
+     * The request producers passed to this method will be used to generate
      * a request message and stream out its content without buffering it
-     * in memory. The response consumer passed to this method will be used
+     * in memory. The response consumers passed to this method will be used
      * to process a response message without buffering its content in memory.
      *
      * @param <T> the result type of request execution.
-     * @param requestProducer request producer callback.
-     * @param responseConsumer response consumer callaback.
+     * @param target    the target host for the request.
+     * @param requestProducers list of request producers.
+     * @param responseConsumers list of response consumers.
      * @param callback future callback.
      * @return future representing pending completion of the operation.
      */
-    <T> Future<T> execute(
-            HttpAsyncRequestProducer requestProducer,
-            HttpAsyncResponseConsumer<T> responseConsumer,
-            FutureCallback<T> callback);
+    <T> Future<List<T>> execute(
+            HttpHost target,
+            List<? extends HttpAsyncRequestProducer> requestProducers,
+            List<? extends HttpAsyncResponseConsumer<T>> responseConsumers,
+            FutureCallback<List<T>> callback);
 
     /**
-     * Initiates asynchronous HTTP request execution against the given target
-     * using the given context.
+     * Initiates pipelined execution of a sequence of requests against
+     * the given target using the given context.
      * <p>
      * Please note it may be unsafe to interact with the context instance
      * while the request is still being executed.
      *
-     * @param target    the target host for the request.
+     * @param target    the target host for the requests.
      *                  Implementations may accept {@code null}
      *                  if they can still determine a route, for example
      *                  to a default target or by inspecting the request.
-     * @param request   the request to execute
+     * @param requests  the requests to execute
      * @param context   the context to use for the execution, or
      *                  {@code null} to use the default context
      * @param callback future callback.
      * @return future representing pending completion of the operation.
      */
-    Future<HttpResponse> execute(
-            HttpHost target, HttpRequest request, HttpContext context,
-            FutureCallback<HttpResponse> callback);
+    Future<List<HttpResponse>> execute(
+            HttpHost target,
+            List<HttpRequest> requests,
+            HttpContext context,
+            FutureCallback<List<HttpResponse>> callback);
 
     /**
-     * Initiates asynchronous HTTP request execution against the given target.
+     * Initiates pipelined execution of a sequence of requests against
+     * the given target.
      *
-     * @param target    the target host for the request.
+     * @param target    the target host for the requests.
      *                  Implementations may accept {@code null}
      *                  if they can still determine a route, for example
      *                  to a default target or by inspecting the request.
-     * @param request   the request to execute
+     * @param requests  the requests to execute
      * @param callback future callback.
      * @return future representing pending completion of the operation.
      */
-    Future<HttpResponse> execute(
-            HttpHost target, HttpRequest request,
-            FutureCallback<HttpResponse> callback);
-
-    /**
-     * Initiates asynchronous HTTP request execution using the given
-     * context.
-     * <p>
-     * Please note it may be unsafe to interact with the context instance
-     * while the request is still being executed.
-     *
-     * @param request   the request to execute
-     * @param context HTTP context
-     * @param callback future callback.
-     * @return future representing pending completion of the operation.
-     */
-    Future<HttpResponse> execute(
-            HttpUriRequest request, HttpContext context,
-            FutureCallback<HttpResponse> callback);
-
-    /**
-     * Initiates asynchronous HTTP request execution.
-     *
-     * @param request   the request to execute
-     * @param callback future callback.
-     * @return future representing pending completion of the operation.
-     */
-    Future<HttpResponse> execute(
-            HttpUriRequest request,
-            FutureCallback<HttpResponse> callback);
+    Future<List<HttpResponse>> execute(
+            HttpHost target,
+            List<HttpRequest> requests,
+            FutureCallback<List<HttpResponse>> callback);
 
 }

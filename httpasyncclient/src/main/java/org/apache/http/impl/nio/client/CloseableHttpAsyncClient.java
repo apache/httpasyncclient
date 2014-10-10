@@ -36,6 +36,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
@@ -43,7 +44,6 @@ import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
-import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Args;
 
@@ -64,7 +64,7 @@ public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Close
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final FutureCallback<T> callback) {
-        return execute(requestProducer, responseConsumer, new BasicHttpContext(), callback);
+        return execute(requestProducer, responseConsumer, HttpClientContext.create(), callback);
     }
 
     @Override
@@ -81,14 +81,14 @@ public abstract class CloseableHttpAsyncClient implements HttpAsyncClient, Close
     public Future<HttpResponse> execute(
             final HttpHost target, final HttpRequest request,
             final FutureCallback<HttpResponse> callback) {
-        return execute(target, request, new BasicHttpContext(), callback);
+        return execute(target, request, HttpClientContext.create(), callback);
     }
 
     @Override
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final FutureCallback<HttpResponse> callback) {
-        return execute(request, new BasicHttpContext(), callback);
+        return execute(request, HttpClientContext.create(), callback);
     }
 
     @Override

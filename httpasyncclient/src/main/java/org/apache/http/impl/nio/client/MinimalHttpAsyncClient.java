@@ -26,16 +26,19 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.ConnectionReuseStrategy;
+import org.apache.http.HttpHost;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.NHttpClientEventHandler;
@@ -45,11 +48,6 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpProcessor;
-import org.apache.http.protocol.ImmutableHttpProcessor;
-import org.apache.http.protocol.RequestContent;
-import org.apache.http.protocol.RequestTargetHost;
-import org.apache.http.protocol.RequestUserAgent;
-import org.apache.http.util.VersionInfo;
 
 class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
@@ -57,23 +55,32 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     private final NHttpClientConnectionManager connmgr;
     private final HttpProcessor httpProcessor;
+    private final ConnectionReuseStrategy connReuseStrategy;
+    private final ConnectionKeepAliveStrategy keepaliveStrategy;
 
     public MinimalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
             final ThreadFactory threadFactory,
-            final NHttpClientEventHandler eventHandler) {
+            final NHttpClientEventHandler eventHandler,
+            final HttpProcessor httpProcessor,
+            final ConnectionReuseStrategy connReuseStrategy,
+            final ConnectionKeepAliveStrategy keepaliveStrategy) {
         super(connmgr, threadFactory, eventHandler);
         this.connmgr = connmgr;
-        this.httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
-                new RequestTargetHost(),
-                new RequestClientConnControl(),
-                new RequestUserAgent(VersionInfo.getUserAgent(
-                        "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass())));
+        this.httpProcessor = httpProcessor;
+        this.connReuseStrategy = connReuseStrategy;
+        this.keepaliveStrategy = keepaliveStrategy;
     }
 
     public MinimalHttpAsyncClient(
-            final NHttpClientConnectionManager connmgr) {
-        this(connmgr, Executors.defaultThreadFactory(), new LoggingAsyncRequestExecutor());
+            final NHttpClientConnectionManager connmgr,
+            final HttpProcessor httpProcessor) {
+        this(connmgr,
+                Executors.defaultThreadFactory(),
+                new LoggingAsyncRequestExecutor(),
+                httpProcessor,
+                DefaultConnectionReuseStrategy.INSTANCE,
+                DefaultConnectionKeepAliveStrategy.INSTANCE);
     }
 
     @Override
@@ -96,8 +103,39 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             future,
             this.connmgr,
             this.httpProcessor,
-            DefaultConnectionReuseStrategy.INSTANCE,
-            DefaultConnectionKeepAliveStrategy.INSTANCE);
+            this.connReuseStrategy,
+            this.keepaliveStrategy);
+        try {
+            handler.start();
+        } catch (final Exception ex) {
+            handler.failed(ex);
+        }
+        return future;
+    }
+
+    @Override
+    public <T> Future<List<T>> execute(
+            final HttpHost target,
+            final List<? extends HttpAsyncRequestProducer> requestProducers,
+            final List<? extends HttpAsyncResponseConsumer<T>> responseConsumers,
+            final HttpContext context,
+            final FutureCallback<List<T>> callback) {
+        ensureRunning();
+        final BasicFuture<List<T>> future = new BasicFuture<List<T>>(callback);
+        final HttpClientContext localcontext = HttpClientContext.adapt(
+                context != null ? context : new BasicHttpContext());
+        @SuppressWarnings("resource")
+        final PipeliningClientExchangeHandlerImpl<T> handler = new PipeliningClientExchangeHandlerImpl<T>(
+                this.log,
+                target,
+                requestProducers,
+                responseConsumers,
+                localcontext,
+                future,
+                this.connmgr,
+                this.httpProcessor,
+                this.connReuseStrategy,
+                this.keepaliveStrategy);
         try {
             handler.start();
         } catch (final Exception ex) {
