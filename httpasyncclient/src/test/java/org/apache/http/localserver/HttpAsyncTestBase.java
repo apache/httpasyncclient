@@ -27,98 +27,47 @@
 
 package org.apache.http.localserver;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.ExceptionLogger;
 import org.apache.http.HttpHost;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.impl.nio.bootstrap.HttpServer;
-import org.apache.http.impl.nio.bootstrap.ServerBootstrap;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
-import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
-import org.apache.http.impl.nio.reactor.IOReactorConfig;
-import org.apache.http.nio.conn.NoopIOSessionStrategy;
-import org.apache.http.nio.conn.SchemeIOSessionStrategy;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.nio.reactor.ListenerEndpoint;
 import org.junit.After;
 import org.junit.Before;
 
-public abstract class HttpAsyncTestBase {
+public abstract class HttpAsyncTestBase extends AbstractAsyncTest{
 
-    public enum ProtocolScheme { http, https };
-
-    protected final ProtocolScheme scheme;
-
-    protected ServerBootstrap serverBootstrap;
-    protected HttpServer server;
     protected HttpAsyncClientBuilder clientBuilder;
-    protected PoolingNHttpClientConnectionManager connMgr;
     protected CloseableHttpAsyncClient httpclient;
 
-    public HttpAsyncTestBase(final ProtocolScheme scheme) {
-        this.scheme = scheme;
-    }
-
     public HttpAsyncTestBase() {
-        this(ProtocolScheme.http);
+        super();
     }
 
-    public String getSchemeName() {
-        return this.scheme.name();
+    public HttpAsyncTestBase(final ProtocolScheme scheme) {
+        super(scheme);
     }
 
     public HttpHost start() throws Exception {
-        this.server = this.serverBootstrap.create();
-        this.server.start();
+        final HttpHost serverEndpoint = startServer();
 
         this.httpclient = this.clientBuilder.build();
         this.httpclient.start();
 
-        final ListenerEndpoint endpoint = this.server.getEndpoint();
-        endpoint.waitFor();
-
-        final InetSocketAddress address = (InetSocketAddress) endpoint.getAddress();
-        return new HttpHost("localhost", address.getPort(), this.scheme.name());
+        return serverEndpoint;
     }
 
-    @Before
+    @Before @Override
     public void setUp() throws Exception {
-        this.serverBootstrap = ServerBootstrap.bootstrap();
-        final IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-                .setSoTimeout(15000)
-                .build();
-        this.serverBootstrap.setServerInfo("TEST/1.1");
-        this.serverBootstrap.setIOReactorConfig(ioReactorConfig);
-        this.serverBootstrap.setExceptionLogger(ExceptionLogger.STD_ERR);
-        if (this.scheme.equals(ProtocolScheme.https)) {
-            this.serverBootstrap.setSslContext(SSLTestContexts.createServerSSLContext());
-        }
-
+        super.setUp();
         this.clientBuilder = HttpAsyncClientBuilder.create();
-        final RegistryBuilder<SchemeIOSessionStrategy> builder = RegistryBuilder.create();
-        builder.register("http", NoopIOSessionStrategy.INSTANCE);
-        if (this.scheme.equals(ProtocolScheme.https)) {
-            builder.register("https", new SSLIOSessionStrategy(SSLTestContexts.createClientSSLContext()));
-        }
-        final Registry<SchemeIOSessionStrategy> registry =  builder.build();
-        final DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
-        this.connMgr = new PoolingNHttpClientConnectionManager(ioReactor, registry);
         this.clientBuilder.setConnectionManager(this.connMgr);
     }
 
-    @After
+    @After  @Override
     public void shutDown() throws Exception {
         if (this.httpclient != null) {
             this.httpclient.close();
         }
-        if (this.server != null) {
-            this.server.shutdown(10, TimeUnit.SECONDS);
-        }
+        super.shutDown();
     }
 
 }

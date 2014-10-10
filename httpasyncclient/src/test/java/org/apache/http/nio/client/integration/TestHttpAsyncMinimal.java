@@ -33,17 +33,20 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Future;
 
-import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.localserver.AbstractAsyncTest;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
 import org.apache.http.nio.entity.NByteArrayEntity;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
 import org.apache.http.util.EntityUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +54,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class TestHttpAsyncMinimal extends HttpAsyncTestBase {
+public class TestHttpAsyncMinimal extends AbstractAsyncTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> protocols() {
@@ -60,6 +63,8 @@ public class TestHttpAsyncMinimal extends HttpAsyncTestBase {
                 {ProtocolScheme.https},
         });
     }
+
+    protected CloseableHttpAsyncClient httpclient;
 
     public TestHttpAsyncMinimal(final ProtocolScheme scheme) {
         super(scheme);
@@ -70,6 +75,24 @@ public class TestHttpAsyncMinimal extends HttpAsyncTestBase {
         super.setUp();
         this.serverBootstrap.registerHandler("/echo/*", new BasicAsyncRequestHandler(new EchoHandler()));
         this.serverBootstrap.registerHandler("/random/*", new BasicAsyncRequestHandler(new RandomHandler()));
+
+        this.httpclient = HttpAsyncClients.createMinimal(this.connMgr);
+    }
+
+    @After @Override
+    public void shutDown() throws Exception {
+        if (this.httpclient != null) {
+            this.httpclient.close();
+        }
+        super.shutDown();
+    }
+
+    public HttpHost start() throws Exception {
+        final HttpHost serverEndpoint = startServer();
+
+        this.httpclient.start();
+
+        return serverEndpoint;
     }
 
     @Test

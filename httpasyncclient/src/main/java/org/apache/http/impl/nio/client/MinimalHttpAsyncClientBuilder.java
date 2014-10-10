@@ -40,6 +40,7 @@ import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
@@ -144,16 +145,18 @@ class MinimalHttpAsyncClientBuilder {
         final HttpProcessor httpprocessor = b.build();
 
         ThreadFactory threadFactory = null;
+        NHttpClientEventHandler eventHandler = null;
         if (!this.connManagerShared) {
             threadFactory = this.threadFactory;
             if (threadFactory == null) {
                 threadFactory = Executors.defaultThreadFactory();
             }
+            eventHandler = new LoggingAsyncRequestExecutor();
         }
         return new MinimalHttpAsyncClient(
             connManager,
             threadFactory,
-            new LoggingAsyncRequestExecutor(),
+            eventHandler,
             httpprocessor,
             reuseStrategy,
             keepAliveStrategy);
