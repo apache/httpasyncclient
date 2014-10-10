@@ -39,13 +39,14 @@ import org.apache.http.nio.IOControl;
 interface InternalClientExec {
 
     void prepare(
-            InternalState state,
             HttpHost target,
-            HttpRequest original) throws IOException, HttpException;
+            HttpRequest original,
+            InternalState state,
+            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
 
     HttpRequest generateRequest(
             InternalState state,
-            InternalConnManager connManager) throws IOException, HttpException;
+            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
 
     void produceContent(
             InternalState state,
@@ -53,11 +54,13 @@ interface InternalClientExec {
             IOControl ioctrl) throws IOException;
 
     void requestCompleted(
-            InternalState state);
+            InternalState state,
+            AbstractClientExchangeHandler<?> handler);
 
     void responseReceived(
+            HttpResponse response,
             InternalState state,
-            HttpResponse response) throws IOException, HttpException;
+            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
 
     void consumeContent(
             InternalState state,
@@ -66,6 +69,6 @@ interface InternalClientExec {
 
     void responseCompleted(
             InternalState state,
-            InternalConnManager connManager) throws IOException, HttpException;
+            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
 
 }

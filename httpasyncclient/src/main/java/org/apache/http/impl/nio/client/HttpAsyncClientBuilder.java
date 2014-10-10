@@ -838,11 +838,8 @@ public class HttpAsyncClientBuilder {
         }
 
         final MainClientExec exec = new MainClientExec(
-            connManager,
             httpprocessor,
             routePlanner,
-            reuseStrategy,
-            keepAliveStrategy,
             redirectStrategy,
             targetAuthStrategy,
             proxyAuthStrategy,
@@ -862,6 +859,8 @@ public class HttpAsyncClientBuilder {
         }
         return new InternalHttpAsyncClient(
             connManager,
+            reuseStrategy,
+            keepAliveStrategy,
             threadFactory,
             eventHandler,
             exec,

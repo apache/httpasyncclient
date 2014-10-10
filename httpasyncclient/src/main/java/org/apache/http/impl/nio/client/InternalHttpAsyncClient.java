@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthState;
 import org.apache.http.client.CookieStore;
@@ -40,6 +41,7 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.config.Lookup;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
@@ -53,6 +55,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
+    private final ConnectionReuseStrategy connReuseStrategy;
+    private final ConnectionKeepAliveStrategy keepaliveStrategy;
     private final InternalClientExec exec;
     private final Lookup<CookieSpecProvider> cookieSpecRegistry;
     private final Lookup<AuthSchemeProvider> authSchemeRegistry;
@@ -62,6 +66,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
 
     public InternalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
+            final ConnectionReuseStrategy connReuseStrategy,
+            final ConnectionKeepAliveStrategy keepaliveStrategy,
             final ThreadFactory threadFactory,
             final NHttpClientEventHandler handler,
             final InternalClientExec exec,
@@ -72,6 +78,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final RequestConfig defaultConfig) {
         super(connmgr, threadFactory, handler);
         this.connmgr = connmgr;
+        this.connReuseStrategy = connReuseStrategy;
+        this.keepaliveStrategy = keepaliveStrategy;
         this.exec = exec;
         this.cookieSpecRegistry = cookieSpecRegistry;
         this.authSchemeRegistry = authSchemeRegistry;
@@ -124,6 +132,8 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             localcontext,
             future,
             this.connmgr,
+            this.connReuseStrategy,
+            this.keepaliveStrategy,
             this.exec);
         try {
             handler.start();

@@ -34,10 +34,14 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.Configurable;
 import org.apache.http.client.methods.HttpExecutionAware;
+import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
@@ -45,6 +49,8 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
+import org.apache.http.protocol.HttpCoreContext;
+import org.apache.http.protocol.HttpProcessor;
 
 /**
  * Default implementation of {@link org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler}.
@@ -52,30 +58,30 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
  * Instances of this class are expected to be accessed by one thread at a time only.
  * The {@link #cancel()} method can be called concurrently by multiple threads.
  */
-class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler {
+class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler {
 
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<T> responseConsumer;
+    private final HttpClientContext localContext;
     private final BasicFuture<T> resultFuture;
-    private final InternalClientExec exec;
-    private final InternalState state;
+    private final HttpProcessor httpProcessor;
 
-    public DefaultClientExchangeHandlerImpl(
+    public MinimalClientExchangeHandlerImpl(
             final Log log,
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
             final HttpClientContext localContext,
             final BasicFuture<T> resultFuture,
             final NHttpClientConnectionManager connmgr,
+            final HttpProcessor httpProcessor,
             final ConnectionReuseStrategy connReuseStrategy,
-            final ConnectionKeepAliveStrategy keepaliveStrategy,
-            final InternalClientExec exec) {
+            final ConnectionKeepAliveStrategy keepaliveStrategy) {
         super(log, localContext, resultFuture, connmgr, connReuseStrategy, keepaliveStrategy);
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
+        this.localContext = localContext;
         this.resultFuture = resultFuture;
-        this.exec = exec;
-        this.state = new InternalState(getId(), requestProducer, responseConsumer, localContext);
+        this.httpProcessor = httpProcessor;
     }
 
     @Override
@@ -121,36 +127,89 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
         if (original instanceof HttpExecutionAware) {
             ((HttpExecutionAware) original).setCancellable(this);
         }
-        this.exec.prepare(target, original, this.state, this);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] start execution");
+        }
+
+        if (original instanceof Configurable) {
+            final RequestConfig config = ((Configurable) original).getConfig();
+            if (config != null) {
+                this.localContext.setRequestConfig(config);
+            }
+        }
+
+        final HttpRequestWrapper request = HttpRequestWrapper.wrap(original);
+        final HttpRoute route = new HttpRoute(target);
+        setCurrentRequest(request);
+        setRoute(route);
+
+        this.localContext.setAttribute(HttpClientContext.HTTP_REQUEST, request);
+        this.localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
+        this.localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
+
+        this.httpProcessor.process(request, this.localContext);
+
         requestConnection();
     }
 
     @Override
     public HttpRequest generateRequest() throws IOException, HttpException {
-        return this.exec.generateRequest(this.state, this);
+        verifytRoute();
+        if (!isRouteEstablished()) {
+            onRouteToTarget();
+            onRouteComplete();
+        }
+
+        final NHttpClientConnection localConn = getConnection();
+        this.localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, localConn);
+        final RequestConfig config = this.localContext.getRequestConfig();
+        if (config.getSocketTimeout() > 0) {
+            localConn.setSocketTimeout(config.getSocketTimeout());
+        }
+        return getCurrentRequest();
     }
 
     @Override
     public void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        this.exec.produceContent(this.state, encoder, ioctrl);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] produce content");
+        }
+        this.requestProducer.produceContent(encoder, ioctrl);
+        if (encoder.isCompleted()) {
+            this.requestProducer.resetRequest();
+        }
     }
 
     @Override
     public void requestCompleted() {
-        this.exec.requestCompleted(this.state, this);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] Request completed");
+        }
+        this.requestProducer.requestCompleted(this.localContext);
     }
 
     @Override
     public void responseReceived(
             final HttpResponse response) throws IOException, HttpException {
-        this.exec.responseReceived(response, this.state, this);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] Response received " + response.getStatusLine());
+        }
+        this.localContext.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
+        this.httpProcessor.process(response, this.localContext);
+
+        setCurrentResponse(response);
+
+        this.responseConsumer.responseReceived(response);
     }
 
     @Override
     public void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        this.exec.consumeContent(this.state, decoder, ioctrl);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] Consume content");
+        }
+        this.responseConsumer.consumeContent(decoder, ioctrl);
         if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
             markConnectionNonReusable();
             try {
@@ -165,43 +224,29 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     public void responseCompleted() throws IOException, HttpException {
-        this.exec.responseCompleted(this.state, this);
-
-        if (this.state.getFinalResponse() != null || this.resultFuture.isDone()) {
-            try {
-                markCompleted();
-                releaseConnection();
-                final T result = this.responseConsumer.getResult();
-                final Exception ex = this.responseConsumer.getException();
-                if (ex == null) {
-                    this.resultFuture.completed(result);
-                } else {
-                    this.resultFuture.failed(ex);
-                }
-            } finally {
-                close();
-            }
-        } else {
-            NHttpClientConnection localConn = getConnection();
-            if (localConn != null && !localConn.isOpen()) {
-                releaseConnection();
-                localConn = null;
-            }
-            if (localConn != null) {
-                localConn.requestOutput();
+        manageConnectionPersistence();
+        this.responseConsumer.responseCompleted(this.localContext);
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + getId() + "] Response processed");
+        }
+        try {
+            markCompleted();
+            releaseConnection();
+            final T result = this.responseConsumer.getResult();
+            final Exception ex = this.responseConsumer.getException();
+            if (ex == null) {
+                this.resultFuture.completed(result);
             } else {
-                requestConnection();
+                this.resultFuture.failed(ex);
             }
+        } finally {
+            close();
         }
     }
 
     @Override
     public void inputTerminated() {
-        if (!isCompleted()) {
-            requestConnection();
-        } else {
-            close();
-        }
+        close();
     }
 
     public void abortConnection() {

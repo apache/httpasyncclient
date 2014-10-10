@@ -27,36 +27,23 @@
 package org.apache.http.impl.nio.client;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 
 class InternalState {
-
-    private static final AtomicLong COUNTER = new AtomicLong(1);
 
     private final long id;
     private final HttpAsyncRequestProducer requestProducer;
     private final HttpAsyncResponseConsumer<?> responseConsumer;
     private final HttpClientContext localContext;
 
-    private boolean routeEstablished;
-    private RouteTracker routeTracker;
-    private boolean reusable;
-    private long validDuration;
-
-    private HttpRoute route;
     private HttpRequestWrapper mainRequest;
     private HttpResponse finalResponse;
-    private HttpRequestWrapper currentRequest;
-    private HttpResponse currentResponse;
     private ByteBuffer tmpbuf;
     private boolean requestContentProduced;
     private int execCount;
@@ -65,11 +52,12 @@ class InternalState {
     private HttpUriRequest redirect;
 
     public InternalState(
+            final long id,
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<?> responseConsumer,
             final HttpClientContext localContext) {
         super();
-        this.id = COUNTER.getAndIncrement();
+        this.id = id;
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.localContext = localContext;
@@ -91,50 +79,6 @@ class InternalState {
         return localContext;
     }
 
-    public boolean isRouteEstablished() {
-        return routeEstablished;
-    }
-
-    public void setRouteEstablished(final boolean b) {
-        this.routeEstablished = b;
-    }
-
-    public RouteTracker getRouteTracker() {
-        return routeTracker;
-    }
-
-    public void setRouteTracker(final RouteTracker routeTracker) {
-        this.routeTracker = routeTracker;
-    }
-
-    public boolean isReusable() {
-        return reusable;
-    }
-
-    public void setReusable() {
-        this.reusable = true;
-    }
-
-    public void setNonReusable() {
-        this.reusable = false;
-    }
-
-    public long getValidDuration() {
-        return validDuration;
-    }
-
-    public void setValidDuration(final long validDuration) {
-        this.validDuration = validDuration;
-    }
-
-    public HttpRoute getRoute() {
-        return route;
-    }
-
-    public void setRoute(final HttpRoute route) {
-        this.route = route;
-    }
-
     public HttpRequestWrapper getMainRequest() {
         return mainRequest;
     }
@@ -149,22 +93,6 @@ class InternalState {
 
     public void setFinalResponse(final HttpResponse finalResponse) {
         this.finalResponse = finalResponse;
-    }
-
-    public HttpRequestWrapper getCurrentRequest() {
-        return currentRequest;
-    }
-
-    public void setCurrentRequest(final HttpRequestWrapper currentRequest) {
-        this.currentRequest = currentRequest;
-    }
-
-    public HttpResponse getCurrentResponse() {
-        return currentResponse;
-    }
-
-    public void setCurrentResponse(final HttpResponse currentResponse) {
-        this.currentResponse = currentResponse;
     }
 
     public ByteBuffer getTmpbuf() {

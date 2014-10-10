@@ -76,9 +76,6 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
         this.status = new AtomicReference<Status>(Status.INACTIVE);
     }
 
-    void startConnManager(final NHttpClientEventHandler handler) {
-    }
-
     @Override
     public void start() {
         if (this.status.compareAndSet(Status.INACTIVE, Status.ACTIVE)) {

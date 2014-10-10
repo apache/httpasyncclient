@@ -31,11 +31,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.ConnectionReuseStrategy;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -62,19 +60,16 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.utils.URIUtils;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.BasicRouteDirector;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.routing.HttpRouteDirector;
 import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.conn.routing.RouteTracker;
 import org.apache.http.impl.auth.HttpAuthenticator;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.HttpCoreContext;
@@ -86,12 +81,9 @@ class MainClientExec implements InternalClientExec {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private final NHttpClientConnectionManager connmgr;
     private final HttpProcessor httpProcessor;
     private final HttpProcessor proxyHttpProcessor;
     private final HttpRoutePlanner routePlanner;
-    private final ConnectionReuseStrategy connReuseStrategy;
-    private final ConnectionKeepAliveStrategy keepaliveStrategy;
     private final AuthenticationStrategy targetAuthStrategy;
     private final AuthenticationStrategy proxyAuthStrategy;
     private final UserTokenHandler userTokenHandler;
@@ -100,23 +92,17 @@ class MainClientExec implements InternalClientExec {
     private final HttpAuthenticator authenticator;
 
     public MainClientExec(
-            final NHttpClientConnectionManager connmgr,
             final HttpProcessor httpProcessor,
             final HttpRoutePlanner routePlanner,
-            final ConnectionReuseStrategy connReuseStrategy,
-            final ConnectionKeepAliveStrategy keepaliveStrategy,
             final RedirectStrategy redirectStrategy,
             final AuthenticationStrategy targetAuthStrategy,
             final AuthenticationStrategy proxyAuthStrategy,
             final UserTokenHandler userTokenHandler) {
         super();
-        this.connmgr = connmgr;
         this.httpProcessor = httpProcessor;
         this.proxyHttpProcessor = new ImmutableHttpProcessor(
                 new RequestTargetHost(), new RequestClientConnControl());
         this.routePlanner = routePlanner;
-        this.connReuseStrategy = connReuseStrategy;
-        this.keepaliveStrategy = keepaliveStrategy;
         this.redirectStrategy = redirectStrategy;
         this.targetAuthStrategy = targetAuthStrategy;
         this.proxyAuthStrategy = proxyAuthStrategy;
@@ -127,9 +113,10 @@ class MainClientExec implements InternalClientExec {
 
     @Override
     public void prepare(
-            final InternalState state,
             final HttpHost target,
-            final HttpRequest original) throws HttpException, IOException {
+            final HttpRequest original,
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) throws HttpException, IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] start execution");
         }
@@ -150,67 +137,54 @@ class MainClientExec implements InternalClientExec {
 
         final HttpRequestWrapper request = HttpRequestWrapper.wrap(original);
         final HttpRoute route = this.routePlanner.determineRoute(target, request, localContext);
-        state.setRoute(route);
-        state.setMainRequest(request);
-        state.setCurrentRequest(request);
 
-        prepareRequest(state);
+        handler.setRoute(route);
+
+        state.setMainRequest(request);
+        handler.setCurrentRequest(request);
+
+        prepareRequest(state, handler);
     }
 
     @Override
     public HttpRequest generateRequest(
             final InternalState state,
-            final InternalConnManager connManager) throws IOException, HttpException {
-        final HttpClientContext localContext = state.getLocalContext();
-        final HttpRoute route = state.getRoute();
-        final NHttpClientConnection managedConn = connManager.getConnection();
-        if (!state.isRouteEstablished() && state.getRouteTracker() == null) {
-            state.setRouteEstablished(this.connmgr.isRouteComplete(managedConn));
-            if (!state.isRouteEstablished()) {
-                this.log.debug("Start connection routing");
-                state.setRouteTracker(new RouteTracker(route));
-            } else {
-                this.log.debug("Connection route already established");
-            }
-        }
+            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
 
-        if (!state.isRouteEstablished()) {
-            final RouteTracker routeTracker = state.getRouteTracker();
+        final HttpRoute route = handler.getRoute();
+
+        handler.verifytRoute();
+
+        if (!handler.isRouteEstablished()) {
             int step;
             loop:
             do {
-                final HttpRoute fact = routeTracker.toRoute();
+                final HttpRoute fact = handler.getActualRoute();
                 step = this.routeDirector.nextStep(route, fact);
                 switch (step) {
                 case HttpRouteDirector.CONNECT_TARGET:
-                    this.connmgr.startRoute(managedConn, route, localContext);
-                    routeTracker.connectTarget(route.isSecure());
+                    handler.onRouteToTarget();
                     break;
                 case HttpRouteDirector.CONNECT_PROXY:
-                    this.connmgr.startRoute(managedConn, route, localContext);
-                    final HttpHost proxy  = route.getProxyHost();
-                    routeTracker.connectProxy(proxy, false);
+                    handler.onRouteToProxy();
                     break;
                 case HttpRouteDirector.TUNNEL_TARGET:
                     if (this.log.isDebugEnabled()) {
                         this.log.debug("[exchange: " + state.getId() + "] Tunnel required");
                     }
                     final HttpRequest connect = createConnectRequest(route, state);
-                    state.setCurrentRequest(HttpRequestWrapper.wrap(connect));
+                    handler.setCurrentRequest(HttpRequestWrapper.wrap(connect));
                     break loop;
                 case HttpRouteDirector.TUNNEL_PROXY:
                     throw new HttpException("Proxy chains are not supported");
                 case HttpRouteDirector.LAYER_PROTOCOL:
-                    this.connmgr.upgrade(managedConn, route, localContext);
-                    routeTracker.layerProtocol(route.isSecure());
+                    handler.onRouteUpgrade();
                     break;
                 case HttpRouteDirector.UNREACHABLE:
                     throw new HttpException("Unable to establish route: " +
                             "planned = " + route + "; current = " + fact);
                 case HttpRouteDirector.COMPLETE:
-                    this.connmgr.routeComplete(managedConn, route, localContext);
-                    state.setRouteEstablished(true);
-                    state.setRouteTracker(null);
+                    handler.onRouteComplete();
                     this.log.debug("Connection route established");
                     break;
                 default:
@@ -220,13 +194,14 @@ class MainClientExec implements InternalClientExec {
             } while (step > HttpRouteDirector.COMPLETE);
         }
 
-        HttpRequestWrapper currentRequest = state.getCurrentRequest();
+        final HttpClientContext localContext = state.getLocalContext();
+        HttpRequestWrapper currentRequest = handler.getCurrentRequest();
         if (currentRequest == null) {
             currentRequest = state.getMainRequest();
-            state.setCurrentRequest(currentRequest);
+            handler.setCurrentRequest(currentRequest);
         }
 
-        if (state.isRouteEstablished()) {
+        if (handler.isRouteEstablished()) {
             state.incrementExecCount();
             if (state.getExecCount() > 1) {
                 final HttpAsyncRequestProducer requestProducer = state.getRequestProducer();
@@ -265,6 +240,7 @@ class MainClientExec implements InternalClientExec {
             }
         }
 
+        final NHttpClientConnection managedConn = handler.getConnection();
         localContext.setAttribute(HttpCoreContext.HTTP_CONNECTION, managedConn);
         final RequestConfig config = localContext.getRequestConfig();
         if (config.getSocketTimeout() > 0) {
@@ -290,7 +266,9 @@ class MainClientExec implements InternalClientExec {
     }
 
     @Override
-    public void requestCompleted(final InternalState state) {
+    public void requestCompleted(
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Request completed");
         }
@@ -301,8 +279,9 @@ class MainClientExec implements InternalClientExec {
 
     @Override
     public void responseReceived(
+            final HttpResponse response,
             final InternalState state,
-            final HttpResponse response) throws IOException, HttpException {
+            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
@@ -310,25 +289,24 @@ class MainClientExec implements InternalClientExec {
         context.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
         this.httpProcessor.process(response, context);
 
-        state.setCurrentResponse(response);
+        handler.setCurrentResponse(response);
 
-        if (!state.isRouteEstablished()) {
+        if (!handler.isRouteEstablished()) {
             final int status = response.getStatusLine().getStatusCode();
             if (status < 200) {
                 throw new HttpException("Unexpected response to CONNECT request: " +
                         response.getStatusLine());
             }
             if (status == HttpStatus.SC_OK) {
-                final RouteTracker routeTracker = state.getRouteTracker();
-                routeTracker.tunnelTarget(false);
-                state.setCurrentRequest(null);
+                handler.onRouteTunnelToTarget();
+                handler.setCurrentRequest(null);
             } else {
-                if (!handleConnectResponse(state)) {
+                if (!handleConnectResponse(state, handler)) {
                     state.setFinalResponse(response);
                 }
             }
         } else {
-            if (!handleResponse(state)) {
+            if (!handleResponse(state, handler)) {
                 state.setFinalResponse(response);
             }
         }
@@ -359,41 +337,21 @@ class MainClientExec implements InternalClientExec {
     @Override
     public void responseCompleted(
             final InternalState state,
-            final InternalConnManager connManager) throws IOException, HttpException {
+            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
-        final HttpResponse currentResponse = state.getCurrentResponse();
+        final HttpResponse currentResponse = handler.getCurrentResponse();
 
-        if (!state.isRouteEstablished()) {
+        if (!handler.isRouteEstablished()) {
             final int status = currentResponse.getStatusLine().getStatusCode();
             if (status == HttpStatus.SC_OK) {
-                state.setCurrentResponse(null);
+                handler.setCurrentResponse(null);
                 return;
             }
         }
 
-        final NHttpClientConnection managedConn = connManager.getConnection();
-        if (managedConn.isOpen() && this.connReuseStrategy.keepAlive(currentResponse, localContext)) {
-            final long validDuration = this.keepaliveStrategy.getKeepAliveDuration(
-                    currentResponse, localContext);
-            if (this.log.isDebugEnabled()) {
-                final String s;
-                if (validDuration > 0) {
-                    s = "for " + validDuration + " " + TimeUnit.MILLISECONDS;
-                } else {
-                    s = "indefinitely";
-                }
-                this.log.debug("[exchange: " + state.getId() + "] Connection can be kept alive " + s);
-            }
-            state.setValidDuration(validDuration);
-            state.setReusable();
-        } else {
-            if (this.log.isDebugEnabled()) {
-                if (managedConn.isOpen()) {
-                    this.log.debug("[exchange: " + state.getId() + "] Connection cannot be kept alive");
-                }
-            }
-            state.setNonReusable();
-            connManager.releaseConnection();
+        final boolean keepAlive = handler.manageConnectionPersistence();
+        if (!keepAlive) {
+            handler.releaseConnection();
             final AuthState proxyAuthState = localContext.getProxyAuthState();
             if (proxyAuthState.getState() == AuthProtocolState.SUCCESS
                     && proxyAuthState.getAuthScheme() != null
@@ -426,7 +384,7 @@ class MainClientExec implements InternalClientExec {
             if (this.log.isDebugEnabled()) {
                 this.log.debug("[exchange: " + state.getId() + "] Response processed");
             }
-            connManager.releaseConnection();
+            handler.releaseConnection();
         } else {
             if (state.getRedirect() != null) {
                 final HttpUriRequest redirect = state.getRedirect();
@@ -442,7 +400,7 @@ class MainClientExec implements InternalClientExec {
                 }
 
                 // Reset auth states if redirecting to another host
-                final HttpRoute route = state.getRoute();
+                final HttpRoute route = handler.getRoute();
                 if (!route.getTargetHost().equals(newTarget)) {
                     final AuthState targetAuthState = localContext.getTargetAuthState();
                     if (this.log.isDebugEnabled()) {
@@ -467,21 +425,21 @@ class MainClientExec implements InternalClientExec {
                 final HttpRequestWrapper newRequest = HttpRequestWrapper.wrap(redirect);
                 final HttpRoute newRoute = this.routePlanner.determineRoute(
                     newTarget, newRequest, localContext);
-                state.setRoute(newRoute);
-                state.setMainRequest(newRequest);
-                state.setCurrentRequest(newRequest);
                 if (!route.equals(newRoute)) {
-                    connManager.releaseConnection();
+                    handler.releaseConnection();
                 }
-                prepareRequest(state);
+                handler.setRoute(newRoute);
+                handler.setCurrentRequest(newRequest);
+                state.setMainRequest(newRequest);
+                prepareRequest(state, handler);
             }
         }
-        state.setCurrentResponse(null);
+        handler.setCurrentResponse(null);
     }
 
-    private void rewriteRequestURI(final InternalState state) throws ProtocolException {
-        final HttpRequestWrapper request = state.getCurrentRequest();
-        final HttpRoute route = state.getRoute();
+    private void rewriteRequestURI(
+            final HttpRequestWrapper request,
+            final HttpRoute route) throws ProtocolException {
         try {
             URI uri = request.getURI();
             if (uri != null) {
@@ -509,10 +467,12 @@ class MainClientExec implements InternalClientExec {
         }
     }
 
-    private void prepareRequest(final InternalState state) throws IOException, HttpException {
+    private void prepareRequest(
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
-        final HttpRequestWrapper currentRequest = state.getCurrentRequest();
-        final HttpRoute route = state.getRoute();
+        final HttpRequestWrapper currentRequest = handler.getCurrentRequest();
+        final HttpRoute route = handler.getRoute();
 
         final HttpRequest original = currentRequest.getOriginal();
         URI uri = null;
@@ -533,7 +493,7 @@ class MainClientExec implements InternalClientExec {
         currentRequest.setURI(uri);
 
         // Re-write request URI if needed
-        rewriteRequestURI(state);
+        rewriteRequestURI(currentRequest, route);
 
         HttpHost target = null;
         if (uri != null && uri.isAbsolute() && uri.getHost() != null) {
@@ -578,15 +538,17 @@ class MainClientExec implements InternalClientExec {
         return request;
     }
 
-    private boolean handleConnectResponse(final InternalState state) throws HttpException {
+    private boolean handleConnectResponse(
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
             final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
             if (credsProvider != null) {
-                final HttpRoute route = state.getRoute();
+                final HttpRoute route = handler.getRoute();
                 final HttpHost proxy = route.getProxyHost();
-                final HttpResponse currentResponse = state.getCurrentResponse();
+                final HttpResponse currentResponse = handler.getCurrentResponse();
                 final AuthState proxyAuthState = localContext.getProxyAuthState();
                 if (this.authenticator.isAuthenticationRequested(proxy, currentResponse,
                         this.proxyAuthStrategy, proxyAuthState, localContext)) {
@@ -598,13 +560,15 @@ class MainClientExec implements InternalClientExec {
         return false;
     }
 
-    private boolean handleResponse(final InternalState state) throws HttpException {
+    private boolean handleResponse(
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
-            if (needAuthentication(state)) {
+            if (needAuthentication(state, handler)) {
                 // discard previous auth headers
-                final HttpRequestWrapper currentRequest = state.getCurrentRequest();
+                final HttpRequestWrapper currentRequest = handler.getCurrentRequest();
                 final HttpRequest original = currentRequest.getOriginal();
                 if (!original.containsHeader(AUTH.WWW_AUTH_RESP)) {
                     currentRequest.removeHeaders(AUTH.WWW_AUTH_RESP);
@@ -616,8 +580,8 @@ class MainClientExec implements InternalClientExec {
             }
         }
         if (config.isRedirectsEnabled()) {
-            final HttpRequest currentRequest = state.getCurrentRequest();
-            final HttpResponse currentResponse = state.getCurrentResponse();
+            final HttpRequest currentRequest = handler.getCurrentRequest();
+            final HttpResponse currentResponse = handler.getCurrentResponse();
             if (this.redirectStrategy.isRedirected(currentRequest, currentResponse, localContext)) {
                 final int maxRedirects = config.getMaxRedirects() >= 0 ? config.getMaxRedirects() : 100;
                 if (state.getRedirectCount() >= maxRedirects) {
@@ -633,12 +597,14 @@ class MainClientExec implements InternalClientExec {
         return false;
     }
 
-    private boolean needAuthentication(final InternalState state) throws HttpException {
+    private boolean needAuthentication(
+            final InternalState state,
+            final AbstractClientExchangeHandler<?> handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
         if (credsProvider != null) {
-            final HttpRoute route = state.getRoute();
-            final HttpResponse currentResponse = state.getCurrentResponse();
+            final HttpRoute route = handler.getRoute();
+            final HttpResponse currentResponse = handler.getCurrentResponse();
             HttpHost target = localContext.getTargetHost();
             if (target == null) {
                 target = route.getTargetHost();

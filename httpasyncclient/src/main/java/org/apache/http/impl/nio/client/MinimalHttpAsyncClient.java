@@ -56,7 +56,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
     private final Log log = LogFactory.getLog(getClass());
 
     private final NHttpClientConnectionManager connmgr;
-    private final InternalClientExec execChain;
+    private final HttpProcessor httpProcessor;
 
     public MinimalHttpAsyncClient(
             final NHttpClientConnectionManager connmgr,
@@ -64,16 +64,11 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final NHttpClientEventHandler eventHandler) {
         super(connmgr, threadFactory, eventHandler);
         this.connmgr = connmgr;
-        final HttpProcessor httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
+        this.httpProcessor = new ImmutableHttpProcessor(new RequestContent(),
                 new RequestTargetHost(),
                 new RequestClientConnControl(),
                 new RequestUserAgent(VersionInfo.getUserAgent(
                         "Apache-HttpAsyncClient", "org.apache.http.nio.client", getClass())));
-        this.execChain = new MinimalClientExec(
-                connmgr,
-                httpProcessor,
-                DefaultConnectionReuseStrategy.INSTANCE,
-                DefaultConnectionKeepAliveStrategy.INSTANCE);
     }
 
     public MinimalHttpAsyncClient(
@@ -93,14 +88,16 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             context != null ? context : new BasicHttpContext());
 
         @SuppressWarnings("resource")
-        final DefaultClientExchangeHandlerImpl<T> handler = new DefaultClientExchangeHandlerImpl<T>(
+        final MinimalClientExchangeHandlerImpl<T> handler = new MinimalClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
             responseConsumer,
             localcontext,
             future,
             this.connmgr,
-            this.execChain);
+            this.httpProcessor,
+            DefaultConnectionReuseStrategy.INSTANCE,
+            DefaultConnectionKeepAliveStrategy.INSTANCE);
         try {
             handler.start();
         } catch (final Exception ex) {
