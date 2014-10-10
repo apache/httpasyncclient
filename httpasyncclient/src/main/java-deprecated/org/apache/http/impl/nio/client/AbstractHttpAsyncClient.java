@@ -501,6 +501,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         }
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
@@ -542,6 +543,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         return future;
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
@@ -549,6 +551,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         return execute(requestProducer, responseConsumer, new BasicHttpContext(), callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpHost target, final HttpRequest request, final HttpContext context,
             final FutureCallback<HttpResponse> callback) {
@@ -558,18 +561,21 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
                 context, callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpHost target, final HttpRequest request,
             final FutureCallback<HttpResponse> callback) {
         return execute(target, request, new BasicHttpContext(), callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final FutureCallback<HttpResponse> callback) {
         return execute(request, new BasicHttpContext(), callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final HttpContext context,

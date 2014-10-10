@@ -110,6 +110,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             this(true);
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -168,6 +169,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             this.authTokenExtractor = new BasicAuthTokenExtractor();
         }
 
+        @Override
         public void verify(
                 final HttpAsyncExchange httpexchange,
                 final HttpContext context) throws HttpException, IOException {
@@ -197,14 +199,17 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             this.creds = creds;
         }
 
+        @Override
         public void clear() {
         }
 
+        @Override
         public Credentials getCredentials(final AuthScope authscope) {
             this.authscope = authscope;
             return this.creds;
         }
 
+        @Override
         public void setCredentials(final AuthScope authscope, final Credentials credentials) {
         }
 
@@ -438,6 +443,7 @@ public class TestClientAuthentication extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,

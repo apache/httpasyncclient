@@ -60,6 +60,7 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         return reg;
     }
 
+    @Override
     public HttpRoute determineRoute(
             final HttpHost target,
             final HttpRequest request,

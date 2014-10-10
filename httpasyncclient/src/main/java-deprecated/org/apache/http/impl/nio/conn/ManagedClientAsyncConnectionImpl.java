@@ -115,6 +115,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         return local;
     }
 
+    @Override
     public void close() throws IOException {
         final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
@@ -122,6 +123,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    @Override
     public void shutdown() throws IOException {
         final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
@@ -129,6 +131,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    @Override
     public boolean isOpen() {
         final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
@@ -138,115 +141,138 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    @Override
     public boolean isStale() {
         return isOpen();
     }
 
+    @Override
     public void setSocketTimeout(final int timeout) {
         final ClientAsyncConnection conn = ensureConnection();
         conn.setSocketTimeout(timeout);
     }
 
+    @Override
     public int getSocketTimeout() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getSocketTimeout();
     }
 
+    @Override
     public HttpConnectionMetrics getMetrics() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getMetrics();
     }
 
+    @Override
     public InetAddress getLocalAddress() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getLocalAddress();
     }
 
+    @Override
     public int getLocalPort() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getLocalPort();
     }
 
+    @Override
     public InetAddress getRemoteAddress() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getRemoteAddress();
     }
 
+    @Override
     public int getRemotePort() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getRemotePort();
     }
 
+    @Override
     public int getStatus() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getStatus();
     }
 
+    @Override
     public HttpRequest getHttpRequest() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getHttpRequest();
     }
 
+    @Override
     public HttpResponse getHttpResponse() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getHttpResponse();
     }
 
+    @Override
     public HttpContext getContext() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getContext();
     }
 
+    @Override
     public void requestInput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.requestInput();
     }
 
+    @Override
     public void suspendInput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.suspendInput();
     }
 
+    @Override
     public void requestOutput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.requestOutput();
     }
 
+    @Override
     public void suspendOutput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.suspendOutput();
     }
 
+    @Override
     public void submitRequest(final HttpRequest request) throws IOException, HttpException {
         final ClientAsyncConnection conn = ensureConnection();
         conn.submitRequest(request);
     }
 
+    @Override
     public boolean isRequestSubmitted() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.isRequestSubmitted();
     }
 
+    @Override
     public void resetOutput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.resetOutput();
     }
 
+    @Override
     public void resetInput() {
         final ClientAsyncConnection conn = ensureConnection();
         conn.resetInput();
     }
 
+    @Override
     public boolean isSecure() {
         final ClientAsyncConnection conn = ensureConnection();
         return conn.getIOSession() instanceof SSLIOSession;
     }
 
+    @Override
     public HttpRoute getRoute() {
         final HttpPoolEntry entry = ensurePoolEntry();
         return entry.getEffectiveRoute();
     }
 
+    @Override
     public SSLSession getSSLSession() {
         final ClientAsyncConnection conn = ensureConnection();
         final IOSession iosession = conn.getIOSession();
@@ -257,28 +283,34 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    @Override
     public Object getState() {
         final HttpPoolEntry entry = ensurePoolEntry();
         return entry.getState();
     }
 
+    @Override
     public void setState(final Object state) {
         final HttpPoolEntry entry = ensurePoolEntry();
         entry.setState(state);
     }
 
+    @Override
     public void markReusable() {
         this.reusable = true;
     }
 
+    @Override
     public void unmarkReusable() {
         this.reusable = false;
     }
 
+    @Override
     public boolean isMarkedReusable() {
         return this.reusable;
     }
 
+    @Override
     public void setIdleDuration(final long duration, final TimeUnit unit) {
         if(duration > 0) {
             this.duration = unit.toMillis(duration);
@@ -296,6 +328,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         return reg;
     }
 
+    @Override
     public synchronized void open(
             final HttpRoute route,
             final HttpContext context,
@@ -331,6 +364,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         }
     }
 
+    @Override
     public synchronized void tunnelProxy(
             final HttpHost next, final HttpParams params) throws IOException {
         final HttpPoolEntry entry = ensurePoolEntry();
@@ -341,6 +375,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         tracker.tunnelProxy(next, false);
     }
 
+    @Override
     public synchronized void tunnelTarget(
             final HttpParams params) throws IOException {
         final HttpPoolEntry entry = ensurePoolEntry();
@@ -354,6 +389,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         tracker.tunnelTarget(false);
     }
 
+    @Override
     public synchronized void layerProtocol(
             final HttpContext context, final HttpParams params) throws IOException {
         final HttpPoolEntry entry = ensurePoolEntry();
@@ -381,6 +417,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
+    @Override
     public synchronized void releaseConnection() {
         if (this.poolEntry == null) {
             return;
@@ -389,6 +426,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         this.poolEntry = null;
     }
 
+    @Override
     public synchronized void abortConnection() {
         if (this.poolEntry == null) {
             return;

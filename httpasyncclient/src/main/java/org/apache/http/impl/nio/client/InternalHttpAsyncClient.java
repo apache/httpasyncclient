@@ -104,6 +104,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         }
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,

@@ -62,16 +62,19 @@ public class QuickStart {
             final HttpGet request2 = new HttpGet("http://www.apache.org/");
             httpclient.execute(request2, new FutureCallback<HttpResponse>() {
 
+                @Override
                 public void completed(final HttpResponse response2) {
                     latch1.countDown();
                     System.out.println(request2.getRequestLine() + "->" + response2.getStatusLine());
                 }
 
+                @Override
                 public void failed(final Exception ex) {
                     latch1.countDown();
                     System.out.println(request2.getRequestLine() + "->" + ex);
                 }
 
+                @Override
                 public void cancelled() {
                     latch1.countDown();
                     System.out.println(request2.getRequestLine() + " cancelled");
@@ -111,16 +114,19 @@ public class QuickStart {
             };
             httpclient.execute(producer3, consumer3, new FutureCallback<HttpResponse>() {
 
+                @Override
                 public void completed(final HttpResponse response3) {
                     latch2.countDown();
                     System.out.println(request2.getRequestLine() + "->" + response3.getStatusLine());
                 }
 
+                @Override
                 public void failed(final Exception ex) {
                     latch2.countDown();
                     System.out.println(request2.getRequestLine() + "->" + ex);
                 }
 
+                @Override
                 public void cancelled() {
                     latch2.countDown();
                     System.out.println(request2.getRequestLine() + " cancelled");

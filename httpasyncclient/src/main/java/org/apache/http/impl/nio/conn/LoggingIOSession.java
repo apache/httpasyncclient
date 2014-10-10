@@ -54,18 +54,22 @@ class LoggingIOSession implements IOSession {
         this.wirelog = new Wire(wirelog, this.id);
     }
 
+    @Override
     public ByteChannel channel() {
         return this.channel;
     }
 
+    @Override
     public SocketAddress getLocalAddress() {
         return this.session.getLocalAddress();
     }
 
+    @Override
     public SocketAddress getRemoteAddress() {
         return this.session.getRemoteAddress();
     }
 
+    @Override
     public int getEventMask() {
         return this.session.getEventMask();
     }
@@ -89,6 +93,7 @@ class LoggingIOSession implements IOSession {
         return buffer.toString();
     }
 
+    @Override
     public void setEventMask(final int ops) {
         this.session.setEventMask(ops);
         if (this.log.isDebugEnabled()) {
@@ -96,6 +101,7 @@ class LoggingIOSession implements IOSession {
         }
     }
 
+    @Override
     public void setEvent(final int op) {
         this.session.setEvent(op);
         if (this.log.isDebugEnabled()) {
@@ -103,6 +109,7 @@ class LoggingIOSession implements IOSession {
         }
     }
 
+    @Override
     public void clearEvent(final int op) {
         this.session.clearEvent(op);
         if (this.log.isDebugEnabled()) {
@@ -110,6 +117,7 @@ class LoggingIOSession implements IOSession {
         }
     }
 
+    @Override
     public void close() {
         if (this.log.isDebugEnabled()) {
             this.log.debug(this.id + " " + this.session + ": Close");
@@ -117,14 +125,17 @@ class LoggingIOSession implements IOSession {
         this.session.close();
     }
 
+    @Override
     public int getStatus() {
         return this.session.getStatus();
     }
 
+    @Override
     public boolean isClosed() {
         return this.session.isClosed();
     }
 
+    @Override
     public void shutdown() {
         if (this.log.isDebugEnabled()) {
             this.log.debug(this.id + " " + this.session + ": Shutdown");
@@ -132,10 +143,12 @@ class LoggingIOSession implements IOSession {
         this.session.shutdown();
     }
 
+    @Override
     public int getSocketTimeout() {
         return this.session.getSocketTimeout();
     }
 
+    @Override
     public void setSocketTimeout(final int timeout) {
         if (this.log.isDebugEnabled()) {
             this.log.debug(this.id + " " + this.session + ": Set timeout " + timeout);
@@ -143,22 +156,27 @@ class LoggingIOSession implements IOSession {
         this.session.setSocketTimeout(timeout);
     }
 
+    @Override
     public void setBufferStatus(final SessionBufferStatus status) {
         this.session.setBufferStatus(status);
     }
 
+    @Override
     public boolean hasBufferedInput() {
         return this.session.hasBufferedInput();
     }
 
+    @Override
     public boolean hasBufferedOutput() {
         return this.session.hasBufferedOutput();
     }
 
+    @Override
     public Object getAttribute(final String name) {
         return this.session.getAttribute(name);
     }
 
+    @Override
     public void setAttribute(final String name, final Object obj) {
         if (this.log.isDebugEnabled()) {
             this.log.debug(this.id + " " + this.session + ": Set attribute " + name);
@@ -166,6 +184,7 @@ class LoggingIOSession implements IOSession {
         this.session.setAttribute(name, obj);
     }
 
+    @Override
     public Object removeAttribute(final String name) {
         if (this.log.isDebugEnabled()) {
             this.log.debug(this.id + " " + this.session + ": Remove attribute " + name);
@@ -180,6 +199,7 @@ class LoggingIOSession implements IOSession {
 
     class LoggingByteChannel implements ByteChannel {
 
+        @Override
         public int read(final ByteBuffer dst) throws IOException {
             final int bytesRead = session.channel().read(dst);
             if (log.isDebugEnabled()) {
@@ -195,6 +215,7 @@ class LoggingIOSession implements IOSession {
             return bytesRead;
         }
 
+        @Override
         public int write(final ByteBuffer src) throws IOException {
             final int byteWritten = session.channel().write(src);
             if (log.isDebugEnabled()) {
@@ -210,6 +231,7 @@ class LoggingIOSession implements IOSession {
             return byteWritten;
         }
 
+        @Override
         public void close() throws IOException {
             if (log.isDebugEnabled()) {
                 log.debug(id + " " + session + ": Channel close");
@@ -217,6 +239,7 @@ class LoggingIOSession implements IOSession {
             session.channel().close();
         }
 
+        @Override
         public boolean isOpen() {
             return session.channel().isOpen();
         }

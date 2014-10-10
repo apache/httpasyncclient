@@ -64,6 +64,7 @@ public class DefaultClientAsyncConnection
         }
     }
 
+    @Override
     public void upgrade(final IOSession iosession) {
         this.original = iosession;
         if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
@@ -74,6 +75,7 @@ public class DefaultClientAsyncConnection
         }
     }
 
+    @Override
     public IOSession getIOSession() {
         return this.original;
     }

@@ -72,6 +72,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
     public void testConnectionTerminatedProcessingRequest() throws Exception {
         this.serverBootstrap.registerHandler("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
+            @Override
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
                     final HttpRequest request,
                     final HttpContext context) throws HttpException, IOException {
@@ -81,6 +82,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                 return new BasicAsyncRequestConsumer();
             }
 
+            @Override
             public void handle(
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
@@ -99,14 +101,17 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
+            @Override
             public void cancelled() {
                 latch.countDown();
             }
 
+            @Override
             public void failed(final Exception ex) {
                 latch.countDown();
             }
 
+            @Override
             public void completed(final HttpResponse response) {
                 Assert.fail();
             }
@@ -121,12 +126,14 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
     public void testConnectionTerminatedHandlingRequest() throws Exception {
         this.serverBootstrap.registerHandler("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
+            @Override
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
                     final HttpRequest request,
                     final HttpContext context) throws HttpException, IOException {
                 return new BasicAsyncRequestConsumer();
             }
 
+            @Override
             public void handle(
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
@@ -148,14 +155,17 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
+            @Override
             public void cancelled() {
                 latch.countDown();
             }
 
+            @Override
             public void failed(final Exception ex) {
                 latch.countDown();
             }
 
+            @Override
             public void completed(final HttpResponse response) {
                 Assert.fail();
             }
@@ -170,12 +180,14 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
     public void testConnectionTerminatedSendingResponse() throws Exception {
         this.serverBootstrap.registerHandler("*", new HttpAsyncRequestHandler<HttpRequest>() {
 
+            @Override
             public HttpAsyncRequestConsumer<HttpRequest> processRequest(
                     final HttpRequest request,
                     final HttpContext context) throws HttpException, IOException {
                 return new BasicAsyncRequestConsumer();
             }
 
+            @Override
             public void handle(
                     final HttpRequest request,
                     final HttpAsyncExchange httpExchange,
@@ -203,14 +215,17 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
         final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
+            @Override
             public void cancelled() {
                 latch.countDown();
             }
 
+            @Override
             public void failed(final Exception ex) {
                 latch.countDown();
             }
 
+            @Override
             public void completed(final HttpResponse response) {
                 Assert.fail();
             }
@@ -253,24 +268,29 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                 failed.set(true);
             }
 
+            @Override
             public void responseReceived(
                     final HttpResponse response) throws IOException, HttpException {
                 throw new IllegalStateException();
             }
 
+            @Override
             public void consumeContent(
                     final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
                 throw new IllegalStateException();
             }
 
+            @Override
             public void responseCompleted(final HttpContext context) {
                 throw new IllegalStateException();
             }
 
+            @Override
             public Exception getException() {
                 return null;
             }
 
+            @Override
             public String getResult() {
                 return null;
             }
@@ -330,21 +350,26 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             public void failed(final Exception ex) {
             }
 
+            @Override
             public void responseReceived(
                     final HttpResponse response) throws IOException, HttpException {
             }
 
+            @Override
             public void consumeContent(
                     final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
             }
 
+            @Override
             public void responseCompleted(final HttpContext context) {
             }
 
+            @Override
             public Exception getException() {
                 return null;
             }
 
+            @Override
             public String getResult() {
                 return null;
             }

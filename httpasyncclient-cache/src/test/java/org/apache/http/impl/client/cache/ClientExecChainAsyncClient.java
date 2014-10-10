@@ -84,10 +84,12 @@ public class ClientExecChainAsyncClient extends CloseableHttpAsyncClient {
         return null;
     }
 
+    @Override
     public void close() throws IOException {
         // no-op
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,

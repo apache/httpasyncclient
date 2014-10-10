@@ -100,10 +100,12 @@ class ManagedNHttpClientConnectionImpl
         }
     }
 
+    @Override
     public IOSession getIOSession() {
         return this.original;
     }
 
+    @Override
     public SSLSession getSSLSession() {
         if (this.original instanceof SSLIOSession) {
             return ((SSLIOSession) this.original).getSSLSession();
@@ -112,6 +114,7 @@ class ManagedNHttpClientConnectionImpl
         }
     }
 
+    @Override
     public String getId() {
         return this.id;
     }

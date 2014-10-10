@@ -80,6 +80,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
     protected abstract HttpEntityEnclosingRequest createRequest(final URI requestURI, final HttpEntity entity);
 
+    @Override
     public HttpRequest generateRequest() throws IOException, HttpException {
         final BasicHttpEntity entity = new BasicHttpEntity();
         entity.setChunked(false);
@@ -90,10 +91,12 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
         return createRequest(this.requestURI, entity);
     }
 
+    @Override
     public synchronized HttpHost getTarget() {
         return URIUtils.extractHost(this.requestURI);
     }
 
+    @Override
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         if (this.fileChannel == null) {
@@ -118,20 +121,25 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
         }
     }
 
+    @Override
     public void requestCompleted(final HttpContext context) {
     }
 
+    @Override
     public void failed(final Exception ex) {
     }
 
+    @Override
     public boolean isRepeatable() {
         return true;
     }
 
+    @Override
     public synchronized void resetRequest() throws IOException {
         closeChannel();
     }
 
+    @Override
     public synchronized void close() throws IOException {
         try {
             this.accessfile.close();

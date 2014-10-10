@@ -70,16 +70,19 @@ public class AsyncClientEvictExpiredConnections {
                 final HttpGet httpget = new HttpGet(uri);
                 httpclient.execute(httpget, new FutureCallback<HttpResponse>() {
 
+                    @Override
                     public void completed(final HttpResponse response) {
                         latch.countDown();
                         System.out.println(httpget.getRequestLine() + "->" + response.getStatusLine());
                     }
 
+                    @Override
                     public void failed(final Exception ex) {
                         latch.countDown();
                         System.out.println(httpget.getRequestLine() + "->" + ex);
                     }
 
+                    @Override
                     public void cancelled() {
                         latch.countDown();
                         System.out.println(httpget.getRequestLine() + " cancelled");

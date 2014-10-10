@@ -237,6 +237,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return this.cacheUpdates.get();
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpHost target,
             final HttpRequest request,
@@ -244,6 +245,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return execute(target, request, null, callback);
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
@@ -251,6 +253,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return execute(requestProducer, responseConsumer, null, callback);
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,
@@ -260,12 +263,14 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return this.backend.execute(requestProducer, responseConsumer, context, callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final FutureCallback<HttpResponse> callback) {
         return execute(request, null, callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpUriRequest request,
             final HttpContext context,
@@ -275,6 +280,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
         return execute(httpHost, request, context, callback);
     }
 
+    @Override
     public Future<HttpResponse> execute(
             final HttpHost target,
             final HttpRequest originalRequest,

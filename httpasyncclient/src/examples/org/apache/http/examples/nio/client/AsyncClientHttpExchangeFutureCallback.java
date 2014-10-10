@@ -59,16 +59,19 @@ public class AsyncClientHttpExchangeFutureCallback {
             for (final HttpGet request: requests) {
                 httpclient.execute(request, new FutureCallback<HttpResponse>() {
 
+                    @Override
                     public void completed(final HttpResponse response) {
                         latch.countDown();
                         System.out.println(request.getRequestLine() + "->" + response.getStatusLine());
                     }
 
+                    @Override
                     public void failed(final Exception ex) {
                         latch.countDown();
                         System.out.println(request.getRequestLine() + "->" + ex);
                     }
 
+                    @Override
                     public void cancelled() {
                         latch.countDown();
                         System.out.println(request.getRequestLine() + " cancelled");

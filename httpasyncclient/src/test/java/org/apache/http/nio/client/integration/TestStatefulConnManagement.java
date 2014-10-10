@@ -65,6 +65,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -81,6 +82,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
 
         final UserTokenHandler userTokenHandler = new UserTokenHandler() {
 
+            @Override
             public Object getUserToken(final HttpContext context) {
                 return context.getAttribute("user");
             }
@@ -221,6 +223,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
         // one to the same route.
         final UserTokenHandler userTokenHandler = new UserTokenHandler() {
 
+            @Override
             public Object getUserToken(final HttpContext context) {
                 return context.getAttribute("user");
             }

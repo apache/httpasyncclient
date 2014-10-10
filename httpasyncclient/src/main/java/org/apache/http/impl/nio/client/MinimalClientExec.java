@@ -73,6 +73,7 @@ class MinimalClientExec implements InternalClientExec {
         this.keepaliveStrategy = keepaliveStrategy;
     }
 
+    @Override
     public void prepare(
             final InternalState state,
             final HttpHost target,
@@ -102,6 +103,7 @@ class MinimalClientExec implements InternalClientExec {
         this.httpProcessor.process(request, localContext);
     }
 
+    @Override
     public HttpRequest generateRequest(
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {
@@ -120,6 +122,7 @@ class MinimalClientExec implements InternalClientExec {
         return state.getCurrentRequest();
     }
 
+    @Override
     public void produceContent(
             final InternalState state,
             final ContentEncoder encoder,
@@ -135,6 +138,7 @@ class MinimalClientExec implements InternalClientExec {
         }
     }
 
+    @Override
     public void requestCompleted(final InternalState state) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Request completed");
@@ -144,6 +148,7 @@ class MinimalClientExec implements InternalClientExec {
         requestProducer.requestCompleted(localContext);
     }
 
+    @Override
     public void responseReceived(
             final InternalState state,
             final HttpResponse response) throws IOException, HttpException {
@@ -159,6 +164,7 @@ class MinimalClientExec implements InternalClientExec {
         responseConsumer.responseReceived(response);
     }
 
+    @Override
     public void consumeContent(
             final InternalState state,
             final ContentDecoder decoder,
@@ -170,6 +176,7 @@ class MinimalClientExec implements InternalClientExec {
         responseConsumer.consumeContent(decoder, ioctrl);
     }
 
+    @Override
     public void responseCompleted(
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {

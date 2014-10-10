@@ -40,11 +40,13 @@ class InternalIOReactorExceptionHandler implements IOReactorExceptionHandler {
         this.log = log;
     }
 
+    @Override
     public boolean handle(final IOException ex) {
         this.log.error("Fatal I/O error", ex);
         return false;
     }
 
+    @Override
     public boolean handle(final RuntimeException ex) {
         this.log.error("Fatal runtime error", ex);
         return false;

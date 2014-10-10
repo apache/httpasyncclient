@@ -94,6 +94,7 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpAsyncClient {
                 "I/O reactor status: %s", currentStatus);
     }
 
+    @Override
     public void close() {
         if (this.status.compareAndSet(Status.ACTIVE, Status.STOPPED)) {
             if (this.reactorThread != null) {

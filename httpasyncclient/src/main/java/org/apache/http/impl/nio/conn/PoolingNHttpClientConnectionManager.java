@@ -186,6 +186,7 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @Override
     public void execute(final IOEventDispatch eventDispatch) throws IOException {
         this.ioreactor.execute(eventDispatch);
     }
@@ -196,6 +197,7 @@ public class PoolingNHttpClientConnectionManager
         this.log.debug("Connection manager shut down");
     }
 
+    @Override
     public void shutdown() throws IOException {
         this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(2000);
@@ -234,6 +236,7 @@ public class PoolingNHttpClientConnectionManager
         return buf.toString();
     }
 
+    @Override
     public Future<NHttpClientConnection> requestConnection(
             final HttpRoute route,
             final Object state,
@@ -265,6 +268,7 @@ public class PoolingNHttpClientConnectionManager
         return future;
     }
 
+    @Override
     public void releaseConnection(
             final NHttpClientConnection managedConn,
             final Object state,
@@ -313,6 +317,7 @@ public class PoolingNHttpClientConnectionManager
         return reg;
     }
 
+    @Override
     public void startRoute(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
@@ -341,6 +346,7 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @Override
     public void upgrade(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
@@ -366,6 +372,7 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @Override
     public void routeComplete(
             final NHttpClientConnection managedConn,
             final HttpRoute route,
@@ -378,6 +385,7 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @Override
     public boolean isRouteComplete(
             final NHttpClientConnection managedConn) {
         Args.notNull(managedConn, "Managed connection");
@@ -387,6 +395,7 @@ public class PoolingNHttpClientConnectionManager
         }
     }
 
+    @Override
     public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
@@ -394,39 +403,48 @@ public class PoolingNHttpClientConnectionManager
         this.pool.closeIdle(idleTimeout, tunit);
     }
 
+    @Override
     public void closeExpiredConnections() {
         log.debug("Closing expired connections");
         this.pool.closeExpired();
     }
 
+    @Override
     public int getMaxTotal() {
         return this.pool.getMaxTotal();
     }
 
+    @Override
     public void setMaxTotal(final int max) {
         this.pool.setMaxTotal(max);
     }
 
+    @Override
     public int getDefaultMaxPerRoute() {
         return this.pool.getDefaultMaxPerRoute();
     }
 
+    @Override
     public void setDefaultMaxPerRoute(final int max) {
         this.pool.setDefaultMaxPerRoute(max);
     }
 
+    @Override
     public int getMaxPerRoute(final HttpRoute route) {
         return this.pool.getMaxPerRoute(route);
     }
 
+    @Override
     public void setMaxPerRoute(final HttpRoute route, final int max) {
         this.pool.setMaxPerRoute(route, max);
     }
 
+    @Override
     public PoolStats getTotalStats() {
         return this.pool.getTotalStats();
     }
 
+    @Override
     public PoolStats getStats(final HttpRoute route) {
         return this.pool.getStats(route);
     }
@@ -464,6 +482,7 @@ public class PoolingNHttpClientConnectionManager
             this.future = future;
         }
 
+        @Override
         public void completed(final CPoolEntry entry) {
             Asserts.check(entry.getConnection() != null, "Pool entry with no connection");
             if (log.isDebugEnabled()) {
@@ -475,6 +494,7 @@ public class PoolingNHttpClientConnectionManager
             }
         }
 
+        @Override
         public void failed(final Exception ex) {
             if (log.isDebugEnabled()) {
                 log.debug("Connection request failed", ex);
@@ -482,6 +502,7 @@ public class PoolingNHttpClientConnectionManager
             this.future.failed(ex);
         }
 
+        @Override
         public void cancelled() {
             log.debug("Connection request cancelled");
             this.future.cancel(true);
@@ -531,6 +552,7 @@ public class PoolingNHttpClientConnectionManager
                 ManagedNHttpClientConnectionFactory.INSTANCE;
         }
 
+        @Override
         public ManagedNHttpClientConnection create(
                 final HttpRoute route, final IOSession iosession) throws IOException {
             ConnectionConfig config = null;
@@ -568,10 +590,12 @@ public class PoolingNHttpClientConnectionManager
                     SystemDefaultDnsResolver.INSTANCE;
         }
 
+        @Override
         public SocketAddress resolveLocalAddress(final HttpRoute route) throws IOException {
             return route.getLocalAddress() != null ? new InetSocketAddress(route.getLocalAddress(), 0) : null;
         }
 
+        @Override
         public SocketAddress resolveRemoteAddress(final HttpRoute route) throws IOException {
             final HttpHost host;
             if (route.getProxyHost() != null) {

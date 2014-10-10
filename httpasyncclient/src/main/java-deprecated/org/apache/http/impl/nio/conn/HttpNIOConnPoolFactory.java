@@ -35,6 +35,7 @@ import org.apache.http.nio.reactor.IOSession;
 @Deprecated
 class HttpNIOConnPoolFactory implements NIOConnFactory<HttpRoute, IOSession> {
 
+    @Override
     public IOSession create(final HttpRoute route, final IOSession session) throws IOException {
         return session;
     }

@@ -37,14 +37,17 @@ class ChainedFutureCallback<T> implements FutureCallback<T> {
         this.wrapped = delegate;
     }
 
+    @Override
     public void completed(final T result) {
         this.wrapped.completed(result);
     }
 
+    @Override
     public void failed(final Exception ex) {
         this.wrapped.failed(ex);
     }
 
+    @Override
     public void cancelled() {
         this.wrapped.cancel();
     }

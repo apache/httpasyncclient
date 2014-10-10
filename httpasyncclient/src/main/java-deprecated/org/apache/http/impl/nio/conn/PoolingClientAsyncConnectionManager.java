@@ -96,24 +96,29 @@ public class PoolingClientAsyncConnectionManager
         return new DefaultClientAsyncConnectionFactory();
     }
 
+    @Override
     public AsyncSchemeRegistry getSchemeRegistry() {
         return this.schemeRegistry;
     }
 
+    @Override
     public void execute(final IOEventDispatch eventDispatch) throws IOException {
         this.ioreactor.execute(eventDispatch);
     }
 
+    @Override
     public IOReactorStatus getStatus() {
         return this.ioreactor.getStatus();
     }
 
+    @Override
     public void shutdown(final long waitMs) throws IOException {
         this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(waitMs);
         this.log.debug("Connection manager shut down");
     }
 
+    @Override
     public void shutdown() throws IOException {
         this.log.debug("Connection manager is shutting down");
         this.pool.shutdown(2000);
@@ -152,6 +157,7 @@ public class PoolingClientAsyncConnectionManager
         return buf.toString();
     }
 
+    @Override
     public Future<ManagedClientAsyncConnection> leaseConnection(
             final HttpRoute route,
             final Object state,
@@ -169,6 +175,7 @@ public class PoolingClientAsyncConnectionManager
         return future;
     }
 
+    @Override
     public void releaseConnection(
             final ManagedClientAsyncConnection conn,
             final long keepalive,
@@ -226,34 +233,42 @@ public class PoolingClientAsyncConnectionManager
         }
     }
 
+    @Override
     public PoolStats getTotalStats() {
         return this.pool.getTotalStats();
     }
 
+    @Override
     public PoolStats getStats(final HttpRoute route) {
         return this.pool.getStats(route);
     }
 
+    @Override
     public void setMaxTotal(final int max) {
         this.pool.setMaxTotal(max);
     }
 
+    @Override
     public void setDefaultMaxPerRoute(final int max) {
         this.pool.setDefaultMaxPerRoute(max);
     }
 
+    @Override
     public void setMaxPerRoute(final HttpRoute route, final int max) {
         this.pool.setMaxPerRoute(route, max);
     }
 
+    @Override
     public int getMaxTotal() {
         return this.pool.getMaxTotal();
     }
 
+    @Override
     public int getDefaultMaxPerRoute() {
         return this.pool.getDefaultMaxPerRoute();
     }
 
+    @Override
     public int getMaxPerRoute(final HttpRoute route) {
         return this.pool.getMaxPerRoute(route);
     }
@@ -280,6 +295,7 @@ public class PoolingClientAsyncConnectionManager
             this.future = future;
         }
 
+        @Override
         public void completed(final HttpPoolEntry entry) {
             if (log.isDebugEnabled()) {
                 log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
@@ -293,6 +309,7 @@ public class PoolingClientAsyncConnectionManager
             }
         }
 
+        @Override
         public void failed(final Exception ex) {
             if (log.isDebugEnabled()) {
                 log.debug("Connection request failed", ex);
@@ -300,6 +317,7 @@ public class PoolingClientAsyncConnectionManager
             this.future.failed(ex);
         }
 
+        @Override
         public void cancelled() {
             log.debug("Connection request cancelled");
             this.future.cancel(true);

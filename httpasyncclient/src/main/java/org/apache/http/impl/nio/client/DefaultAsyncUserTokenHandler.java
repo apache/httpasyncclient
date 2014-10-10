@@ -60,6 +60,7 @@ public class DefaultAsyncUserTokenHandler implements UserTokenHandler {
 
     public static final DefaultAsyncUserTokenHandler INSTANCE = new DefaultAsyncUserTokenHandler();
 
+    @Override
     public Object getUserToken(final HttpContext context) {
 
         final HttpClientContext clientContext = HttpClientContext.adapt(context);

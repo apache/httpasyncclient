@@ -125,6 +125,7 @@ class MainClientExec implements InternalClientExec {
         this.authenticator = new HttpAuthenticator(log);
     }
 
+    @Override
     public void prepare(
             final InternalState state,
             final HttpHost target,
@@ -156,6 +157,7 @@ class MainClientExec implements InternalClientExec {
         prepareRequest(state);
     }
 
+    @Override
     public HttpRequest generateRequest(
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {
@@ -271,6 +273,7 @@ class MainClientExec implements InternalClientExec {
         return currentRequest;
     }
 
+    @Override
     public void produceContent(
             final InternalState state,
             final ContentEncoder encoder,
@@ -286,6 +289,7 @@ class MainClientExec implements InternalClientExec {
         }
     }
 
+    @Override
     public void requestCompleted(final InternalState state) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Request completed");
@@ -295,6 +299,7 @@ class MainClientExec implements InternalClientExec {
         requestProducer.requestCompleted(localContext);
     }
 
+    @Override
     public void responseReceived(
             final InternalState state,
             final HttpResponse response) throws IOException, HttpException {
@@ -333,6 +338,7 @@ class MainClientExec implements InternalClientExec {
         }
     }
 
+    @Override
     public void consumeContent(
             final InternalState state,
             final ContentDecoder decoder,
@@ -350,6 +356,7 @@ class MainClientExec implements InternalClientExec {
         }
     }
 
+    @Override
     public void responseCompleted(
             final InternalState state,
             final InternalConnManager connManager) throws IOException, HttpException {

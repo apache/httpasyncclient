@@ -45,11 +45,13 @@ class TrustManagerDecorator implements X509TrustManager {
         this.trustStrategy = trustStrategy;
     }
 
+    @Override
     public void checkClientTrusted(
             final X509Certificate[] chain, final String authType) throws CertificateException {
         this.trustManager.checkClientTrusted(chain, authType);
     }
 
+    @Override
     public void checkServerTrusted(
             final X509Certificate[] chain, final String authType) throws CertificateException {
         if (!this.trustStrategy.isTrusted(chain, authType)) {
@@ -57,6 +59,7 @@ class TrustManagerDecorator implements X509TrustManager {
         }
     }
 
+    @Override
     public X509Certificate[] getAcceptedIssuers() {
         return this.trustManager.getAcceptedIssuers();
     }

@@ -105,6 +105,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             this.statuscode = statuscode;
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -134,6 +135,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -158,6 +160,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -183,6 +186,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -215,6 +219,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             this.absolute = absolute;
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -247,6 +252,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             super();
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,
@@ -331,6 +337,7 @@ public class TestRedirects extends HttpAsyncTestBase {
     public void testBasicRedirect302NoLocation() throws Exception {
         this.serverBootstrap.registerHandler("*", new BasicAsyncRequestHandler(new HttpRequestHandler() {
 
+            @Override
             public void handle(
                     final HttpRequest request,
                     final HttpResponse response,
@@ -699,6 +706,7 @@ public class TestRedirects extends HttpAsyncTestBase {
             this.host = host;
         }
 
+        @Override
         public void handle(
                 final HttpRequest request,
                 final HttpResponse response,

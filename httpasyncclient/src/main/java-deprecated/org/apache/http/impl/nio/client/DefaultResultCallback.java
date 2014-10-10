@@ -44,21 +44,25 @@ class DefaultResultCallback<T> implements ResultCallback<T> {
         this.queue = queue;
     }
 
+    @Override
     public void completed(final T result, final HttpAsyncRequestExecutionHandler<T> handler) {
         this.future.completed(result);
         this.queue.remove(handler);
     }
 
+    @Override
     public void failed(final Exception ex, final HttpAsyncRequestExecutionHandler<T> handler) {
         this.future.failed(ex);
         this.queue.remove(handler);
     }
 
+    @Override
     public void cancelled(final HttpAsyncRequestExecutionHandler<T> handler) {
         this.future.cancel(true);
         this.queue.remove(handler);
     }
 
+    @Override
     public boolean isDone() {
         return this.future.isDone();
     }

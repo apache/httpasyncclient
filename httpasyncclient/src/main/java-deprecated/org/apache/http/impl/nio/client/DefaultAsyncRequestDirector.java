@@ -177,6 +177,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.id = COUNTER.getAndIncrement();
     }
 
+    @Override
     public void close() {
         if (this.closed) {
             return;
@@ -218,9 +219,11 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             if (request instanceof AbortableHttpRequest) {
                 ((AbortableHttpRequest) request).setReleaseTrigger(new ConnectionReleaseTrigger() {
 
+                    @Override
                     public void releaseConnection() throws IOException {
                     }
 
+                    @Override
                     public void abortConnection() throws IOException {
                         cancel();
                     }
@@ -241,10 +244,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public HttpHost getTarget() {
         return this.requestProducer.getTarget();
     }
 
+    @Override
     public synchronized HttpRequest generateRequest() throws IOException, HttpException {
         final HttpRoute route = this.mainRequest.getRoute();
         if (!this.routeEstablished) {
@@ -321,6 +326,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         return this.currentRequest;
     }
 
+    @Override
     public synchronized void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         if (this.log.isDebugEnabled()) {
@@ -333,6 +339,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public void requestCompleted(final HttpContext context) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Request completed");
@@ -341,15 +348,18 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.requestProducer.requestCompleted(context);
     }
 
+    @Override
     public boolean isRepeatable() {
         return this.requestProducer.isRepeatable();
     }
 
+    @Override
     public void resetRequest() throws IOException {
         this.requestSent = false;
         this.requestProducer.resetRequest();
     }
 
+    @Override
     public synchronized void responseReceived(
             final HttpResponse response) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
@@ -392,6 +402,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public synchronized void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         if (this.log.isDebugEnabled()) {
@@ -423,6 +434,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public synchronized void failed(final Exception ex) {
         try {
             if (!this.requestSent) {
@@ -438,6 +450,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public synchronized void responseCompleted(final HttpContext context) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Response fully read");
@@ -522,6 +535,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public synchronized boolean cancel() {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Cancelled");
@@ -547,14 +561,17 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         }
     }
 
+    @Override
     public boolean isDone() {
         return this.resultCallback.isDone();
     }
 
+    @Override
     public T getResult() {
         return this.responseConsumer.getResult();
     }
 
+    @Override
     public Exception getException() {
         return this.responseConsumer.getException();
     }
@@ -614,14 +631,17 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     class InternalFutureCallback implements FutureCallback<ManagedClientAsyncConnection> {
 
+        @Override
         public void completed(final ManagedClientAsyncConnection session) {
             connectionRequestCompleted(session);
         }
 
+        @Override
         public void failed(final Exception ex) {
             connectionRequestFailed(ex);
         }
 
+        @Override
         public void cancelled() {
             connectionRequestCancelled();
         }
@@ -858,14 +878,17 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         return null;
     }
 
+    @Override
     public HttpContext getContext() {
         return this.localContext;
     }
 
+    @Override
     public HttpProcessor getHttpProcessor() {
         return this.httppocessor;
     }
 
+    @Override
     public ConnectionReuseStrategy getConnectionReuseStrategy() {
         return this.reuseStrategy;
     }

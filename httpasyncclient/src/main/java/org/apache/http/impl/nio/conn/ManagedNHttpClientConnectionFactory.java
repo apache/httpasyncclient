@@ -83,6 +83,7 @@ public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFacto
         this(null, null, null);
     }
 
+    @Override
     public ManagedNHttpClientConnection create(
             final IOSession iosession, final ConnectionConfig config) {
         final String id = "http-outgoing-" + Long.toString(COUNTER.getAndIncrement());

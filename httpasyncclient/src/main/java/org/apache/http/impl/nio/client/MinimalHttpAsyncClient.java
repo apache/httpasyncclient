@@ -81,6 +81,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         this(connmgr, Executors.defaultThreadFactory(), new LoggingAsyncRequestExecutor());
     }
 
+    @Override
     public <T> Future<T> execute(
             final HttpAsyncRequestProducer requestProducer,
             final HttpAsyncResponseConsumer<T> responseConsumer,

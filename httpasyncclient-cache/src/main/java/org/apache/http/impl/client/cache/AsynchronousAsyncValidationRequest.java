@@ -70,16 +70,20 @@ class AsynchronousAsyncValidationRequest implements Runnable {
         this.identifier = identifier;
     }
 
+    @Override
     public void run() {
         try {
             final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
 
+                @Override
                 public void cancelled() {
                 }
 
+                @Override
                 public void completed(final HttpResponse httpResponse) {
                 }
 
+                @Override
                 public void failed(final Exception e) {
                     log.debug("Asynchronous revalidation failed", e);
                 }

@@ -39,10 +39,12 @@ public class NoopIOSessionStrategy implements SchemeIOSessionStrategy {
 
     public static final NoopIOSessionStrategy INSTANCE = new NoopIOSessionStrategy();
 
+    @Override
     public IOSession upgrade(final HttpHost host, final IOSession iosession) {
         return iosession;
     }
 
+    @Override
     public boolean isLayeringRequired() {
         return false;
     }

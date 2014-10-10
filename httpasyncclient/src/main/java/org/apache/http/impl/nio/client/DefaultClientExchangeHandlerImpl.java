@@ -98,6 +98,7 @@ class DefaultClientExchangeHandlerImpl<T>
         this.managedConn = new AtomicReference<NHttpClientConnection>(null);
     }
 
+    @Override
     public void close() {
         if (this.closed.getAndSet(true)) {
             return;
@@ -126,28 +127,34 @@ class DefaultClientExchangeHandlerImpl<T>
         requestConnection();
     }
 
+    @Override
     public boolean isDone() {
         return this.completed.get();
     }
 
+    @Override
     public HttpRequest generateRequest() throws IOException, HttpException {
         return this.exec.generateRequest(this.state, this);
     }
 
+    @Override
     public void produceContent(
             final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
         this.exec.produceContent(this.state, encoder, ioctrl);
     }
 
+    @Override
     public void requestCompleted() {
         this.exec.requestCompleted(this.state);
     }
 
+    @Override
     public void responseReceived(
             final HttpResponse response) throws IOException, HttpException {
         this.exec.responseReceived(this.state, response);
     }
 
+    @Override
     public void consumeContent(
             final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
         this.exec.consumeContent(this.state, decoder, ioctrl);
@@ -163,6 +170,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public void responseCompleted() throws IOException, HttpException {
         this.exec.responseCompleted(this.state, this);
 
@@ -194,6 +202,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public void inputTerminated() {
         if (!this.completed.get()) {
             requestConnection();
@@ -202,6 +211,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public void releaseConnection() {
         final NHttpClientConnection localConn = this.managedConn.getAndSet(null);
         if (localConn != null) {
@@ -230,6 +240,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public void abortConnection() {
         discardConnection();
     }
@@ -252,6 +263,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public void failed(final Exception ex) {
         try {
             this.requestProducer.failed(ex);
@@ -265,6 +277,7 @@ class DefaultClientExchangeHandlerImpl<T>
         }
     }
 
+    @Override
     public boolean cancel() {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.state.getId() + "] Cancelled");
@@ -355,14 +368,17 @@ class DefaultClientExchangeHandlerImpl<T>
                 TimeUnit.MILLISECONDS,
                 new FutureCallback<NHttpClientConnection>() {
 
+                    @Override
                     public void completed(final NHttpClientConnection managedConn) {
                         connectionAllocated(managedConn);
                     }
 
+                    @Override
                     public void failed(final Exception ex) {
                         connectionRequestFailed(ex);
                     }
 
+                    @Override
                     public void cancelled() {
                         connectionRequestCancelled();
                     }
@@ -370,6 +386,7 @@ class DefaultClientExchangeHandlerImpl<T>
                 });
     }
 
+    @Override
     public NHttpClientConnection getConnection() {
         return this.managedConn.get();
     }

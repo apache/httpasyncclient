@@ -155,6 +155,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         this(sslcontext, null, null, getDefaultHostnameVerifier());
     }
 
+    @Override
     public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) throws IOException {
         Asserts.check(!(iosession instanceof SSLIOSession), "I/O session is already upgraded to TLS/SSL");
         final SSLIOSession ssliosession = new SSLIOSession(
@@ -163,6 +164,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
             this.sslContext,
             new SSLSetupHandler() {
 
+                @Override
                 public void initalize(
                         final SSLEngine sslengine) throws SSLException {
                     if (supportedProtocols != null) {
@@ -174,6 +176,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
                     initializeEngine(sslengine);
                 }
 
+                @Override
                 public void verify(
                         final IOSession iosession,
                         final SSLSession sslsession) throws SSLException {
@@ -196,6 +199,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         this.hostnameVerifier.verify(host.getHostName(), sslsession);
     }
 
+    @Override
     public boolean isLayeringRequired() {
         return true;
     }

@@ -178,10 +178,12 @@ public class SSLLayeringStrategy implements LayeringStrategy {
         this(sslContext, new BrowserCompatHostnameVerifier());
     }
 
+    @Override
     public boolean isSecure() {
         return true;
     }
 
+    @Override
     public SSLIOSession layer(final IOSession iosession) {
         final SSLIOSession ssliosession = new SSLIOSession(
             iosession,
@@ -189,11 +191,13 @@ public class SSLLayeringStrategy implements LayeringStrategy {
             this.sslContext,
             new SSLSetupHandler() {
 
+                @Override
                 public void initalize(
                         final SSLEngine sslengine) throws SSLException {
                     initializeEngine(sslengine);
                 }
 
+                @Override
                 public void verify(
                         final IOSession iosession,
                         final SSLSession sslsession) throws SSLException {

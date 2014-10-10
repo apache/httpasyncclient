@@ -85,6 +85,7 @@ public class DefaultClientAsyncConnectionFactory
         this.allocator = createByteBufferAllocator();
     }
 
+    @Override
     @Deprecated
     public ClientAsyncConnection create(
             final String id,
@@ -104,6 +105,7 @@ public class DefaultClientAsyncConnectionFactory
         return DefaultHttpResponseFactory.INSTANCE;
     }
 
+    @Override
     public ManagedNHttpClientConnection create(
             final IOSession iosession, final ConnectionConfig config) {
         final String id = "http-outgoing-" + Long.toString(COUNTER.getAndIncrement());

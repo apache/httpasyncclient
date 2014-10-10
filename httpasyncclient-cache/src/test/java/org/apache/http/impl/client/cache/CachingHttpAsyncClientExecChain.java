@@ -91,6 +91,7 @@ public class CachingHttpAsyncClientExecChain implements ClientExecChain {
         return execute(route, request, context, null);
     }
 
+    @Override
     public CloseableHttpResponse execute(
             final HttpRoute route,
             final HttpRequestWrapper request,
