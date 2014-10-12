@@ -28,13 +28,21 @@
 package org.apache.http.nio.conn.ssl;
 
 import java.io.IOException;
+import java.net.URL;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.security.auth.x500.X500Principal;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
@@ -42,6 +50,7 @@ import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.conn.util.PublicSuffixMatcher;
 import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.IOSession;
@@ -78,11 +87,39 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         return s.split(" *, *");
     }
 
+    //TODO: remove after upgrade to HttpCore 4.4-beta2 or newer
+    private static volatile PublicSuffixMatcher DEFAULT_INSTANCE;
+
+    private static PublicSuffixMatcher getDefaultPublicSuffixMatcher() {
+        if (DEFAULT_INSTANCE == null) {
+            synchronized (PublicSuffixMatcherLoader.class) {
+                if (DEFAULT_INSTANCE == null){
+                    final URL url = PublicSuffixMatcherLoader.class.getResource(
+                            "/mozilla/public-suffix-list.txt");
+                    if (url != null) {
+                        try {
+                            DEFAULT_INSTANCE = PublicSuffixMatcherLoader.load(url);
+                        } catch (IOException ex) {
+                            // Should never happen
+                            final Log log = LogFactory.getLog(PublicSuffixMatcherLoader.class);
+                            if (log.isWarnEnabled()) {
+                                log.warn("Failure loading public suffix list from default resource", ex);
+                            }
+                        }
+                    } else {
+                        DEFAULT_INSTANCE = new PublicSuffixMatcher(Arrays.asList("com"), null);
+                    }
+                }
+            }
+        }
+        return DEFAULT_INSTANCE;
+    }
+
     /**
      * @since 4.1
      */
     public static HostnameVerifier getDefaultHostnameVerifier() {
-        return new DefaultHostnameVerifier(PublicSuffixMatcherLoader.getDefault());
+        return new DefaultHostnameVerifier(getDefaultPublicSuffixMatcher());
     }
 
     public static SSLIOSessionStrategy getDefaultStrategy() {
@@ -196,7 +233,13 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
             final HttpHost host,
             final IOSession iosession,
             final SSLSession sslsession) throws SSLException {
-        this.hostnameVerifier.verify(host.getHostName(), sslsession);
+        if (!this.hostnameVerifier.verify(host.getHostName(), sslsession)) {
+            final Certificate[] certs = sslsession.getPeerCertificates();
+            final X509Certificate x509 = (X509Certificate) certs[0];
+            final X500Principal x500Principal = x509.getSubjectX500Principal();
+            throw new SSLPeerUnverifiedException("Host name '" + host.getHostName() + "' does not match " +
+                    "the certificate subject provided by the peer (" + x500Principal.toString() + ")");
+        }
     }
 
     @Override

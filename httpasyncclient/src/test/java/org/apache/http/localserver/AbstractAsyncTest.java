@@ -34,6 +34,7 @@ import org.apache.http.ExceptionLogger;
 import org.apache.http.HttpHost;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.impl.nio.bootstrap.HttpServer;
 import org.apache.http.impl.nio.bootstrap.ServerBootstrap;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
@@ -95,7 +96,11 @@ public abstract class AbstractAsyncTest {
         final RegistryBuilder<SchemeIOSessionStrategy> builder = RegistryBuilder.create();
         builder.register("http", NoopIOSessionStrategy.INSTANCE);
         if (this.scheme.equals(ProtocolScheme.https)) {
-            builder.register("https", new SSLIOSessionStrategy(SSLTestContexts.createClientSSLContext()));
+            builder.register("https", new SSLIOSessionStrategy(
+                    SSLTestContexts.createClientSSLContext(),
+                    // TODO: replace with the default hostname verifier
+                    // TODO: after upgrade to HttpCore 4.4-beta2 or newer
+                    NoopHostnameVerifier.INSTANCE));
         }
         final Registry<SchemeIOSessionStrategy> registry =  builder.build();
         final DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
