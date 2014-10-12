@@ -216,9 +216,9 @@ public class TestHttpAsyncPipelining extends AbstractAsyncTest {
         Assert.assertNotNull(c1.getResult());
         Assert.assertTrue(c2.isDone());
         Assert.assertNotNull(c2.getResult());
-        Assert.assertFalse(c3.isDone());
+        Assert.assertTrue(c3.isDone());
         Assert.assertNull(c3.getResult());
-        Assert.assertFalse(c4.isDone());
+        Assert.assertTrue(c4.isDone());
         Assert.assertNull(c4.getResult());
     }
 

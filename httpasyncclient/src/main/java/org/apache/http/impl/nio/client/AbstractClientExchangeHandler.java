@@ -402,13 +402,16 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
 
     @Override
     public final void failed(final Exception ex) {
-        try {
-            executionFailed(ex);
-        } finally {
+        if (this.closed.compareAndSet(false, true)) {
             try {
-                this.resultFuture.failed(ex);
+                try {
+                    executionFailed(ex);
+                } finally {
+                    discardConnection();
+                    releaseResources();
+                }
             } finally {
-                close();
+                this.resultFuture.failed(ex);
             }
         }
     }
@@ -423,11 +426,11 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
                 try {
                     return executionCancelled();
                 } finally {
-                    this.resultFuture.cancel();
+                    discardConnection();
+                    releaseResources();
                 }
             } finally {
-                discardConnection();
-                releaseResources();
+                this.resultFuture.cancel();
             }
         }
         return false;

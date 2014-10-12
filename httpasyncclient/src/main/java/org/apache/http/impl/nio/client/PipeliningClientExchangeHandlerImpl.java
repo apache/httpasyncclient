@@ -153,6 +153,9 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
         if (responseConsumer != null) {
             responseConsumer.failed(ex);
         }
+        for (final HttpAsyncResponseConsumer<T> cancellable: this.responseConsumerQueue) {
+            cancellable.cancel();
+        }
     }
 
     @Override
@@ -296,7 +299,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
             if (result != null) {
                 this.resultQueue.add(result);
             } else {
-                this.resultFuture.failed(ex);
+                failed(ex);
             }
             if (!this.resultFuture.isDone() && this.responseConsumerQueue.isEmpty()) {
                 this.resultFuture.completed(new ArrayList<T>(this.resultQueue));
