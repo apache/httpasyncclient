@@ -28,7 +28,7 @@
   <parent>
     <groupId>org.apache.httpcomponents</groupId>
     <artifactId>httpcomponents-asyncclient</artifactId>
-    <version>4.1-alpha1-SNAPSHOT</version>
+    <version>4.1-beta2-SNAPSHOT</version>
   </parent>
   <artifactId>httpasyncclient-osgi</artifactId>
   <name>Apache HttpAsyncClient OSGi bundle</name>
