@@ -105,6 +105,7 @@
             org.apache.http.conn.params;version=${httpclient.osgi.import.version},
             org.apache.http.conn.routing;version=${httpclient.osgi.import.version},
             org.apache.http.conn.ssl;version=${httpclient.osgi.import.version},
+            org.apache.http.conn.util;version=${httpclient.osgi.import.version},
             org.apache.http.client;version=${httpclient.osgi.import.version},
             org.apache.http.client.config;version=${httpcore.osgi.import.version},
             org.apache.http.client.methods;version=${httpclient.osgi.import.version},
