@@ -125,12 +125,12 @@
 
       <plugin>
         <artifactId>maven-jxr-plugin</artifactId>
-         <version>${hc.jxr.version}</version>
+        <version>${hc.jxr.version}</version>
       </plugin>
 
       <plugin>
         <artifactId>maven-surefire-report-plugin</artifactId>
-         <version>${hc.surefire-report.version}</version>
+        <version>${hc.surefire-report.version}</version>
       </plugin>
 
     </plugins>
