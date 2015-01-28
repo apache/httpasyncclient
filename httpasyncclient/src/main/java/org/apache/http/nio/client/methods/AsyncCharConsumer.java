@@ -78,15 +78,29 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     protected abstract void onCharReceived(
             CharBuffer buf, IOControl ioctrl) throws IOException;
 
+    /**
+     * Invoked to create a @{link CharsetDecoder} for contentType.
+     * This allows to use different default charsets for different content
+     * types and set appropriate coding error actions.
+     *
+     * @param contentType response Content-Type or null if not specified.
+     * @return content decoder.
+     */
+    protected CharsetDecoder createDecoder(final ContentType contentType) {
+        final Charset charset;
+        if (contentType == null || contentType.getCharset() == null) {
+            charset = HTTP.DEF_CONTENT_CHARSET;
+        } else {
+            charset = contentType.getCharset();
+        }
+        return charset.newDecoder();
+    }
+
     @Override
     protected final void onEntityEnclosed(
             final HttpEntity entity, final ContentType contentType) throws IOException {
         this.contentType = contentType != null ? contentType : ContentType.DEFAULT_TEXT;
-        Charset charset = this.contentType.getCharset();
-        if (charset == null) {
-            charset = HTTP.DEF_CONTENT_CHARSET;
-        }
-        this.chardecoder = charset.newDecoder();
+        this.chardecoder = createDecoder(contentType);
     }
 
     @Override
