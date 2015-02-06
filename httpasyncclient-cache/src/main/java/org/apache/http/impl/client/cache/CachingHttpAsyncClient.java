@@ -384,7 +384,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 && !staleResponseNotAllowed(request, entry, now)
                 && this.validityPolicy.mayReturnStaleWhileRevalidating(entry, now)) {
                 this.log.debug("Serving stale with asynchronous revalidation");
-                final HttpResponse resp = this.responseGenerator.generateResponse(entry);
+                final HttpResponse resp = this.responseGenerator.generateResponse(request, entry);
                 resp.addHeader(HeaderConstants.WARNING, "110 localhost \"Response is stale\"");
 
                 this.asynchAsyncRevalidator.revalidateCacheEntry(target, request, clientContext, entry);
@@ -502,7 +502,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private HttpResponse generateCachedResponse(
-            final HttpRequest request,
+            final HttpRequestWrapper request,
             final HttpCacheContext clientContext,
             final HttpCacheEntry entry,
             final Date now) {
@@ -511,7 +511,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 || request.containsHeader(HeaderConstants.IF_MODIFIED_SINCE)) {
             cachedResponse = this.responseGenerator.generateNotModifiedResponse(entry);
         } else {
-            cachedResponse = this.responseGenerator.generateResponse(entry);
+            cachedResponse = this.responseGenerator.generateResponse(request, entry);
         }
         setResponseStatus(clientContext, CacheResponseStatus.CACHE_HIT);
         if (this.validityPolicy.getStalenessSecs(entry, now) > 0L) {
@@ -521,14 +521,14 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
     }
 
     private HttpResponse handleRevalidationFailure(
-            final HttpRequest request,
+            final HttpRequestWrapper request,
             final HttpCacheContext clientContext,
             final HttpCacheEntry entry,
             final Date now) {
         if (staleResponseNotAllowed(request, entry, now)) {
             return generateGatewayTimeout(clientContext);
         }
-        return unvalidatedCacheHit(clientContext, entry);
+        return unvalidatedCacheHit(clientContext, request, entry);
     }
 
     private HttpResponse generateGatewayTimeout(final HttpCacheContext clientContext) {
@@ -539,8 +539,9 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     private HttpResponse unvalidatedCacheHit(
             final HttpCacheContext clientContext,
+            final HttpRequestWrapper request,
             final HttpCacheEntry entry) {
-        final HttpResponse cachedResponse = this.responseGenerator.generateResponse(entry);
+        final HttpResponse cachedResponse = this.responseGenerator.generateResponse(request, entry);
         setResponseStatus(clientContext, CacheResponseStatus.CACHE_HIT);
         cachedResponse.addHeader(HeaderConstants.WARNING, "111 localhost \"Revalidation failed\"");
         return cachedResponse;
@@ -762,7 +763,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                         conditionalRequest, requestDate, responseDate, httpResponse,
                         matchingVariant, matchedEntry);
 
-                final HttpResponse resp = CachingHttpAsyncClient.this.responseGenerator.generateResponse(responseEntry);
+                final HttpResponse resp = CachingHttpAsyncClient.this.responseGenerator.generateResponse(request, responseEntry);
                 tryToUpdateVariantMap(target, request, matchingVariant);
 
                 if (shouldSendNotModifiedResponse(request, responseEntry)) {
@@ -904,14 +905,14 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
                 future.completed(CachingHttpAsyncClient.this.responseGenerator.generateNotModifiedResponse(updatedEntry));
                 return;
             }
-            future.completed(CachingHttpAsyncClient.this.responseGenerator.generateResponse(updatedEntry));
+            future.completed(CachingHttpAsyncClient.this.responseGenerator.generateResponse(request, updatedEntry));
             return;
         }
 
         if (staleIfErrorAppliesTo(statusCode)
             && !staleResponseNotAllowed(request, cacheEntry, getCurrentDate())
             && CachingHttpAsyncClient.this.validityPolicy.mayReturnStaleIfError(request, cacheEntry, responseDate)) {
-            final HttpResponse cachedResponse = CachingHttpAsyncClient.this.responseGenerator.generateResponse(cacheEntry);
+            final HttpResponse cachedResponse = CachingHttpAsyncClient.this.responseGenerator.generateResponse(request, cacheEntry);
             cachedResponse.addHeader(HeaderConstants.WARNING, "110 localhost \"Response is stale\"");
             future.completed(cachedResponse);
             return;

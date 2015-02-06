@@ -280,7 +280,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
     @Test
     public void testConnectionInitializeHttps() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "https");
+        final HttpHost target = new HttpHost("somehost", 443, "https");
         final HttpRoute route = new HttpRoute(target, null, true);
         final HttpContext context = new BasicHttpContext();
 
@@ -300,7 +300,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
     @Test
     public void testConnectionInitializeContextSpecific() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "http11");
+        final HttpHost target = new HttpHost("somehost", 80, "http11");
         final HttpRoute route = new HttpRoute(target);
         final HttpContext context = new BasicHttpContext();
 
@@ -343,7 +343,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
     @Test
     public void testConnectionUpgrade() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "https");
+        final HttpHost target = new HttpHost("somehost", 443, "https");
         final HttpRoute route = new HttpRoute(target);
         final HttpContext context = new BasicHttpContext();
 
@@ -380,7 +380,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
     @Test(expected=UnsupportedSchemeException.class)
     public void testConnectionUpgradeIllegalScheme() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "http");
+        final HttpHost target = new HttpHost("somehost", 80, "http");
         final HttpRoute route = new HttpRoute(target);
         final HttpContext context = new BasicHttpContext();
 
@@ -397,7 +397,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
     @Test
     public void testConnectionRouteComplete() throws Exception {
-        final HttpHost target = new HttpHost("somehost", -1, "http");
+        final HttpHost target = new HttpHost("somehost", 80, "http");
         final HttpRoute route = new HttpRoute(target);
         final HttpContext context = new BasicHttpContext();
 
@@ -429,7 +429,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         connman.getDefaultMaxPerRoute();
         Mockito.verify(pool).getDefaultMaxPerRoute();
 
-        final HttpRoute route = new HttpRoute(new HttpHost("somehost"));
+        final HttpRoute route = new HttpRoute(new HttpHost("somehost", 80));
         connman.getMaxPerRoute(route);
         Mockito.verify(pool).getMaxPerRoute(route);
 
@@ -455,10 +455,10 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalConnectionFactory internalConnFactory = new InternalConnectionFactory(
             configData, connFactory);
 
-        final HttpRoute route = new HttpRoute(new HttpHost("somehost"));
+        final HttpRoute route = new HttpRoute(new HttpHost("somehost", 80));
         internalConnFactory.create(route, iosession);
 
-        Mockito.verify(sslStrategy, Mockito.never()).upgrade(Mockito.eq(new HttpHost("somehost")),
+        Mockito.verify(sslStrategy, Mockito.never()).upgrade(Mockito.eq(new HttpHost("somehost", 80)),
                 Mockito.<IOSession>any());
         Mockito.verify(connFactory).create(Mockito.same(iosession), Mockito.<ConnectionConfig>any());
     }
@@ -469,7 +469,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalConnectionFactory internalConnFactory = new InternalConnectionFactory(
             configData, connFactory);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpHost proxy = new HttpHost("someproxy", 8888);
         final HttpRoute route = new HttpRoute(target, null, proxy, false);
 
@@ -487,7 +487,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalConnectionFactory internalConnFactory = new InternalConnectionFactory(
             configData, connFactory);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpRoute route = new HttpRoute(target);
 
         final ConnectionConfig config = ConnectionConfig.custom().build();
@@ -504,7 +504,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalConnectionFactory internalConnFactory = new InternalConnectionFactory(
             configData, connFactory);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpRoute route = new HttpRoute(target);
 
         final ConnectionConfig config = ConnectionConfig.custom().build();
@@ -521,7 +521,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalConnectionFactory internalConnFactory = new InternalConnectionFactory(
             configData, connFactory);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpRoute route = new HttpRoute(target);
 
         configData.setDefaultConnectionConfig(null);
@@ -563,7 +563,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalAddressResolver addressResolver = new InternalAddressResolver(
                 schemePortResolver, dnsResolver);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpRoute route = new HttpRoute(target);
 
         Mockito.when(schemePortResolver.resolve(target)).thenReturn(123);
@@ -582,7 +582,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final InternalAddressResolver addressResolver = new InternalAddressResolver(
                 schemePortResolver, dnsResolver);
 
-        final HttpHost target = new HttpHost("somehost");
+        final HttpHost target = new HttpHost("somehost", 80);
         final HttpHost proxy = new HttpHost("someproxy");
         final HttpRoute route = new HttpRoute(target, null, proxy, false);
 
