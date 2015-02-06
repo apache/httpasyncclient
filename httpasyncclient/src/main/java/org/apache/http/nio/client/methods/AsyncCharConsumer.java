@@ -54,7 +54,6 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     private final CharBuffer cbuf;
 
     private CharsetDecoder chardecoder;
-    private ContentType contentType;
 
     public AsyncCharConsumer(final int bufSize) {
         super();
@@ -78,15 +77,28 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     protected abstract void onCharReceived(
             CharBuffer buf, IOControl ioctrl) throws IOException;
 
-    @Override
-    protected final void onEntityEnclosed(
-            final HttpEntity entity, final ContentType contentType) throws IOException {
-        this.contentType = contentType != null ? contentType : ContentType.DEFAULT_TEXT;
-        Charset charset = this.contentType.getCharset();
+    /**
+     * Invoked to create a @{link CharsetDecoder} for contentType.
+     * This allows to use different default charsets for different content
+     * types and set appropriate coding error actions.
+     *
+     * @param contentType response Content-Type or null if not specified.
+     * @return content decoder.
+     *
+     * @since 4.1
+     */
+    protected CharsetDecoder createDecoder(final ContentType contentType) {
+        Charset charset = contentType != null ? contentType.getCharset() : null;
         if (charset == null) {
             charset = HTTP.DEF_CONTENT_CHARSET;
         }
-        this.chardecoder = charset.newDecoder();
+        return charset.newDecoder();
+    }
+
+    @Override
+    protected final void onEntityEnclosed(
+            final HttpEntity entity, final ContentType contentType) throws IOException {
+        this.chardecoder = createDecoder(contentType != null ? contentType : ContentType.DEFAULT_TEXT);
     }
 
     @Override
