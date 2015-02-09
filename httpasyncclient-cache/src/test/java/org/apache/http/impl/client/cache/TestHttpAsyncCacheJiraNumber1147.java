@@ -27,8 +27,6 @@
 package org.apache.http.impl.client.cache;
 
 import org.apache.http.impl.execchain.ClientExecChain;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class TestHttpAsyncCacheJiraNumber1147 extends TestHttpCacheJiraNumber1147 {
 
@@ -40,8 +38,4 @@ public class TestHttpAsyncCacheJiraNumber1147 extends TestHttpCacheJiraNumber114
         return new CachingHttpAsyncClientExecChain(backend, cache, config);
     }
 
-    @Override @Test @Ignore // TODO: re-enable the test after HttpClient 4.3.4 release
-    public void testIssue1147() throws Exception {
-        super.testIssue1147();
-    }
 }

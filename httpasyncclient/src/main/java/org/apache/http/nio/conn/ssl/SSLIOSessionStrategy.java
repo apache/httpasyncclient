@@ -28,10 +28,8 @@
 package org.apache.http.nio.conn.ssl;
 
 import java.io.IOException;
-import java.net.URL;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -41,22 +39,19 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.conn.util.PublicSuffixMatcher;
 import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.nio.reactor.ssl.SSLMode;
 import org.apache.http.nio.reactor.ssl.SSLSetupHandler;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.Args;
 import org.apache.http.util.Asserts;
 import org.apache.http.util.TextUtils;
@@ -87,39 +82,11 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         return s.split(" *, *");
     }
 
-    //TODO: remove after upgrade to HttpCore 4.4-beta2 or newer
-    private static volatile PublicSuffixMatcher DEFAULT_INSTANCE;
-
-    private static PublicSuffixMatcher getDefaultPublicSuffixMatcher() {
-        if (DEFAULT_INSTANCE == null) {
-            synchronized (PublicSuffixMatcherLoader.class) {
-                if (DEFAULT_INSTANCE == null){
-                    final URL url = PublicSuffixMatcherLoader.class.getResource(
-                            "/mozilla/public-suffix-list.txt");
-                    if (url != null) {
-                        try {
-                            DEFAULT_INSTANCE = PublicSuffixMatcherLoader.load(url);
-                        } catch (IOException ex) {
-                            // Should never happen
-                            final Log log = LogFactory.getLog(PublicSuffixMatcherLoader.class);
-                            if (log.isWarnEnabled()) {
-                                log.warn("Failure loading public suffix list from default resource", ex);
-                            }
-                        }
-                    } else {
-                        DEFAULT_INSTANCE = new PublicSuffixMatcher(Arrays.asList("com"), null);
-                    }
-                }
-            }
-        }
-        return DEFAULT_INSTANCE;
-    }
-
     /**
      * @since 4.1
      */
     public static HostnameVerifier getDefaultHostnameVerifier() {
-        return new DefaultHostnameVerifier(getDefaultPublicSuffixMatcher());
+        return new DefaultHostnameVerifier(PublicSuffixMatcherLoader.getDefault());
     }
 
     public static SSLIOSessionStrategy getDefaultStrategy() {

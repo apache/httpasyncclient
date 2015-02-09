@@ -64,7 +64,6 @@ import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
-import org.apache.http.nio.reactor.ssl.SSLIOSession;
 import org.apache.http.pool.ConnPoolControl;
 import org.apache.http.pool.PoolStats;
 import org.apache.http.protocol.HttpContext;
@@ -344,10 +343,6 @@ public class PoolingNHttpClientConnectionManager
                 final IOSession ioSession = conn.getIOSession();
                 final IOSession currentSession = sf.upgrade(host, ioSession);
                 conn.bind(currentSession);
-                // TODO: to be removed (work-around for a bug in HttpCore 4.4b1)
-                if (currentSession instanceof SSLIOSession) {
-                    ioSession.setBufferStatus((SSLIOSession) currentSession);
-                }
             }
         }
     }
