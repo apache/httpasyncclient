@@ -165,9 +165,9 @@ class CPoolProxy implements ManagedNHttpClientConnection {
     public boolean isStale() {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
-            return conn.isStale() || !conn.isOpen();
+            return !conn.isOpen();
         } else {
-            return true;
+            return false;
         }
     }
 

@@ -314,7 +314,7 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
 
             managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
             managedConn.requestOutput();
-            if (!managedConn.isOpen()) {
+            if (managedConn.isStale()) {
                 failed(new ConnectionClosedException("Connection closed"));
             }
         } catch (final RuntimeException runex) {

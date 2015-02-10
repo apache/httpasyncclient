@@ -29,6 +29,17 @@ subsequent requests
 Release 4.0.2
 -------------------
 
+* [HTTPASYNC-86]: fixed a race condition upon connection lease from the connection pool: 
+  in very rare  circumstances the main execution thread can get jammed for so long 
+  that the I/O dispatch thread succeeds in completing the request and releasing the connection 
+  while the main still is performing connection validation.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+
+
+Release 4.0.2
+-------------------
+
 HttpAsyncClient 4.0.2 (GA) is a bug fix release that addresses several issues reported since 
 release 4.0.1. This release also upgrades HttpClient dependency to the latest stable version. 
 
