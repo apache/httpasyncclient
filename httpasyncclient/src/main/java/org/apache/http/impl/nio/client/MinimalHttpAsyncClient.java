@@ -43,6 +43,7 @@ import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.protocol.BasicHttpContext;
@@ -77,7 +78,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
             final HttpProcessor httpProcessor) {
         this(connmgr,
                 Executors.defaultThreadFactory(),
-                new LoggingAsyncRequestExecutor(),
+                new HttpAsyncRequestExecutor(),
                 httpProcessor,
                 DefaultConnectionReuseStrategy.INSTANCE,
                 DefaultConnectionKeepAliveStrategy.INSTANCE);

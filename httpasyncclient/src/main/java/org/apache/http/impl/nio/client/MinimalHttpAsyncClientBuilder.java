@@ -42,6 +42,7 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.NHttpClientEventHandler;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
 import org.apache.http.protocol.RequestContent;
@@ -151,7 +152,7 @@ class MinimalHttpAsyncClientBuilder {
             if (threadFactory == null) {
                 threadFactory = Executors.defaultThreadFactory();
             }
-            eventHandler = new LoggingAsyncRequestExecutor();
+            eventHandler = new HttpAsyncRequestExecutor();
         }
         return new MinimalHttpAsyncClient(
             connManager,

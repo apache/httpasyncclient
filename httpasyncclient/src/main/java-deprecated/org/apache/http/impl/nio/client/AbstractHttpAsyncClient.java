@@ -85,6 +85,7 @@ import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.ClientAsyncConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutionHandler;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -459,7 +460,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
     }
 
     private void doExecute() {
-        final LoggingAsyncRequestExecutor handler = new LoggingAsyncRequestExecutor();
+        final InternalRequestExecutor handler = new InternalRequestExecutor(this.log, new HttpAsyncRequestExecutor());
         try {
             final IOEventDispatch ioEventDispatch = new DefaultHttpClientIODispatch(handler, getParams());
             this.connmgr.execute(ioEventDispatch);

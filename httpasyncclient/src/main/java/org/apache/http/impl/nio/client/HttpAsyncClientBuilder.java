@@ -98,6 +98,7 @@ import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.conn.NoopIOSessionStrategy;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.protocol.HttpProcessor;
 import org.apache.http.protocol.HttpProcessorBuilder;
@@ -854,7 +855,7 @@ public class HttpAsyncClientBuilder {
             }
             eventHandler = this.eventHandler;
             if (eventHandler == null) {
-                eventHandler = new LoggingAsyncRequestExecutor();
+                eventHandler = new HttpAsyncRequestExecutor();
             }
         }
         return new InternalHttpAsyncClient(

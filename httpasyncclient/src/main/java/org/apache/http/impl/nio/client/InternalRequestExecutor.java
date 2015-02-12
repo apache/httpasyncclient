@@ -30,24 +30,20 @@ package org.apache.http.impl.nio.client;
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpException;
 import org.apache.http.nio.ContentDecoder;
 import org.apache.http.nio.ContentEncoder;
 import org.apache.http.nio.NHttpClientConnection;
-import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
+import org.apache.http.nio.NHttpClientEventHandler;
 
-class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
+class InternalRequestExecutor implements NHttpClientEventHandler {
 
-    private final Log log = LogFactory.getLog(HttpAsyncRequestExecutor.class);
+    private final Log log;
+    private final NHttpClientEventHandler handler;
 
-    public LoggingAsyncRequestExecutor() {
-        super();
-    }
-
-    @Override
-    protected void log(final Exception ex) {
-        this.log.debug(ex.getMessage(), ex);
+    public InternalRequestExecutor(final Log log, final NHttpClientEventHandler handler) {
+        this.log = log;
+        this.handler = handler;
     }
 
     @Override
@@ -57,7 +53,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + ": Connected");
         }
-        super.connected(conn, attachment);
+        this.handler.connected(conn, attachment);
     }
 
     @Override
@@ -65,7 +61,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + ": Disconnected");
         }
-        super.closed(conn);
+        this.handler.closed(conn);
     }
 
     @Override
@@ -74,7 +70,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Request ready");
         }
-        super.requestReady(conn);
+        this.handler.requestReady(conn);
     }
 
     @Override
@@ -84,7 +80,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Input ready");
         }
-        super.inputReady(conn, decoder);
+        this.handler.inputReady(conn, decoder);
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " " + decoder);
         }
@@ -97,7 +93,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Output ready");
         }
-        super.outputReady(conn, encoder);
+        this.handler.outputReady(conn, encoder);
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " " + encoder);
         }
@@ -109,15 +105,23 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Response received");
         }
-        super.responseReceived(conn);
+        this.handler.responseReceived(conn);
     }
 
     @Override
-    public void timeout(final NHttpClientConnection conn) throws IOException {
+    public void timeout(final NHttpClientConnection conn) throws HttpException, IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " Timeout");
         }
-        super.timeout(conn);
+        this.handler.timeout(conn);
+    }
+
+    @Override
+    public void exception(final NHttpClientConnection conn, final Exception ex) {
+        if (this.log.isDebugEnabled()) {
+            this.log.debug(conn + " Exception", ex);
+        }
+        this.handler.exception(conn, ex);
     }
 
     @Override
@@ -125,7 +129,7 @@ class LoggingAsyncRequestExecutor extends HttpAsyncRequestExecutor {
         if (this.log.isDebugEnabled()) {
             this.log.debug(conn + " End of input");
         }
-        super.endOfInput(conn);
+        this.handler.endOfInput(conn);
     }
 
 }

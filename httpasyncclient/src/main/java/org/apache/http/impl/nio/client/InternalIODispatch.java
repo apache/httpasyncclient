@@ -29,6 +29,8 @@ package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.impl.nio.DefaultNHttpClientConnection;
 import org.apache.http.impl.nio.reactor.AbstractIODispatch;
 import org.apache.http.nio.NHttpClientEventHandler;
@@ -36,11 +38,17 @@ import org.apache.http.nio.reactor.IOSession;
 
 class InternalIODispatch extends AbstractIODispatch<DefaultNHttpClientConnection> {
 
+    private final Log log = LogFactory.getLog(InternalIODispatch.class);
+
     private final NHttpClientEventHandler handler;
 
     public InternalIODispatch(final NHttpClientEventHandler handler) {
         super();
-        this.handler = handler;
+        if (this.log.isDebugEnabled()) {
+            this.handler = new InternalRequestExecutor(this.log, handler);
+        } else {
+            this.handler = handler;
+        }
     }
 
     @Override
