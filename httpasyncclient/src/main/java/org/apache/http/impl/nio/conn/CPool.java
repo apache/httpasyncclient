@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.pool.AbstractNIOConnPool;
 import org.apache.http.nio.pool.NIOConnFactory;
@@ -59,7 +60,22 @@ class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection,
 
     @Override
     protected CPoolEntry createEntry(final HttpRoute route, final ManagedNHttpClientConnection conn) {
-        return new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.tunit);
+        final CPoolEntry entry =  new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.tunit);
+        entry.setSocketTimeout(conn.getSocketTimeout());
+        return entry;
+    }
+
+    @Override
+    protected void onLease(final CPoolEntry entry) {
+        final NHttpClientConnection conn = entry.getConnection();
+        conn.setSocketTimeout(entry.getSocketTimeout());
+    }
+
+    @Override
+    protected void onRelease(final CPoolEntry entry) {
+        final NHttpClientConnection conn = entry.getConnection();
+        entry.setSocketTimeout(conn.getSocketTimeout());
+        conn.setSocketTimeout(0);
     }
 
 }
