@@ -40,6 +40,7 @@ import org.apache.http.pool.PoolEntry;
 class CPoolEntry extends PoolEntry<HttpRoute, ManagedNHttpClientConnection> {
 
     private final Log log;
+    private volatile int socketTimeout;
     private volatile boolean routeComplete;
 
     public CPoolEntry(
@@ -58,6 +59,14 @@ class CPoolEntry extends PoolEntry<HttpRoute, ManagedNHttpClientConnection> {
 
     public void markRouteComplete() {
         this.routeComplete = true;
+    }
+
+    public int getSocketTimeout() {
+        return this.socketTimeout;
+    }
+
+    public void setSocketTimeout(final int socketTimeout) {
+        this.socketTimeout = socketTimeout;
     }
 
     public void closeConnection() throws IOException {

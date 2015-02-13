@@ -29,6 +29,10 @@ subsequent requests
 Release 4.0.2
 -------------------
 
+* [HTTPASYNC-88] persistent connections can time out while kept alive in the pool
+  causing unexpected SocketTimeoutException
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
 * [HTTPASYNC-86]: fixed a race condition upon connection lease from the connection pool: 
   in very rare  circumstances the main execution thread can get jammed for so long 
   that the I/O dispatch thread succeeds in completing the request and releasing the connection 
