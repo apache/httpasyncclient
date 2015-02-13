@@ -1,5 +1,15 @@
-Release 4.4-BETA2
+Changes since 4.1 BETA1
 -------------------
+
+* [HTTPASYNC-88] persistent connections can time out while kept alive in the pool
+  causing unexpected SocketTimeoutException
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* [HTTPASYNC-86]: fixed a race condition upon connection lease from the connection pool:
+  in very rare  circumstances the main execution thread can get jammed for so long
+  that the I/O dispatch thread succeeds in completing the request and releasing the connection
+  while the main still is performing connection validation.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
 
 * Update Apache Commons Logging version from 1.1.3 to 1.2. 
   Contributed by Gary Gregory <ggregory at apache.org>
@@ -23,22 +33,6 @@ and cookie domain of origin against the public suffix list maintained by Mozilla
 * Authentication cache thread-safety: authentication caches used by HttpAsyncClient is now 
 thread-safe and can be shared by multiple contexts in order to re-use authentication state for 
 subsequent requests
-
-
-
-Release 4.0.2
--------------------
-
-* [HTTPASYNC-88] persistent connections can time out while kept alive in the pool
-  causing unexpected SocketTimeoutException
-  Contributed by Oleg Kalnichevski <olegk at apache.org>
-
-* [HTTPASYNC-86]: fixed a race condition upon connection lease from the connection pool: 
-  in very rare  circumstances the main execution thread can get jammed for so long 
-  that the I/O dispatch thread succeeds in completing the request and releasing the connection 
-  while the main still is performing connection validation.
-  Contributed by Oleg Kalnichevski <olegk at apache.org>
-
 
 
 Release 4.0.2
