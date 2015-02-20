@@ -1,6 +1,9 @@
 Changes since 4.1 BETA1
 -------------------
 
+* [HTTPASYNC-90] Fixed SNI support.
+  Contributed by David <dblack at atlassian.com>
+
 * [HTTPASYNC-88] persistent connections can time out while kept alive in the pool
   causing unexpected SocketTimeoutException
   Contributed by Oleg Kalnichevski <olegk at apache.org>

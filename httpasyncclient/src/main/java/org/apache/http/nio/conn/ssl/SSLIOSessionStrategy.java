@@ -165,6 +165,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
         final SSLIOSession ssliosession = new SSLIOSession(
             iosession,
             SSLMode.CLIENT,
+            host,
             this.sslContext,
             new SSLSetupHandler() {
 
