@@ -56,7 +56,6 @@ import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -178,7 +177,7 @@ public class TestHttpAsyncPipelining extends AbstractAsyncTest {
 
     }
 
-    @Test @Ignore //TODO: re-enable afyer upgrade to HttpCore 4.4.1
+    @Test
     public void testPipelinedRequestsUnexpectedConnectionClosure() throws Exception {
         final HttpHost target = start();
 
