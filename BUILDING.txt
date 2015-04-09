@@ -3,7 +3,7 @@ Building HttpComponents AsyncClient
 
 (1) Requisites
 --------------
-JDK 1.5+ is required in order to compile and run HttpAsyncClient.
+JDK 1.6+ is required in order to compile and run HttpAsyncClient.
 
 HttpAsyncClient utilizes Maven as a distribution management and packaging tool.
 Version 3.0.3 or later is required. 
