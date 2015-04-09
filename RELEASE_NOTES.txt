@@ -1,4 +1,32 @@
-Changes since 4.1 BETA1
+Release 4.1
+-------------------
+
+This is the first stable (GA) release of HttpAsyncClient 4.1. Notable features and enhancements 
+included in 4.1 series are:
+
+* Support for pipelined request execution 
+
+* Support for the latest HTTP state management specification (RFC 6265). Please note that the old 
+cookie policy is still used by default for compatibility reasons. RFC 6265 compliant cookie 
+policies need to be explicitly configured by the user. Please also note that as of next feature 
+release support for Netscape draft, RFC 2109 and RFC 2965 cookie policies will be deprecated 
+and disabled by default. It is recommended to use RFC 6265 compliant policies for new applications 
+unless compatibility with RFC 2109 and RFC 2965 is required and to migrate existing applications 
+to the default cookie policy.
+
+* Enhanced, redesigned and rewritten default SSL hostname verifier with improved RFC 2818
+compliance
+
+* Default SSL hostname verifier and default cookie policy now validate certificate identity 
+and cookie domain of origin against the public suffix list maintained by Mozilla.org
+<https://publicsuffix.org/list>
+
+* Authentication cache thread-safety: authentication cache used by HttpClient is now thread-safe
+and can be shared by multiple threads in order to re-use authentication state for subsequent
+requests
+
+
+Changelog:
 -------------------
 
 * [HTTPASYNC-90] Fixed SNI support.
