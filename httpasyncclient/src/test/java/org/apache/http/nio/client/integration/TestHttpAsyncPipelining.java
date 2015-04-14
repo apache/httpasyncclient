@@ -26,6 +26,7 @@
  */
 package org.apache.http.nio.client.integration;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +36,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -212,7 +212,7 @@ public class TestHttpAsyncPipelining extends AbstractAsyncTest {
             } catch (ExecutionException ex) {
                 final Throwable cause = ex.getCause();
                 Assert.assertNotNull(cause);
-                Assert.assertEquals(cause.getClass(), ConnectionClosedException.class);
+                Assert.assertTrue(cause instanceof IOException);
             }
             Assert.assertTrue(c1.isDone());
             Assert.assertNotNull(c1.getResult());
