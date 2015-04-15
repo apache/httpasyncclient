@@ -28,8 +28,13 @@
 package org.apache.http.localserver;
 
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.ExceptionLogger;
 import org.apache.http.HttpHost;
 import org.apache.http.config.Registry;
@@ -44,6 +49,7 @@ import org.apache.http.nio.conn.NoopIOSessionStrategy;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.reactor.ListenerEndpoint;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.junit.After;
 import org.junit.Before;
 
@@ -69,6 +75,23 @@ public abstract class AbstractAsyncTest {
         return this.scheme.name();
     }
 
+    protected SSLContext createServerSSLContext() throws Exception {
+        final URL keyStoreURL = getClass().getResource("/test.keystore");
+        final String storePassword = "nopassword";
+        return SSLContextBuilder.create()
+                .loadTrustMaterial(keyStoreURL, storePassword.toCharArray())
+                .loadKeyMaterial(keyStoreURL, storePassword.toCharArray(), storePassword.toCharArray())
+                .build();
+    }
+
+    protected SSLContext createClientSSLContext() throws Exception {
+        final URL keyStoreURL = getClass().getResource("/test.keystore");
+        final String storePassword = "nopassword";
+        return SSLContextBuilder.create()
+                .loadTrustMaterial(keyStoreURL, storePassword.toCharArray())
+                .build();
+    }
+
     public HttpHost startServer() throws Exception {
         this.server = this.serverBootstrap.create();
         this.server.start();
@@ -88,16 +111,24 @@ public abstract class AbstractAsyncTest {
                 .build();
         this.serverBootstrap.setServerInfo("TEST/1.1");
         this.serverBootstrap.setIOReactorConfig(ioReactorConfig);
-        this.serverBootstrap.setExceptionLogger(ExceptionLogger.STD_ERR);
+        this.serverBootstrap.setExceptionLogger(new ExceptionLogger() {
+
+            private final Log log = LogFactory.getLog(AbstractAsyncTest.class);
+
+            @Override
+            public void log(final Exception ex) {
+                log.error(ex.getMessage(), ex);
+            }
+        });
         if (this.scheme.equals(ProtocolScheme.https)) {
-            this.serverBootstrap.setSslContext(SSLTestContexts.createServerSSLContext());
+            this.serverBootstrap.setSslContext(createServerSSLContext());
         }
 
         final RegistryBuilder<SchemeIOSessionStrategy> builder = RegistryBuilder.create();
         builder.register("http", NoopIOSessionStrategy.INSTANCE);
         if (this.scheme.equals(ProtocolScheme.https)) {
             builder.register("https", new SSLIOSessionStrategy(
-                    SSLTestContexts.createClientSSLContext(),
+                    createClientSSLContext(),
                     new DefaultHostnameVerifier()));
         }
         final Registry<SchemeIOSessionStrategy> registry =  builder.build();
