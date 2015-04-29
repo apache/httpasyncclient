@@ -649,9 +649,9 @@ public class HttpAsyncClientBuilder {
                 SSLContext sslcontext = this.sslcontext;
                 if (sslcontext == null) {
                     if (systemProperties) {
-                        sslcontext = SSLContexts.createDefault();
-                    } else {
                         sslcontext = SSLContexts.createSystemDefault();
+                    } else {
+                        sslcontext = SSLContexts.createDefault();
                     }
                 }
                 final String[] supportedProtocols = systemProperties ? split(
