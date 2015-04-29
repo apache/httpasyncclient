@@ -61,6 +61,7 @@ import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Lookup;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.SchemePortResolver;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
@@ -157,6 +158,7 @@ public class HttpAsyncClientBuilder {
     private AuthenticationStrategy proxyAuthStrategy;
     private UserTokenHandler userTokenHandler;
     private HttpProcessor httpprocessor;
+    private DnsResolver dnsResolver;
 
     private LinkedList<HttpRequestInterceptor> requestFirst;
     private LinkedList<HttpRequestInterceptor> requestLast;
@@ -324,6 +326,17 @@ public class HttpAsyncClientBuilder {
      */
     public final HttpAsyncClientBuilder setHttpProcessor(final HttpProcessor httpprocessor) {
         this.httpprocessor = httpprocessor;
+        return this;
+    }
+
+    /**
+     * Assigns {@link DnsResolver} instance.
+     * <p>
+     * Please note this value can be overridden by the {@link #setConnectionManager(
+     *   org.apache.http.nio.conn.NHttpClientConnectionManager)} method.
+     */
+    public final HttpAsyncClientBuilder setDnsResolver(final DnsResolver dnsResolver){
+        this.dnsResolver = dnsResolver;
         return this;
     }
 
@@ -669,10 +682,12 @@ public class HttpAsyncClientBuilder {
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
                     ioreactor,
+                    null,
                     RegistryBuilder.<SchemeIOSessionStrategy>create()
                         .register("http", NoopIOSessionStrategy.INSTANCE)
                         .register("https", sslStrategy)
-                        .build());
+                        .build(),
+                    this.dnsResolver);
             if (defaultConnectionConfig != null) {
                 poolingmgr.setDefaultConnectionConfig(defaultConnectionConfig);
             }
