@@ -116,7 +116,9 @@
             org.apache.http.impl.cookie;version=${httpclient.osgi.import.version},
             org.apache.http.impl.conn;version=${httpclient.osgi.import.version},
             org.apache.http.impl.client;version=${httpclient.osgi.import.version},
-            org.apache.http.impl.execchain;version=${httpclient.osgi.import.version}
+            org.apache.http.impl.execchain;version=${httpclient.osgi.import.version},
+            org.apache.http.ssl;version=${httpcore.osgi.import.version},
+            *
             </Import-Package>
             <Include-Resource />
             <!-- Stop the JAVA_1_n_HOME variables from being treated as headers by Bnd -->
