@@ -306,7 +306,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             future.get();
             Assert.fail();
         } catch (ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof UnknownHostException);
+            Assert.assertTrue(e.toString(), e.getCause() instanceof UnknownHostException);
         }
         this.connMgr.shutdown(1000);
 
