@@ -689,9 +689,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private RequestWrapper wrapRequest(final HttpRequest request) throws ProtocolException {
         if (request instanceof HttpEntityEnclosingRequest) {
             return new EntityEnclosingRequestWrapper((HttpEntityEnclosingRequest) request);
-        } else {
-            return new RequestWrapper(request);
         }
+        return new RequestWrapper(request);
     }
 
     protected void rewriteRequestURI(
@@ -854,9 +853,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.targetAuthStrategy, this.targetAuthState, this.localContext)) {
                 // Re-try the same request via the same route
                 return this.mainRequest;
-            } else {
-                return null;
             }
+            return null;
         }
         return null;
     }
@@ -871,9 +869,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.proxyAuthStrategy, this.proxyAuthState, this.localContext)) {
                 // Re-try the same request via the same route
                 return this.mainRequest;
-            } else {
-                return null;
             }
+            return null;
         }
         return null;
     }

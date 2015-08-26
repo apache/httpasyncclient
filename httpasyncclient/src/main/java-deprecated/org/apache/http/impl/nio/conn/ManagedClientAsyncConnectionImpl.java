@@ -136,9 +136,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         final ClientAsyncConnection conn = getConnection();
         if (conn != null) {
             return conn.isOpen();
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -278,9 +277,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         final IOSession iosession = conn.getIOSession();
         if (iosession instanceof SSLIOSession) {
             return ((SSLIOSession) iosession).getSSLSession();
-        } else {
-            return null;
         }
+        return null;
     }
 
     @Override
@@ -447,9 +445,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     public synchronized String toString() {
         if (this.poolEntry != null) {
             return this.poolEntry.toString();
-        } else {
-            return "released";
         }
+        return "released";
     }
 
 }

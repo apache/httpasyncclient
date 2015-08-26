@@ -156,9 +156,8 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         final CPoolEntry local = this.poolEntry;
         if (local != null) {
             return !local.isClosed();
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -166,9 +165,8 @@ class CPoolProxy implements ManagedNHttpClientConnection {
         final NHttpClientConnection conn = getConnection();
         if (conn != null) {
             return !conn.isOpen();
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override

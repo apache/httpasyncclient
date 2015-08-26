@@ -99,9 +99,8 @@ public final class AsyncScheme {
             return this.name.equals(that.name)
                 && this.defaultPort == that.defaultPort
                 && this.strategy.equals(that.strategy);
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override

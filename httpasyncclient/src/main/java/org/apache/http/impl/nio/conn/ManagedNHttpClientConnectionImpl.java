@@ -109,9 +109,8 @@ class ManagedNHttpClientConnectionImpl
     public SSLSession getSSLSession() {
         if (this.original instanceof SSLIOSession) {
             return ((SSLIOSession) this.original).getSSLSession();
-        } else {
-            return null;
         }
+        return null;
     }
 
     @Override
