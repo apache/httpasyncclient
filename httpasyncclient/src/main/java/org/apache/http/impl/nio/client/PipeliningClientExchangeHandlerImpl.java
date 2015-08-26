@@ -174,7 +174,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
         final HttpRoute route = new HttpRoute(this.target);
         setRoute(route);
 
-        this.localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, this.target);
+        this.localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, this.target);
         this.localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
 
         requestConnection();
