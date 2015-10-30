@@ -26,12 +26,6 @@
  */
 package org.apache.http.impl.nio.client;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.logging.Log;
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.ConnectionReuseStrategy;
@@ -49,7 +43,14 @@ import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler;
 import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Abstract {@link org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler} class
@@ -312,10 +313,14 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
                 return;
             }
 
-            managedConn.getContext().setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
-            managedConn.requestOutput();
-            if (managedConn.isStale()) {
-                failed(new ConnectionClosedException("Connection closed"));
+            final HttpContext context = managedConn.getContext();
+            synchronized (context) {
+                context.setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
+                if (managedConn.isStale()) {
+                    failed(new ConnectionClosedException("Connection closed"));
+                } else {
+                    managedConn.requestOutput();
+                }
             }
         } catch (final RuntimeException runex) {
             failed(runex);
