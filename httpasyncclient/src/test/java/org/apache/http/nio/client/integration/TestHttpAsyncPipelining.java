@@ -26,16 +26,6 @@
  */
 package org.apache.http.nio.client.integration;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -48,18 +38,21 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.localserver.AbstractAsyncTest;
 import org.apache.http.localserver.EchoHandler;
 import org.apache.http.localserver.RandomHandler;
-import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.protocol.BasicAsyncRequestHandler;
-import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
-import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 
 @RunWith(Parameterized.class)
 public class TestHttpAsyncPipelining extends AbstractAsyncTest {
@@ -174,55 +167,6 @@ public class TestHttpAsyncPipelining extends AbstractAsyncTest {
             final String s3 = EntityUtils.toString(response3.getEntity());
             Assert.assertNotNull(s3);
             Assert.assertEquals("all sorts of things", s3);
-        }
-
-    }
-
-    @Test @Ignore(value = "Fails on Windows")
-    public void testPipelinedRequestsUnexpectedConnectionClosure() throws Exception {
-        final HttpHost target = start();
-
-        for (int i = 0; i < 20; i++) {
-            final HttpAsyncRequestProducer p1 = HttpAsyncMethods.create(target, new HttpGet("/random/512"));
-            final HttpAsyncRequestProducer p2 = HttpAsyncMethods.create(target, new HttpGet("/pampa"));
-            final HttpAsyncRequestProducer p3 = HttpAsyncMethods.create(target, new HttpGet("/random/512"));
-            final HttpAsyncRequestProducer p4 = HttpAsyncMethods.create(target, new HttpGet("/random/512"));
-            final List<HttpAsyncRequestProducer> requestProducers = new ArrayList<HttpAsyncRequestProducer>();
-            requestProducers.add(p1);
-            requestProducers.add(p2);
-            requestProducers.add(p3);
-            requestProducers.add(p4);
-
-            final HttpAsyncResponseConsumer<HttpResponse> c1 = HttpAsyncMethods.createConsumer();
-            final HttpAsyncResponseConsumer<HttpResponse> c2 = HttpAsyncMethods.createConsumer();
-            final HttpAsyncResponseConsumer<HttpResponse> c3 = HttpAsyncMethods.createConsumer();
-            final HttpAsyncResponseConsumer<HttpResponse> c4 = HttpAsyncMethods.createConsumer();
-            final List<HttpAsyncResponseConsumer<HttpResponse>> responseConsumers = new ArrayList<HttpAsyncResponseConsumer<HttpResponse>>();
-            responseConsumers.add(c1);
-            responseConsumers.add(c2);
-            responseConsumers.add(c3);
-            responseConsumers.add(c4);
-
-            final Future<List<HttpResponse>> future = this.httpclient.execute(
-                    target,
-                    requestProducers,
-                    responseConsumers,
-                    null, null);
-            try {
-                future.get();
-            } catch (ExecutionException ex) {
-                final Throwable cause = ex.getCause();
-                Assert.assertNotNull(cause);
-                Assert.assertTrue(cause instanceof ConnectionClosedException);
-            }
-            Assert.assertTrue(c1.isDone());
-            Assert.assertNotNull(c1.getResult());
-            Assert.assertTrue(c2.isDone());
-            Assert.assertNotNull(c2.getResult());
-            Assert.assertTrue(c3.isDone());
-            Assert.assertNull(c3.getResult());
-            Assert.assertTrue(c4.isDone());
-            Assert.assertNull(c4.getResult());
         }
 
     }
