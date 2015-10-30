@@ -1,3 +1,25 @@
+Release 4.1.1
+-------------------
+
+This is a maintenance release that fixes a number of issues discovered since 4.1 and upgrades
+HttpCore and HttpClient dependencies.
+
+Changelog
+-------------------
+
+* HttpCore upgraded to version 4.4.4
+
+* HttpClient upgraded to version 4.5.1
+
+* [HTTPASYNC-92] Fixed osgi bundle imports (added missing 'org.apache.http.ssl')
+  Contributed by Daniel Kulp <dkulp at apache.org>
+
+* HttpAsyncClientBuilder ignores UseSystemProperties setting when initializing SSL context
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+
+
+
 Release 4.1
 -------------------
 
