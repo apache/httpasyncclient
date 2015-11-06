@@ -33,7 +33,7 @@
     <modelVersion>4.0.0</modelVersion>
   <artifactId>httpcomponents-asyncclient</artifactId>
   <name>Apache HttpComponents AsyncClient</name>
-  <version>4.1.1-SNAPSHOT</version>
+  <version>4.1.2-SNAPSHOT</version>
   <description>Apache components to build asynchronous client side HTTP services</description>
   <url>http://hc.apache.org/httpcomponents-asyncclient</url>
   <inceptionYear>2010</inceptionYear>
@@ -58,9 +58,9 @@
   </issueManagement>
 
   <scm>
-    <connection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</developerConnection>
-    <url>https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/trunk</url>
+    <connection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/branches/4.1.x</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/branches/4.1.x</developerConnection>
+    <url>https://svn.apache.org/repos/asf/httpcomponents/httpasyncclient/branches/4.1.x</url>
   </scm>
 
   <properties>
