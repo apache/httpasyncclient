@@ -26,6 +26,8 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.util.concurrent.ThreadFactory;
+
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
@@ -36,9 +38,9 @@ final class IOReactorUtils {
     private IOReactorUtils() {
     }
 
-    public static ConnectingIOReactor create(final IOReactorConfig config) {
+    public static ConnectingIOReactor create(final IOReactorConfig config, final ThreadFactory threadFactory) {
         try {
-            return new DefaultConnectingIOReactor(config);
+            return new DefaultConnectingIOReactor(config, threadFactory);
         } catch (final IOReactorException ex) {
             throw new IllegalStateException(ex);
         }

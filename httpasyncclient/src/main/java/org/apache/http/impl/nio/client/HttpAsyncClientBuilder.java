@@ -666,7 +666,7 @@ public class HttpAsyncClientBuilder {
                         sslcontext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
             }
             final ConnectingIOReactor ioreactor = IOReactorUtils.create(
-                defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT);
+                defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT, threadFactory);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
                     ioreactor,
                     RegistryBuilder.<SchemeIOSessionStrategy>create()

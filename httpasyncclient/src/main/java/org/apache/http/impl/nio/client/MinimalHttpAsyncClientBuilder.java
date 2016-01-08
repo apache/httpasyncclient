@@ -117,8 +117,8 @@ class MinimalHttpAsyncClientBuilder {
 
         NHttpClientConnectionManager connManager = this.connManager;
         if (connManager == null) {
-            connManager = new PoolingNHttpClientConnectionManager(
-                    IOReactorUtils.create(IOReactorConfig.DEFAULT));
+            connManager = new PoolingNHttpClientConnectionManager(IOReactorUtils.create(IOReactorConfig.DEFAULT,
+                    threadFactory));
         }
         ConnectionReuseStrategy reuseStrategy = this.reuseStrategy;
         if (reuseStrategy == null) {
