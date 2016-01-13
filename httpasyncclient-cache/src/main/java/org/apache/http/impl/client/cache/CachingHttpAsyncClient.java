@@ -288,7 +288,7 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             final FutureCallback<HttpResponse> futureCallback) {
         final BasicFuture<HttpResponse> future = new BasicFuture<HttpResponse>(futureCallback);
         final HttpRequestWrapper request = HttpRequestWrapper.wrap(originalRequest);
-        final HttpCacheContext clientContext = HttpCacheContext.adapt(context);
+        final HttpCacheContext clientContext = context != null ? HttpCacheContext.adapt(context) : HttpCacheContext.create();
         // default response context
         setResponseStatus(clientContext, CacheResponseStatus.CACHE_MISS);
 
