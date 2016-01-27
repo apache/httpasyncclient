@@ -113,7 +113,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
         if (requestProducer != null) {
             try {
                 requestProducer.close();
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 this.log.debug("I/O error closing request producer", ex);
             }
         }
@@ -123,7 +123,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
         if (responseConsumer != null) {
             try {
                 responseConsumer.close();
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 this.log.debug("I/O error closing response consumer", ex);
             }
         }
@@ -236,7 +236,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
         requestProducer.requestCompleted(this.localContext);
         try {
             requestProducer.close();
-        } catch (IOException ioex) {
+        } catch (final IOException ioex) {
             this.log.debug(ioex.getMessage(), ioex);
         }
     }
@@ -293,7 +293,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
             final Exception ex = responseConsumer.getException();
             try {
                 responseConsumer.close();
-            } catch (IOException ioex) {
+            } catch (final IOException ioex) {
                 this.log.debug(ioex.getMessage(), ioex);
             }
             if (result != null) {

@@ -100,21 +100,21 @@ public class CachingHttpAsyncClientExecChain implements ClientExecChain {
         try {
             final Future<HttpResponse> future = client.execute(route.getTargetHost(), request, context, null);
             return Proxies.enhanceResponse(future.get());
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             try {
                 throw e.getCause();
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 throw ex;
-            } catch (HttpException ex) {
+            } catch (final HttpException ex) {
                 throw ex;
-            } catch (RuntimeException ex) {
+            } catch (final RuntimeException ex) {
                 throw ex;
-            } catch (Error ex) {
+            } catch (final Error ex) {
                 throw ex;
-            } catch (Throwable ex) {
+            } catch (final Throwable ex) {
                 throw new UndeclaredThrowableException(ex);
             }
         }

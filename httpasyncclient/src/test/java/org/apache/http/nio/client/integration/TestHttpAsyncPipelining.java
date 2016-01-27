@@ -210,7 +210,7 @@ public class TestHttpAsyncPipelining extends AbstractAsyncTest {
                     null, null);
             try {
                 future.get();
-            } catch (ExecutionException ex) {
+            } catch (final ExecutionException ex) {
                 final Throwable cause = ex.getCause();
                 Assert.assertNotNull(cause);
                 Assert.assertTrue(cause instanceof ConnectionClosedException);
