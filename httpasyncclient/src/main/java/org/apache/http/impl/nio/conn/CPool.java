@@ -74,7 +74,6 @@ class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection,
     @Override
     protected void onRelease(final CPoolEntry entry) {
         final NHttpClientConnection conn = entry.getConnection();
-        entry.setSocketTimeout(conn.getSocketTimeout());
         conn.setSocketTimeout(0);
     }
 
