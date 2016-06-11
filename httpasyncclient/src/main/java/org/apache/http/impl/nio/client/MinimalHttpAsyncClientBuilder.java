@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import org.apache.http.ConnectionReuseStrategy;
-import org.apache.http.annotation.NotThreadSafe;
 import org.apache.http.client.protocol.RequestAddCookies;
 import org.apache.http.client.protocol.RequestClientConnControl;
 import org.apache.http.client.protocol.ResponseProcessCookies;
@@ -55,7 +54,6 @@ import org.apache.http.util.VersionInfo;
  *
  * @since 4.1
  */
-@NotThreadSafe
 class MinimalHttpAsyncClientBuilder {
 
     private NHttpClientConnectionManager connManager;

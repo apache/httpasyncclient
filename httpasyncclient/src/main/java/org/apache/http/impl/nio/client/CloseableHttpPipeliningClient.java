@@ -33,7 +33,8 @@ import java.util.concurrent.Future;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.nio.client.HttpPipeliningClient;
@@ -49,7 +50,7 @@ import org.apache.http.util.Args;
  *
  * @since 4.1
  */
-@ThreadSafe
+@Contract(threading = ThreadingBehavior.SAFE)
 public abstract class CloseableHttpPipeliningClient
         extends CloseableHttpAsyncClient implements HttpPipeliningClient {
 

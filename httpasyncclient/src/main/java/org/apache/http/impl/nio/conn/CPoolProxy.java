@@ -35,14 +35,12 @@ import org.apache.http.HttpConnectionMetrics;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.annotation.NotThreadSafe;
 import org.apache.http.impl.conn.ConnectionShutdownException;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.nio.reactor.IOSession;
 import org.apache.http.protocol.HttpContext;
 
-@NotThreadSafe
 class CPoolProxy implements ManagedNHttpClientConnection {
 
     private volatile CPoolEntry poolEntry;

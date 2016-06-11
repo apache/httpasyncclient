@@ -27,7 +27,8 @@
 package org.apache.http.impl.nio.client;
 
 import org.apache.http.HttpConnection;
-import org.apache.http.annotation.Immutable;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.auth.AuthScheme;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.Credentials;
@@ -55,7 +56,7 @@ import java.security.Principal;
  *
  * @since 4.0
  */
-@Immutable
+@Contract(threading = ThreadingBehavior.IMMUTABLE)
 public class DefaultAsyncUserTokenHandler implements UserTokenHandler {
 
     public static final DefaultAsyncUserTokenHandler INSTANCE = new DefaultAsyncUserTokenHandler();

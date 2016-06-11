@@ -31,12 +31,13 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
-import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
 import org.apache.http.pool.PoolEntry;
 
-@ThreadSafe
+@Contract(threading = ThreadingBehavior.SAFE)
 class CPoolEntry extends PoolEntry<HttpRoute, ManagedNHttpClientConnection> {
 
     private final Log log;

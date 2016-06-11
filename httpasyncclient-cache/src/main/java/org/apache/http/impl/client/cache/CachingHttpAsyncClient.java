@@ -48,7 +48,8 @@ import org.apache.http.HttpVersion;
 import org.apache.http.ProtocolException;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.RequestLine;
-import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.cache.CacheResponseStatus;
 import org.apache.http.client.cache.HeaderConstants;
@@ -76,7 +77,7 @@ import org.apache.http.util.Args;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 
-@ThreadSafe // So long as the responseCache implementation is threadsafe
+@Contract(threading = ThreadingBehavior.SAFE) // So long as the responseCache implementation is threadsafe
 public class CachingHttpAsyncClient implements HttpAsyncClient {
 
     private final static boolean SUPPORTS_RANGE_AND_CONTENT_RANGE_HEADERS = false;

@@ -27,7 +27,6 @@
 
 package org.apache.http.impl.nio.client;
 
-import org.apache.http.annotation.Immutable;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.nio.conn.NHttpClientConnectionManager;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
@@ -39,7 +38,6 @@ import org.apache.http.util.Args;
  *
  * @since 4.0
  */
-@Immutable
 public class HttpAsyncClients {
 
     private HttpAsyncClients() {

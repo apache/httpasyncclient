@@ -30,7 +30,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.annotation.ThreadSafe;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.nio.NHttpClientConnection;
 import org.apache.http.nio.conn.ManagedNHttpClientConnection;
@@ -39,7 +40,7 @@ import org.apache.http.nio.pool.NIOConnFactory;
 import org.apache.http.nio.pool.SocketAddressResolver;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 
-@ThreadSafe
+@Contract(threading = ThreadingBehavior.SAFE)
 class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection, CPoolEntry> {
 
     private final Log log = LogFactory.getLog(CPool.class);
