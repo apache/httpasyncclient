@@ -1,3 +1,28 @@
+Release 4.1.2
+-------------------
+
+This is a maintenance release that fixes a number of issues discovered since 4.1.1 and upgrades
+HttpCore and HttpClient dependencies.
+
+Changelog
+-------------------
+
+* HttpCore upgraded to version 4.4.5
+
+* HttpClient upgraded to version 4.5.2
+
+* [HTTPASYNC-105] socketTimeout is not reset back to default after a request that has specific 
+  timeout
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* [HTTPASYNC-101 CachingHttpAsyncClient to create default HttpContext if none specified
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* [HTTPASYNC-97] Upgraded HttpClient OSGi dependency to 4.5
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+
+
 Release 4.1.1
 -------------------
 
