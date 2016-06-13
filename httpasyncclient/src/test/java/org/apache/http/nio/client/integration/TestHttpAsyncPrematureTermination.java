@@ -27,7 +27,6 @@
 package org.apache.http.nio.client.integration;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -306,7 +305,8 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
             future.get();
             Assert.fail();
         } catch (ExecutionException e) {
-            Assert.assertTrue(e.getCause() instanceof UnknownHostException);
+            final Throwable cause = e.getCause();
+            Assert.assertTrue("Unexpected cause: " + cause, cause instanceof IOException);
         }
         this.connMgr.shutdown(1000);
 
