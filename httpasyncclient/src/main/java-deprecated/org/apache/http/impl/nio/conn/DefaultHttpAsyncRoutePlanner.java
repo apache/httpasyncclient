@@ -77,7 +77,7 @@ public class DefaultHttpAsyncRoutePlanner implements HttpRoutePlanner {
         }
         final InetAddress local = ConnRouteParams.getLocalAddress(request.getParams());
         final HttpHost proxy = ConnRouteParams.getDefaultProxy(request.getParams());
-        AsyncScheme scheme;
+        final AsyncScheme scheme;
         try {
             final AsyncSchemeRegistry registry = getSchemeRegistry(context);
             scheme = registry.getScheme(target);

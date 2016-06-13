@@ -513,10 +513,10 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
         }
         final BasicFuture<T> future = new BasicFuture<T>(callback);
         final ResultCallback<T> resultCallback = new DefaultResultCallback<T>(future, this.queue);
-        DefaultAsyncRequestDirector<T> httpexchange;
+        final DefaultAsyncRequestDirector<T> httpexchange;
         synchronized (this) {
             final HttpContext defaultContext = createHttpContext();
-            HttpContext execContext;
+            final HttpContext execContext;
             if (context == null) {
                 execContext = defaultContext;
             } else {
@@ -581,7 +581,7 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
             final HttpUriRequest request,
             final HttpContext context,
             final FutureCallback<HttpResponse> callback) {
-        HttpHost target;
+        final HttpHost target;
         try {
             target = determineTarget(request);
         } catch (final ClientProtocolException ex) {
