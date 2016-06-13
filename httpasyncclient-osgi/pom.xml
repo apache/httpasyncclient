@@ -107,7 +107,7 @@
             org.apache.http.conn.ssl;version=${httpclient.osgi.import.version},
             org.apache.http.conn.util;version=${httpclient.osgi.import.version},
             org.apache.http.client;version=${httpclient.osgi.import.version},
-            org.apache.http.client.config;version=${httpcore.osgi.import.version},
+            org.apache.http.client.config;version=${httpclient.osgi.import.version},
             org.apache.http.client.methods;version=${httpclient.osgi.import.version},
             org.apache.http.client.params;version=${httpclient.osgi.import.version},
             org.apache.http.client.protocol;version=${httpclient.osgi.import.version},
