@@ -242,7 +242,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                 .build();
         this.httpclient.start();
 
-        final HttpGet get = new HttpGet("http://stuff.invalid/");
+        final HttpGet get = new HttpGet("http://0.0.0.0/");
         final HttpAsyncRequestProducer producer = HttpAsyncMethods.create(get);
 
         final AtomicBoolean closed = new AtomicBoolean(false);
