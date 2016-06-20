@@ -36,6 +36,5 @@ where <VERSION> is the release version
 
 Execute the following commands in order to generate Javadoc:
 
-mvn install
-mvn javadoc:aggregate
+mvn compile javadoc:aggregate
 
