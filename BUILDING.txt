@@ -46,6 +46,5 @@ mvn apache-rat:check
 
 Execute the following commands in order to generate Javadoc:
 
-mvn install
-mvn javadoc:aggregate
+mvn compile javadoc:aggregate
 
