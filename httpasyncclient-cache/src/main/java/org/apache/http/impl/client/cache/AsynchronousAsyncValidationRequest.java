@@ -94,9 +94,9 @@ class AsynchronousAsyncValidationRequest implements Runnable {
             future.get();
         } catch (final ProtocolException pe) {
             this.log.error("ProtocolException thrown during asynchronous revalidation", pe);
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             this.log.error("Exception thrown during asynchronous revalidation", e.getCause());
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
             this.parent.markComplete(this.identifier);

@@ -97,7 +97,7 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpPipeliningClien
             if (this.reactorThread != null) {
                 try {
                     this.connmgr.shutdown();
-                } catch (IOException ex) {
+                } catch (final IOException ex) {
                     this.log.error("I/O error shutting down connection manager", ex);
                 }
                 try {

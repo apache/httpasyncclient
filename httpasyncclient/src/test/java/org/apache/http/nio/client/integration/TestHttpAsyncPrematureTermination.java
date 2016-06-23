@@ -305,7 +305,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         try {
             future.get();
             Assert.fail();
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             final Throwable cause = e.getCause();
             Assert.assertTrue("Unexpected cause: " + cause, cause instanceof IOException);
         }

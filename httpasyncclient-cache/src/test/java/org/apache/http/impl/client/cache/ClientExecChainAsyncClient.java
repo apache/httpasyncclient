@@ -111,9 +111,9 @@ public class ClientExecChainAsyncClient extends CloseableHttpAsyncClient {
                     HttpRequestWrapper.wrap(request),
                     HttpClientContext.adapt(context), null);
             future.completed(result);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             future.failed(e);
-        } catch (HttpException e) {
+        } catch (final HttpException e) {
             future.failed(e);
         }
         return future;
