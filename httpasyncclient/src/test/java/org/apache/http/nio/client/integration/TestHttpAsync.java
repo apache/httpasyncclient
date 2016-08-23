@@ -113,6 +113,26 @@ public class TestHttpAsync extends HttpAsyncTestBase {
     }
 
     @Test
+    public void testHttpAsyncMethods() throws Exception {
+        final HttpHost target = start();
+        final byte[] b1 = new byte[1024];
+        final Random rnd = new Random(System.currentTimeMillis());
+        rnd.nextBytes(b1);
+
+        final Future<HttpResponse> future = this.httpclient.execute(
+            HttpAsyncMethods.createPost(target + "/echo/post", b1, null),
+            new BasicAsyncResponseConsumer(),
+            null);
+        final HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        final HttpEntity entity = response.getEntity();
+        Assert.assertNotNull(entity);
+        final byte[] b2 = EntityUtils.toByteArray(entity);
+        Assert.assertArrayEquals(b1, b2);
+    }
+
+    @Test
     public void testMultiplePostsOverMultipleConnections() throws Exception {
         final HttpHost target = start();
         final byte[] b1 = new byte[1024];

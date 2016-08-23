@@ -233,6 +233,7 @@ public final class HttpAsyncMethods {
             final ContentType contentType) {
         final HttpPost httppost = new HttpPost(requestURI);
         final NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
+        httppost.setEntity(entity);
         final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httppost, entity);
     }
@@ -300,6 +301,7 @@ public final class HttpAsyncMethods {
             final ContentType contentType) {
         final HttpPut httpput = new HttpPut(requestURI);
         final NByteArrayEntity entity = new NByteArrayEntity(content, contentType);
+        httpput.setEntity(entity);
         final HttpHost target = URIUtils.extractHost(requestURI);
         return new RequestProducerImpl(target, httpput, entity);
     }
