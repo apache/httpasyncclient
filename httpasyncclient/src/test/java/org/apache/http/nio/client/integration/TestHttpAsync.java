@@ -35,6 +35,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -90,6 +91,18 @@ public class TestHttpAsync extends HttpAsyncTestBase {
         final HttpResponse response = future.get();
         Assert.assertNotNull(response);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    }
+
+    @Test
+    public void testMultipleHead() throws Exception {
+        final HttpHost target = start();
+        for (int i = 0; i < 3; i++) {
+            final HttpHead httpHead = new HttpHead("/random/2048");
+            final Future<HttpResponse> future = this.httpclient.execute(target, httpHead, null);
+            final HttpResponse response = future.get();
+            Assert.assertNotNull(response);
+            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        }
     }
 
     @Test
