@@ -70,7 +70,7 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
             final ConnectionReuseStrategy connReuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy,
             final InternalClientExec exec) {
-        super(log, localContext, resultFuture, connmgr, connReuseStrategy, keepaliveStrategy);
+        super(log, localContext, connmgr, connReuseStrategy, keepaliveStrategy);
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.resultFuture = resultFuture;
@@ -94,8 +94,12 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     void executionFailed(final Exception ex) {
-        this.requestProducer.failed(ex);
-        this.responseConsumer.failed(ex);
+        try {
+            this.requestProducer.failed(ex);
+            this.responseConsumer.failed(ex);
+        } finally {
+            this.resultFuture.failed(ex);
+        }
     }
 
     @Override

@@ -111,7 +111,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         } catch (final Exception ex) {
             handler.failed(ex);
         }
-        return future;
+        return new FutureWrapper<T>(future, handler);
     }
 
     @Override
@@ -142,7 +142,7 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         } catch (final Exception ex) {
             handler.failed(ex);
         }
-        return future;
+        return new FutureWrapper<List<T>>(future, handler);
     }
 
 }

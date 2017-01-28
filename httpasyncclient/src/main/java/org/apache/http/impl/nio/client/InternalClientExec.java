@@ -42,11 +42,11 @@ interface InternalClientExec {
             HttpHost target,
             HttpRequest original,
             InternalState state,
-            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
+            AbstractClientExchangeHandler handler) throws IOException, HttpException;
 
     HttpRequest generateRequest(
             InternalState state,
-            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
+            AbstractClientExchangeHandler handler) throws IOException, HttpException;
 
     void produceContent(
             InternalState state,
@@ -55,12 +55,12 @@ interface InternalClientExec {
 
     void requestCompleted(
             InternalState state,
-            AbstractClientExchangeHandler<?> handler);
+            AbstractClientExchangeHandler handler);
 
     void responseReceived(
             HttpResponse response,
             InternalState state,
-            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
+            AbstractClientExchangeHandler handler) throws IOException, HttpException;
 
     void consumeContent(
             InternalState state,
@@ -69,6 +69,6 @@ interface InternalClientExec {
 
     void responseCompleted(
             InternalState state,
-            AbstractClientExchangeHandler<?> handler) throws IOException, HttpException;
+            AbstractClientExchangeHandler handler) throws IOException, HttpException;
 
 }

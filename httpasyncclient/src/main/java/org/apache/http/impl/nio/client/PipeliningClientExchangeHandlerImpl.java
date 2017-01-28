@@ -91,7 +91,7 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
             final HttpProcessor httpProcessor,
             final ConnectionReuseStrategy connReuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy) {
-        super(log, localContext, resultFuture, connmgr, connReuseStrategy, keepaliveStrategy);
+        super(log, localContext, connmgr, connReuseStrategy, keepaliveStrategy);
         Args.notNull(target, "HTTP target");
         Args.notEmpty(requestProducers, "Request producer list");
         Args.notEmpty(responseConsumers, "Response consumer list");

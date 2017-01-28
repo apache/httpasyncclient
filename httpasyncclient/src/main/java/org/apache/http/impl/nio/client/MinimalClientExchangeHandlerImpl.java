@@ -76,7 +76,7 @@ class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
             final HttpProcessor httpProcessor,
             final ConnectionReuseStrategy connReuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy) {
-        super(log, localContext, resultFuture, connmgr, connReuseStrategy, keepaliveStrategy);
+        super(log, localContext, connmgr, connReuseStrategy, keepaliveStrategy);
         this.requestProducer = requestProducer;
         this.responseConsumer = responseConsumer;
         this.localContext = localContext;

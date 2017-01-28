@@ -116,7 +116,7 @@ class MainClientExec implements InternalClientExec {
             final HttpHost target,
             final HttpRequest original,
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws HttpException, IOException {
+            final AbstractClientExchangeHandler handler) throws HttpException, IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] start execution");
         }
@@ -149,7 +149,7 @@ class MainClientExec implements InternalClientExec {
     @Override
     public HttpRequest generateRequest(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
+            final AbstractClientExchangeHandler handler) throws IOException, HttpException {
 
         final HttpRoute route = handler.getRoute();
 
@@ -268,7 +268,7 @@ class MainClientExec implements InternalClientExec {
     @Override
     public void requestCompleted(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) {
+            final AbstractClientExchangeHandler handler) {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Request completed");
         }
@@ -281,7 +281,7 @@ class MainClientExec implements InternalClientExec {
     public void responseReceived(
             final HttpResponse response,
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
+            final AbstractClientExchangeHandler handler) throws IOException, HttpException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
@@ -337,7 +337,7 @@ class MainClientExec implements InternalClientExec {
     @Override
     public void responseCompleted(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
+            final AbstractClientExchangeHandler handler) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpResponse currentResponse = handler.getCurrentResponse();
 
@@ -469,7 +469,7 @@ class MainClientExec implements InternalClientExec {
 
     private void prepareRequest(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws IOException, HttpException {
+            final AbstractClientExchangeHandler handler) throws IOException, HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final HttpRequestWrapper currentRequest = handler.getCurrentRequest();
         final HttpRoute route = handler.getRoute();
@@ -540,7 +540,7 @@ class MainClientExec implements InternalClientExec {
 
     private boolean handleConnectResponse(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws HttpException {
+            final AbstractClientExchangeHandler handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
@@ -562,7 +562,7 @@ class MainClientExec implements InternalClientExec {
 
     private boolean handleResponse(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws HttpException {
+            final AbstractClientExchangeHandler handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
@@ -599,7 +599,7 @@ class MainClientExec implements InternalClientExec {
 
     private boolean needAuthentication(
             final InternalState state,
-            final AbstractClientExchangeHandler<?> handler) throws HttpException {
+            final AbstractClientExchangeHandler handler) throws HttpException {
         final HttpClientContext localContext = state.getLocalContext();
         final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
         if (credsProvider != null) {

@@ -142,7 +142,7 @@ class InternalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         } catch (final Exception ex) {
             handler.failed(ex);
         }
-        return future;
+        return new FutureWrapper<T>(future, handler);
     }
 
     @Override

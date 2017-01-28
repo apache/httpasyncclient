@@ -26,6 +26,13 @@
  */
 package org.apache.http.impl.nio.client;
 
+import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.logging.Log;
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.ConnectionReuseStrategy;
@@ -34,7 +41,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestWrapper;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoute;
@@ -46,12 +52,6 @@ import org.apache.http.nio.protocol.HttpAsyncRequestExecutor;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.Asserts;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * Abstract {@link org.apache.http.nio.protocol.HttpAsyncClientExchangeHandler} class
  * that implements connection management aspects shared by all HTTP exchange handlers.
@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Instances of this class are expected to be accessed by one thread at a time only.
  * The {@link #cancel()} method can be called concurrently by multiple threads.
  */
-abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchangeHandler {
+abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeHandler {
 
     private static final AtomicLong COUNTER = new AtomicLong(1);
 
@@ -67,10 +67,10 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
 
     private final long id;
     private final HttpClientContext localContext;
-    private final BasicFuture<T> resultFuture;
     private final NHttpClientConnectionManager connmgr;
     private final ConnectionReuseStrategy connReuseStrategy;
     private final ConnectionKeepAliveStrategy keepaliveStrategy;
+    private final AtomicReference<Future<NHttpClientConnection>> connectionFutureRef;
     private final AtomicReference<NHttpClientConnection> managedConnRef;
     private final AtomicReference<HttpRoute> routeRef;
     private final AtomicReference<RouteTracker> routeTrackerRef;
@@ -84,7 +84,6 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
     AbstractClientExchangeHandler(
             final Log log,
             final HttpClientContext localContext,
-            final BasicFuture<T> resultFuture,
             final NHttpClientConnectionManager connmgr,
             final ConnectionReuseStrategy connReuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy) {
@@ -92,10 +91,10 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
         this.log = log;
         this.id = COUNTER.getAndIncrement();
         this.localContext = localContext;
-        this.resultFuture = resultFuture;
         this.connmgr = connmgr;
         this.connReuseStrategy = connReuseStrategy;
         this.keepaliveStrategy = keepaliveStrategy;
+        this.connectionFutureRef = new AtomicReference<Future<NHttpClientConnection>>(null);
         this.managedConnRef = new AtomicReference<NHttpClientConnection>(null);
         this.routeRef = new AtomicReference<HttpRoute>(null);
         this.routeTrackerRef = new AtomicReference<RouteTracker>(null);
@@ -306,6 +305,7 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
             if (this.log.isDebugEnabled()) {
                 this.log.debug("[exchange: " + this.id + "] Connection allocated: " + managedConn);
             }
+            this.connectionFutureRef.set(null);
             this.managedConnRef.set(managedConn);
 
             if (this.closed.get()) {
@@ -332,6 +332,7 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] connection request failed");
         }
+        this.connectionFutureRef.set(null);
         failed(ex);
     }
 
@@ -339,8 +340,9 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Connection request cancelled");
         }
+        this.connectionFutureRef.set(null);
         try {
-            this.resultFuture.cancel();
+            executionCancelled();
         } finally {
             close();
         }
@@ -360,7 +362,7 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
 
         final Object userToken = this.localContext.getUserToken();
         final RequestConfig config = this.localContext.getRequestConfig();
-        this.connmgr.requestConnection(
+        this.connectionFutureRef.set(this.connmgr.requestConnection(
                 route,
                 userToken,
                 config.getConnectTimeout(),
@@ -383,7 +385,7 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
                         connectionRequestCancelled();
                     }
 
-                });
+                }));
     }
 
     abstract void releaseResources();
@@ -409,14 +411,10 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
     public final void failed(final Exception ex) {
         if (this.closed.compareAndSet(false, true)) {
             try {
-                try {
-                    executionFailed(ex);
-                } finally {
-                    discardConnection();
-                    releaseResources();
-                }
+                executionFailed(ex);
             } finally {
-                this.resultFuture.failed(ex);
+                discardConnection();
+                releaseResources();
             }
         }
     }
@@ -428,14 +426,14 @@ abstract class AbstractClientExchangeHandler<T> implements HttpAsyncClientExchan
         }
         if (this.closed.compareAndSet(false, true)) {
             try {
-                try {
-                    return executionCancelled();
-                } finally {
-                    discardConnection();
-                    releaseResources();
+                final Future<NHttpClientConnection> connectionFuture = this.connectionFutureRef.getAndSet(null);
+                if (connectionFuture != null) {
+                    connectionFuture.cancel(true);
                 }
+                return executionCancelled();
             } finally {
-                this.resultFuture.cancel();
+                discardConnection();
+                releaseResources();
             }
         }
         return false;
