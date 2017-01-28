@@ -33,8 +33,10 @@ import java.net.SocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -249,7 +251,7 @@ public class PoolingNHttpClientConnectionManager
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
-        final BasicFuture<NHttpClientConnection> future = new BasicFuture<NHttpClientConnection>(callback);
+        final BasicFuture<NHttpClientConnection> resultFuture = new BasicFuture<NHttpClientConnection>(callback);
         final HttpHost host;
         if (route.getProxyHost() != null) {
             host = route.getProxyHost();
@@ -259,14 +261,73 @@ public class PoolingNHttpClientConnectionManager
         final SchemeIOSessionStrategy sf = this.iosessionFactoryRegistry.lookup(
                 host.getSchemeName());
         if (sf == null) {
-            future.failed(new UnsupportedSchemeException(host.getSchemeName() +
+            resultFuture.failed(new UnsupportedSchemeException(host.getSchemeName() +
                     " protocol is not supported"));
-            return future;
+            return resultFuture;
         }
-        this.pool.lease(route, state,
+        final Future<CPoolEntry> leaseFuture = this.pool.lease(route, state,
                 connectTimeout, leaseTimeout, tunit != null ? tunit : TimeUnit.MILLISECONDS,
-                new InternalPoolEntryCallback(future));
-        return future;
+                new FutureCallback<CPoolEntry>() {
+
+                    @Override
+                    public void completed(final CPoolEntry entry) {
+                        Asserts.check(entry.getConnection() != null, "Pool entry with no connection");
+                        if (log.isDebugEnabled()) {
+                            log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
+                        }
+                        final NHttpClientConnection managedConn = CPoolProxy.newProxy(entry);
+                        if (!resultFuture.completed(managedConn)) {
+                            pool.release(entry, true);
+                        }
+                    }
+
+                    @Override
+                    public void failed(final Exception ex) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Connection request failed", ex);
+                        }
+                        resultFuture.failed(ex);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        log.debug("Connection request cancelled");
+                        resultFuture.cancel(true);
+                    }
+
+                });
+        return new Future<NHttpClientConnection>() {
+
+            @Override
+            public boolean cancel(final boolean mayInterruptIfRunning) {
+                try {
+                    leaseFuture.cancel(mayInterruptIfRunning);
+                } finally {
+                    return resultFuture.cancel(mayInterruptIfRunning);
+                }
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return resultFuture.isCancelled();
+            }
+
+            @Override
+            public boolean isDone() {
+                return resultFuture.isDone();
+            }
+
+            @Override
+            public NHttpClientConnection get() throws InterruptedException, ExecutionException {
+                return resultFuture.get();
+            }
+
+            @Override
+            public NHttpClientConnection get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                return resultFuture.get(timeout, unit);
+            }
+
+        };
     }
 
     @Override
@@ -472,44 +533,6 @@ public class PoolingNHttpClientConnectionManager
 
     public void setConnectionConfig(final HttpHost host, final ConnectionConfig connectionConfig) {
         this.configData.setConnectionConfig(host, connectionConfig);
-    }
-
-    class InternalPoolEntryCallback implements FutureCallback<CPoolEntry> {
-
-        private final BasicFuture<NHttpClientConnection> future;
-
-        public InternalPoolEntryCallback(
-                final BasicFuture<NHttpClientConnection> future) {
-            super();
-            this.future = future;
-        }
-
-        @Override
-        public void completed(final CPoolEntry entry) {
-            Asserts.check(entry.getConnection() != null, "Pool entry with no connection");
-            if (log.isDebugEnabled()) {
-                log.debug("Connection leased: " + format(entry) + formatStats(entry.getRoute()));
-            }
-            final NHttpClientConnection managedConn = CPoolProxy.newProxy(entry);
-            if (!this.future.completed(managedConn)) {
-                pool.release(entry, true);
-            }
-        }
-
-        @Override
-        public void failed(final Exception ex) {
-            if (log.isDebugEnabled()) {
-                log.debug("Connection request failed", ex);
-            }
-            this.future.failed(ex);
-        }
-
-        @Override
-        public void cancelled() {
-            log.debug("Connection request cancelled");
-            this.future.cancel(true);
-        }
-
     }
 
     static class ConfigData {
