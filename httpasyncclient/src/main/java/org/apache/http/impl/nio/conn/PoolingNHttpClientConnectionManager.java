@@ -472,6 +472,11 @@ public class PoolingNHttpClientConnectionManager
         this.pool.closeExpired();
     }
 
+    public void validatePendingRequests() {
+        log.debug("Validating pending requests");
+        this.pool.validatePendingRequests();
+    }
+
     @Override
     public int getMaxTotal() {
         return this.pool.getMaxTotal();
