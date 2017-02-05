@@ -51,9 +51,9 @@ public class AsyncClientHttpExchangeFutureCallback {
         try {
             httpclient.start();
             final HttpGet[] requests = new HttpGet[] {
-                    new HttpGet("http://www.apache.org/"),
-                    new HttpGet("https://www.verisign.com/"),
-                    new HttpGet("http://www.google.com/")
+                    new HttpGet("http://httpbin.org/ip"),
+                    new HttpGet("https://httpbin.org/ip"),
+                    new HttpGet("http://httpbin.org/headers")
             };
             final CountDownLatch latch = new CountDownLatch(requests.length);
             for (final HttpGet request: requests) {

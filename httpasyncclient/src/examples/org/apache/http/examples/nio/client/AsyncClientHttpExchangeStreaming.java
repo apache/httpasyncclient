@@ -49,7 +49,7 @@ public class AsyncClientHttpExchangeStreaming {
         try {
             httpclient.start();
             Future<Boolean> future = httpclient.execute(
-                    HttpAsyncMethods.createGet("http://localhost:8080/"),
+                    HttpAsyncMethods.createGet("http://httpbin.org/"),
                     new MyResponseConsumer(), null);
             Boolean result = future.get();
             if (result != null && result.booleanValue()) {

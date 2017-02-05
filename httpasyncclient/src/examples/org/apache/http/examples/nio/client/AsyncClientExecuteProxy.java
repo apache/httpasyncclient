@@ -46,11 +46,11 @@ public class AsyncClientExecuteProxy {
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         try {
             httpclient.start();
-            HttpHost proxy = new HttpHost("someproxy", 8080);
+            HttpHost proxy = new HttpHost("localhost", 8888);
             RequestConfig config = RequestConfig.custom()
                     .setProxy(proxy)
                     .build();
-            HttpGet request = new HttpGet("https://issues.apache.org/");
+            HttpGet request = new HttpGet("https://httpbin.org/");
             request.setConfig(config);
             Future<HttpResponse> future = httpclient.execute(request, null);
             HttpResponse response = future.get();

@@ -26,9 +26,6 @@
  */
 package org.apache.http.examples.nio.client;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.security.KeyStore;
 import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLContext;
@@ -48,16 +45,9 @@ import org.apache.http.ssl.SSLContexts;
 public class AsyncClientCustomSSL {
 
     public final static void main(String[] args) throws Exception {
-        KeyStore trustStore  = KeyStore.getInstance(KeyStore.getDefaultType());
-        FileInputStream instream = new FileInputStream(new File("my.keystore"));
-        try {
-            trustStore.load(instream, "nopassword".toCharArray());
-        } finally {
-            instream.close();
-        }
-        // Trust own CA and all self-signed certs
+        // Trust standard CAs and all self-signed certs
         SSLContext sslcontext = SSLContexts.custom()
-                .loadTrustMaterial(trustStore, new TrustSelfSignedStrategy())
+                .loadTrustMaterial(new TrustSelfSignedStrategy())
                 .build();
         // Allow TLSv1 protocol only
         SSLIOSessionStrategy sslSessionStrategy = new SSLIOSessionStrategy(
@@ -70,8 +60,8 @@ public class AsyncClientCustomSSL {
                 .build();
         try {
             httpclient.start();
-            HttpGet request = new HttpGet("https://issues.apache.org/");
-            Future<HttpResponse> future = httpclient.execute(request, null);
+            HttpGet httpget = new HttpGet("https://httpbin.org/");
+            Future<HttpResponse> future = httpclient.execute(httpget, null);
             HttpResponse response = future.get();
             System.out.println("Response: " + response.getStatusLine());
             System.out.println("Shutting down");

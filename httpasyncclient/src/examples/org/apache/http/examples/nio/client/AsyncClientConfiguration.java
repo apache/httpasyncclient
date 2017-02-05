@@ -42,6 +42,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.AuthSchemes;
@@ -201,6 +203,7 @@ public class AsyncClientConfiguration {
         CookieStore cookieStore = new BasicCookieStore();
         // Use custom credentials provider if necessary.
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope("localhost", 8889), new UsernamePasswordCredentials("squid", "nopassword"));
         // Create global request configuration
         RequestConfig defaultRequestConfig = RequestConfig.custom()
             .setCookieSpec(CookieSpecs.DEFAULT)
@@ -214,19 +217,19 @@ public class AsyncClientConfiguration {
             .setConnectionManager(connManager)
             .setDefaultCookieStore(cookieStore)
             .setDefaultCredentialsProvider(credentialsProvider)
-            .setProxy(new HttpHost("myproxy", 8080))
+            .setProxy(new HttpHost("localhost", 8889))
             .setDefaultRequestConfig(defaultRequestConfig)
             .build();
 
         try {
-            HttpGet httpget = new HttpGet("http://localhost/");
+            HttpGet httpget = new HttpGet("http://httpbin.org/get");
             // Request configuration can be overridden at the request level.
             // They will take precedence over the one set at the client level.
             RequestConfig requestConfig = RequestConfig.copy(defaultRequestConfig)
                 .setSocketTimeout(5000)
                 .setConnectTimeout(5000)
                 .setConnectionRequestTimeout(5000)
-                .setProxy(new HttpHost("myotherproxy", 8080))
+                .setProxy(new HttpHost("localhost", 8888))
                 .build();
             httpget.setConfig(requestConfig);
 

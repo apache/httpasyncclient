@@ -43,7 +43,7 @@ public class AsyncClientHttpExchange {
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         try {
             httpclient.start();
-            HttpGet request = new HttpGet("http://www.apache.org/");
+            HttpGet request = new HttpGet("http://httpbin.org/get");
             Future<HttpResponse> future = httpclient.execute(request, null);
             HttpResponse response = future.get();
             System.out.println("Response: " + response.getStatusLine());

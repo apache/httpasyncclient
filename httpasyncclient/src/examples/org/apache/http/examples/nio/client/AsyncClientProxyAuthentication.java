@@ -49,18 +49,18 @@ public class AsyncClientProxyAuthentication {
     public static void main(String[] args)throws Exception {
         CredentialsProvider credsProvider = new BasicCredentialsProvider();
         credsProvider.setCredentials(
-                new AuthScope("someproxy", 8080),
-                new UsernamePasswordCredentials("username", "password"));
+                new AuthScope("localhost", 8889),
+                new UsernamePasswordCredentials("squid", "nopassword"));
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.custom()
                 .setDefaultCredentialsProvider(credsProvider)
                 .build();
         try {
             httpclient.start();
-            HttpHost proxy = new HttpHost("someproxy", 8080);
+            HttpHost proxy = new HttpHost("localhost", 8889);
             RequestConfig config = RequestConfig.custom()
                     .setProxy(proxy)
                     .build();
-            HttpGet httpget = new HttpGet("https://issues.apache.org/");
+            HttpGet httpget = new HttpGet("https://httpbin.org/");
             httpget.setConfig(config);
             Future<HttpResponse> future = httpclient.execute(httpget, null);
             HttpResponse response = future.get();

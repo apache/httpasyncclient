@@ -54,12 +54,12 @@ public class AsyncClientPipelinedStreaming {
         try {
             httpclient.start();
 
-            HttpHost targetHost = new HttpHost("localhost", 8080);
+            HttpHost targetHost = new HttpHost("httpbin.org", 80);
             HttpGet[] resquests = {
-                    new HttpGet("/docs/index.html"),
-                    new HttpGet("/docs/introduction.html"),
-                    new HttpGet("/docs/setup.html"),
-                    new HttpGet("/docs/config/index.html")
+                    new HttpGet("/"),
+                    new HttpGet("/ip"),
+                    new HttpGet("/headers"),
+                    new HttpGet("/get")
             };
 
             List<MyRequestProducer> requestProducers = new ArrayList<MyRequestProducer>();

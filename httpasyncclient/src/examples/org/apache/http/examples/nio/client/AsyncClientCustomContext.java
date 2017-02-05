@@ -27,17 +27,18 @@
 
 package org.apache.http.examples.nio.client;
 
+import java.util.List;
+import java.util.concurrent.Future;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
-
-import java.util.List;
-import java.util.concurrent.Future;
 
 /**
  * This example demonstrates the use of a local HTTP context populated with
@@ -48,6 +49,8 @@ public class AsyncClientCustomContext {
     public final static void main(String[] args) throws Exception {
         CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault();
         try {
+            httpclient.start();
+
             // Create a local instance of cookie store
             CookieStore cookieStore = new BasicCookieStore();
 
@@ -56,10 +59,13 @@ public class AsyncClientCustomContext {
             // Bind custom cookie store to the local context
             localContext.setCookieStore(cookieStore);
 
-            HttpGet httpget = new HttpGet("http://localhost/");
-            System.out.println("Executing request " + httpget.getRequestLine());
+            BasicClientCookie cookie = new BasicClientCookie("stuff", "important");
+            cookie.setDomain("httpbin.org");
+            cookie.setPath("/");
+            cookieStore.addCookie(cookie);
 
-            httpclient.start();
+            HttpGet httpget = new HttpGet("http://httpbin.org/cookies");
+            System.out.println("Executing request " + httpget.getRequestLine());
 
             // Pass local context as a parameter
             Future<HttpResponse> future = httpclient.execute(httpget, localContext, null);
