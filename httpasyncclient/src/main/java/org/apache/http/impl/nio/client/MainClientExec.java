@@ -185,7 +185,7 @@ class MainClientExec implements InternalClientExec {
                             "planned = " + route + "; current = " + fact);
                 case HttpRouteDirector.COMPLETE:
                     handler.onRouteComplete();
-                    this.log.debug("Connection route established");
+                    this.log.debug("[exchange: " + state.getId() + "] Connection route established");
                     break;
                 default:
                     throw new IllegalStateException("Unknown step indicator "
@@ -219,14 +219,14 @@ class MainClientExec implements InternalClientExec {
             if (!currentRequest.containsHeader(AUTH.WWW_AUTH_RESP)) {
                 final AuthState targetAuthState = localContext.getTargetAuthState();
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("Target auth state: " + targetAuthState.getState());
+                    this.log.debug("[exchange: " + state.getId() + "] Target auth state: " + targetAuthState.getState());
                 }
                 this.authenticator.generateAuthResponse(currentRequest, targetAuthState, localContext);
             }
             if (!currentRequest.containsHeader(AUTH.PROXY_AUTH_RESP) && !route.isTunnelled()) {
                 final AuthState proxyAuthState = localContext.getProxyAuthState();
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("Proxy auth state: " + proxyAuthState.getState());
+                    this.log.debug("[exchange: " + state.getId() + "] Proxy auth state: " + proxyAuthState.getState());
                 }
                 this.authenticator.generateAuthResponse(currentRequest, proxyAuthState, localContext);
             }
@@ -234,7 +234,7 @@ class MainClientExec implements InternalClientExec {
             if (!currentRequest.containsHeader(AUTH.PROXY_AUTH_RESP)) {
                 final AuthState proxyAuthState = localContext.getProxyAuthState();
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("Proxy auth state: " + proxyAuthState.getState());
+                    this.log.debug("[exchange: " + state.getId() + "] Proxy auth state: " + proxyAuthState.getState());
                 }
                 this.authenticator.generateAuthResponse(currentRequest, proxyAuthState, localContext);
             }
@@ -484,8 +484,8 @@ class MainClientExec implements InternalClientExec {
                 uri = URI.create(uriString);
             } catch (final IllegalArgumentException ex) {
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug("Unable to parse '" + uriString + "' as a valid URI; " +
-                        "request URI and Host header may be inconsistent", ex);
+                    this.log.debug("[exchange: " + state.getId() + "] Unable to parse '" + uriString +
+                            "' as a valid URI; request URI and Host header may be inconsistent", ex);
                 }
             }
 

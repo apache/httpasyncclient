@@ -162,11 +162,15 @@ abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeH
             final boolean routeComplete = this.connmgr.isRouteComplete(managedConn);
             this.routeEstablished.set(routeComplete);
             if (!routeComplete) {
-                this.log.debug("Start connection routing");
+                if (this.log.isDebugEnabled()) {
+                    this.log.debug("[exchange: " + this.id + "] Start connection routing");
+                }
                 final HttpRoute route = this.routeRef.get();
                 this.routeTrackerRef.set(new RouteTracker(route));
             } else {
-                this.log.debug("Connection route already established");
+                if (this.log.isDebugEnabled()) {
+                    this.log.debug("[exchange: " + this.id + "] Connection route already established");
+                }
             }
         }
     }
@@ -216,6 +220,9 @@ abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeH
         Asserts.check(managedConn != null, "Inconsistent state: managed connection is null");
         final HttpRoute route = this.routeRef.get();
         Asserts.check(route != null, "Inconsistent state: HTTP route is null");
+        if (this.log.isDebugEnabled()) {
+            this.log.debug("[exchange: " + this.id + "] route completed");
+        }
         this.connmgr.routeComplete(managedConn, route, this.localContext);
         this.routeEstablished.set(true);
         this.routeTrackerRef.set(null);
@@ -244,7 +251,7 @@ abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeH
                     }
                 } catch (final IOException ex) {
                     if (this.log.isDebugEnabled()) {
-                        this.log.debug(ex.getMessage(), ex);
+                        this.log.debug("[exchange: " + this.id + "] " + ex.getMessage(), ex);
                     }
                 } finally {
                     this.connmgr.releaseConnection(localConn, null, 0, TimeUnit.MILLISECONDS);
@@ -263,7 +270,7 @@ abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeH
                 }
             } catch (final IOException ex) {
                 if (this.log.isDebugEnabled()) {
-                    this.log.debug(ex.getMessage(), ex);
+                    this.log.debug("[exchange: " + this.id + "] " + ex.getMessage(), ex);
                 }
             } finally {
                 this.connmgr.releaseConnection(localConn, null, 0, TimeUnit.MILLISECONDS);
