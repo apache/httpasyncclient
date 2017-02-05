@@ -1,3 +1,28 @@
+Release 4.1.3
+-------------------
+
+This is a maintenance release that fixes a number of minor issues discovered since 4.1.2 and upgrades
+HttpCore and HttpClient dependencies.
+
+Changelog
+-------------------
+
+* HttpCore upgraded to version 4.4.6
+
+* HttpClient upgraded to version 4.5.3
+
+* [HTTPASYNC-110] Default exchange handler fails to correctly re-use fully established tunnelled connection
+  leased from the pool when CONNECT request results in 407 over connection that cannot be kept alive.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* [HTTPASYNC-116] Correct cancellation of client message exchange.
+  Contributed by Oleg Kalnichevski <olegk at apache.org>
+
+* Fix HttpAsyncMethods#createPost/createPut(URI,byte[],ContentType): set entity to request
+  Contributed by Dmitry Potapov <dpotapov at yandex-team.ru>
+
+
+
 Release 4.1.2
 -------------------
 
