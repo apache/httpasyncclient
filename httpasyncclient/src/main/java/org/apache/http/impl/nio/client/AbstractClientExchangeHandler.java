@@ -320,6 +320,11 @@ abstract class AbstractClientExchangeHandler implements HttpAsyncClientExchangeH
                 return;
             }
 
+            if (this.connmgr.isRouteComplete(managedConn)) {
+                this.routeEstablished.set(true);
+                this.routeTrackerRef.set(null);
+            }
+
             final HttpContext context = managedConn.getContext();
             synchronized (context) {
                 context.setAttribute(HttpAsyncRequestExecutor.HTTP_HANDLER, this);
