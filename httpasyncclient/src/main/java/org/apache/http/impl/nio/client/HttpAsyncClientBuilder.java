@@ -80,6 +80,7 @@ import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.NoopUserTokenHandler;
 import org.apache.http.impl.client.ProxyAuthenticationStrategy;
+import org.apache.http.impl.client.SystemDefaultCredentialsProvider;
 import org.apache.http.impl.client.TargetAuthenticationStrategy;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.impl.conn.DefaultRoutePlanner;
@@ -831,9 +832,12 @@ public class HttpAsyncClientBuilder {
 
         CredentialsProvider defaultCredentialsProvider = this.credentialsProvider;
         if (defaultCredentialsProvider == null) {
-            defaultCredentialsProvider = new BasicCredentialsProvider();
+            if (systemProperties) {
+                defaultCredentialsProvider = new SystemDefaultCredentialsProvider();
+            } else {
+                defaultCredentialsProvider = new BasicCredentialsProvider();
+            }
         }
-
         RedirectStrategy redirectStrategy = this.redirectStrategy;
         if (redirectStrategy == null) {
             redirectStrategy = DefaultRedirectStrategy.INSTANCE;
