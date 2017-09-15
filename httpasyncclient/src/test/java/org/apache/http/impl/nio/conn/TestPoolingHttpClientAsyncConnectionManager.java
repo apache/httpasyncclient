@@ -29,6 +29,7 @@ package org.apache.http.impl.nio.conn;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Calendar;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -234,7 +235,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         future.get();
     }
 
-    @Test
+    @Test(expected = CancellationException.class)
     public void testRequestConnectionCancelled() throws Exception {
         final HttpHost target = new HttpHost("localhost");
         final HttpRoute route = new HttpRoute(target);
@@ -254,7 +255,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Assert.assertTrue(future.isDone());
         Assert.assertTrue(future.isCancelled());
-        Assert.assertNull(future.get());
+        future.get();
     }
 
     @Test

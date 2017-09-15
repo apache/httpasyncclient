@@ -27,6 +27,7 @@
 package org.apache.http.nio.client.integration;
 
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -382,7 +383,11 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
         };
 
         final Future<?> future = this.httpclient.execute(producer, consumer, null, null);
-        future.get();
+        try {
+            future.get();
+            Assert.fail("CancellationException expected");
+        } catch (final CancellationException expected) {
+        }
 
         connMgr.shutdown(1000);
 
