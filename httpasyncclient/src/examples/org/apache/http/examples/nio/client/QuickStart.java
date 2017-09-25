@@ -117,19 +117,19 @@ public class QuickStart {
                 @Override
                 public void completed(final HttpResponse response3) {
                     latch2.countDown();
-                    System.out.println(request2.getRequestLine() + "->" + response3.getStatusLine());
+                    System.out.println(request3.getRequestLine() + "->" + response3.getStatusLine());
                 }
 
                 @Override
                 public void failed(final Exception ex) {
                     latch2.countDown();
-                    System.out.println(request2.getRequestLine() + "->" + ex);
+                    System.out.println(request3.getRequestLine() + "->" + ex);
                 }
 
                 @Override
                 public void cancelled() {
                     latch2.countDown();
-                    System.out.println(request2.getRequestLine() + " cancelled");
+                    System.out.println(request3.getRequestLine() + " cancelled");
                 }
 
             });
