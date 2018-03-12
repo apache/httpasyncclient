@@ -7,6 +7,10 @@ HttpCore and HttpClient dependencies.
 * [HTTPASYNC-135] HttpAsyncMethods.createHead() methods creates HttpGet objects.
   Contributed by Mateusz Matela <mateusz dot matela at gmail dot>
 
+* HttpCore upgraded to version 4.4.9
+
+* HttpClient upgraded to version 4.5.5
+
 
 Changelog
 -------------------
