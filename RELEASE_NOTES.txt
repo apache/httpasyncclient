@@ -11,6 +11,8 @@ HttpCore and HttpClient dependencies.
 
 * HttpClient upgraded to version 4.5.5
 
+* [HTTPASYNC-136]: Failing tests on Fedora 28 due to weak encryption algorithms in test keystore.
+  Contributed by Gary Gregory <ggregory at apache.org> and Michael Simacek <msimacek at redhat dot com>
 
 
 Release 4.1.3
