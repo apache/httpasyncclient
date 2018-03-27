@@ -78,7 +78,7 @@ abstract class CloseableHttpAsyncClientBase extends CloseableHttpPipeliningClien
 
     @Override
     public void start() {
-        if (this.status.compareAndSet(Status.INACTIVE, Status.ACTIVE)) {
+        if (this.status.compareAndSet(Status.INACTIVE, Status.ACTIVE) || this.status.compareAndSet(Status.STOPPED, Status.ACTIVE)) {
             if (this.reactorThread != null) {
                 this.reactorThread.start();
             }
