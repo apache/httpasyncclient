@@ -40,6 +40,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.Header;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.localserver.HttpAsyncTestBase;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
@@ -266,6 +267,49 @@ public class TestRedirects extends HttpAsyncTestBase {
                 response.setStatusCode(HttpStatus.SC_MOVED_TEMPORARILY);
                 response.addHeader(new BasicHeader("Location", "/rome"));
             }
+        }
+    }
+
+    private static class DifferentHostRedirectService implements HttpRequestHandler {
+
+        private final String schemeName;
+        private final int statusCode;
+        private int targetHostPort;
+
+        public DifferentHostRedirectService(final String schemeName, final int statusCode) {
+            this.schemeName = schemeName;
+            this.statusCode = statusCode;
+        }
+
+        @Override
+        public void handle(final HttpRequest request, final HttpResponse response,
+            final HttpContext context) throws HttpException, IOException {
+
+            final ProtocolVersion ver = request.getRequestLine().getProtocolVersion();
+            final String uri = request.getRequestLine().getUri();
+            if (uri.equals("/oldlocation/")) {
+                final String redirectUrl =
+                    this.schemeName + "://localhost:" + targetHostPort + "/newlocation/";
+                response.setStatusLine(ver, this.statusCode);
+                response.addHeader(new BasicHeader("Location", redirectUrl));
+                response.addHeader(new BasicHeader("Connection", "close"));
+            } else if (uri.equals("/newlocation/")) {
+                final String hostHeaderValue = request.getFirstHeader("Host").getValue();
+
+                if (hostHeaderValue.equals("localhost:" + targetHostPort)) {
+                    response.setStatusLine(ver, HttpStatus.SC_OK);
+                    final StringEntity entity = new StringEntity("Successful redirect");
+                    response.setEntity(entity);
+                } else {
+                    response.setStatusLine(ver, 421, "Misdirected Request");
+                }
+            } else {
+                response.setStatusLine(ver, HttpStatus.SC_NOT_FOUND);
+            }
+        }
+
+        public void setTargetHostPort(final int targetHostPort) {
+            this.targetHostPort = targetHostPort;
         }
     }
 
@@ -853,4 +897,43 @@ public class TestRedirects extends HttpAsyncTestBase {
         Assert.assertEquals(host, target);
     }
 
+    @Test
+    public void testPostRedirectWithDifferentHost() throws Exception {
+        // do redirect for post requests
+        this.clientBuilder.setRedirectStrategy(new DefaultRedirectStrategy() {
+            @Override
+            public boolean isRedirected(final HttpRequest request, final HttpResponse response,
+                final HttpContext context)
+                throws ProtocolException {
+                // allow 307 redirect for all methods
+                return super.isRedirected(request, response, context)
+                    || response.getStatusLine().getStatusCode() == HttpStatus.SC_TEMPORARY_REDIRECT;
+            }
+        });
+
+        final DifferentHostRedirectService differentHostRequestHandler = new DifferentHostRedirectService(
+            getSchemeName(), HttpStatus.SC_TEMPORARY_REDIRECT);
+
+        this.serverBootstrap.registerHandler("*",
+            new BasicAsyncRequestHandler(differentHostRequestHandler));
+        final HttpHost originalHost = start(); // to start the original host and build the client
+        final HttpHost targetHost = startServer(); // to start the target host
+
+        differentHostRequestHandler.setTargetHostPort(targetHost.getPort());
+
+        final HttpClientContext context = HttpClientContext.create();
+
+        final HttpPost httpPost = new HttpPost("/oldlocation/");
+
+        final Future<HttpResponse> future = this.httpclient.execute(originalHost, httpPost, context, null);
+        final HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+
+        final HttpRequest reqWrapper = context.getRequest();
+        final HttpHost host = context.getTargetHost();
+
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("/newlocation/", reqWrapper.getRequestLine().getUri());
+        Assert.assertEquals(targetHost, host);
+    }
 }

@@ -580,7 +580,7 @@ class MainClientExec implements InternalClientExec {
             }
         }
         if (config.isRedirectsEnabled()) {
-            final HttpRequest currentRequest = handler.getCurrentRequest();
+            final HttpRequestWrapper currentRequest = handler.getCurrentRequest();
             final HttpResponse currentResponse = handler.getCurrentResponse();
             if (this.redirectStrategy.isRedirected(currentRequest, currentResponse, localContext)) {
                 final int maxRedirects = config.getMaxRedirects() >= 0 ? config.getMaxRedirects() : 100;
@@ -588,7 +588,7 @@ class MainClientExec implements InternalClientExec {
                     throw new RedirectException("Maximum redirects (" + maxRedirects + ") exceeded");
                 }
                 state.incrementRedirectCount();
-                final HttpUriRequest redirect = this.redirectStrategy.getRedirect(currentRequest, currentResponse,
+                final HttpUriRequest redirect = this.redirectStrategy.getRedirect(currentRequest.getOriginal(), currentResponse,
                     localContext);
                 state.setRedirect(redirect);
                 return true;
