@@ -181,17 +181,17 @@ public class PoolingNHttpClientConnectionManager
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
             final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
-            final SocketAddressResolver<HttpRoute> schemePortResolver,
+            final SocketAddressResolver<HttpRoute> socketAddressResolver,
             final long timeToLive, final TimeUnit tunit) {
         super();
         Args.notNull(ioreactor, "I/O reactor");
         Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
-        Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
+        Args.notNull(socketAddressResolver, "Socket address resolver");
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
         this.pool = new CPool(ioreactor,
                 new InternalConnectionFactory(this.configData, connFactory),
-                schemePortResolver,
+                socketAddressResolver,
                 2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
         this.iosessionFactoryRegistry = iosessionFactoryRegistry;
     }
