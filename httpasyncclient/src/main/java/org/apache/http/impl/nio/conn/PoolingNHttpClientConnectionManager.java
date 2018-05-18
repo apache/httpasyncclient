@@ -118,7 +118,7 @@ public class PoolingNHttpClientConnectionManager
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
-        this(ioreactor, null, iosessionFactoryRegistry, null);
+        this(ioreactor, null, iosessionFactoryRegistry, (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
@@ -130,15 +130,22 @@ public class PoolingNHttpClientConnectionManager
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
+            final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
+            final SocketAddressResolver<HttpRoute> socketAddressResolver) {
+        this(ioreactor, connFactory, getDefaultRegistry(), socketAddressResolver);
+    }
+
+    public PoolingNHttpClientConnectionManager(
+            final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory) {
-        this(ioreactor, connFactory, getDefaultRegistry(), null);
+        this(ioreactor, connFactory, getDefaultRegistry(), (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
             final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
-        this(ioreactor, connFactory, iosessionFactoryRegistry, null);
+        this(ioreactor, connFactory, iosessionFactoryRegistry, (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
@@ -154,18 +161,38 @@ public class PoolingNHttpClientConnectionManager
             final ConnectingIOReactor ioreactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
             final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final SocketAddressResolver<HttpRoute> socketAddressResolver) {
+        this(ioreactor, connFactory, iosessionFactoryRegistry, socketAddressResolver,
+                -1, TimeUnit.MILLISECONDS);
+    }
+
+    public PoolingNHttpClientConnectionManager(
+            final ConnectingIOReactor ioreactor,
+            final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
+            final long timeToLive, final TimeUnit tunit) {
+        this(ioreactor, connFactory, iosessionFactoryRegistry,
+                new InternalAddressResolver(schemePortResolver, dnsResolver), timeToLive, tunit);
+    }
+
+    public PoolingNHttpClientConnectionManager(
+            final ConnectingIOReactor ioreactor,
+            final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
+            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final SocketAddressResolver<HttpRoute> schemePortResolver,
             final long timeToLive, final TimeUnit tunit) {
         super();
         Args.notNull(ioreactor, "I/O reactor");
         Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
+        Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
         this.ioreactor = ioreactor;
         this.configData = new ConfigData();
         this.pool = new CPool(ioreactor,
-            new InternalConnectionFactory(this.configData, connFactory),
-            new InternalAddressResolver(schemePortResolver, dnsResolver),
-            2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                new InternalConnectionFactory(this.configData, connFactory),
+                schemePortResolver,
+                2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
         this.iosessionFactoryRegistry = iosessionFactoryRegistry;
     }
 
