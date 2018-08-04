@@ -687,11 +687,9 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     private RequestWrapper wrapRequest(final HttpRequest request) throws ProtocolException {
-        if (request instanceof HttpEntityEnclosingRequest) {
-            return new EntityEnclosingRequestWrapper((HttpEntityEnclosingRequest) request);
-        } else {
-            return new RequestWrapper(request);
-        }
+        return request instanceof HttpEntityEnclosingRequest
+                        ? new EntityEnclosingRequestWrapper((HttpEntityEnclosingRequest) request)
+                        : new RequestWrapper(request);
     }
 
     protected void rewriteRequestURI(
@@ -772,7 +770,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         return null;
     }
 
-    private RoutedRequest handleConnectResponse() throws HttpException {
+    private RoutedRequest handleConnectResponse() {
         RoutedRequest followup = null;
         if (HttpClientParams.isAuthenticating(this.params)) {
             final CredentialsProvider credsProvider = (CredentialsProvider) this.localContext.getAttribute(
@@ -841,7 +839,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     }
 
     private RoutedRequest handleTargetChallenge(
-            final CredentialsProvider credsProvider) throws HttpException {
+            final CredentialsProvider credsProvider) {
         final HttpRoute route = this.mainRequest.getRoute();
         HttpHost target = (HttpHost) this.localContext.getAttribute(
                 ExecutionContext.HTTP_TARGET_HOST);
@@ -854,15 +852,14 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.targetAuthStrategy, this.targetAuthState, this.localContext)) {
                 // Re-try the same request via the same route
                 return this.mainRequest;
-            } else {
-                return null;
             }
+            return null;
         }
         return null;
     }
 
     private RoutedRequest handleProxyChallenge(
-            final CredentialsProvider credsProvider) throws HttpException {
+            final CredentialsProvider credsProvider) {
         final HttpRoute route = this.mainRequest.getRoute();
         final HttpHost proxy = route.getProxyHost();
         if (this.authenticator.isAuthenticationRequested(proxy, this.currentResponse,
@@ -871,9 +868,8 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
                     this.proxyAuthStrategy, this.proxyAuthState, this.localContext)) {
                 // Re-try the same request via the same route
                 return this.mainRequest;
-            } else {
-                return null;
             }
+            return null;
         }
         return null;
     }

@@ -48,6 +48,7 @@ import org.apache.http.protocol.HttpContext;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 public class TestAsyncConsumers extends HttpAsyncTestBase {
@@ -206,7 +207,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         final Future<String> future = this.httpclient.execute(httppost, consumer, null);
         final String result = future.get();
         Assert.assertEquals(s, result);
-        Mockito.verify(consumer).buildResult(Mockito.any(HttpContext.class));
+        Mockito.verify(consumer).buildResult(Matchers.any(HttpContext.class));
         Mockito.verify(consumer).releaseResources();
     }
 
@@ -218,7 +219,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
                 ContentType.create("text/plain", Consts.ASCII));
         final AsyncCharConsumer<String> consumer = Mockito.spy(new BufferingCharConsumer());
         Mockito.doThrow(new IOException("Kaboom")).when(consumer).onCharReceived(
-                Mockito.any(CharBuffer.class), Mockito.any(IOControl.class));
+                Matchers.any(CharBuffer.class), Matchers.any(IOControl.class));
 
         final Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {
@@ -240,7 +241,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
                 target.toURI() + "/echo/stuff", "stuff",
                 ContentType.create("text/plain", Consts.ASCII));
         final BufferingCharConsumer consumer = Mockito.spy(new BufferingCharConsumer());
-        Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult(Mockito.any(HttpContext.class));
+        Mockito.doThrow(new HttpException("Kaboom")).when(consumer).buildResult(Matchers.any(HttpContext.class));
 
         final Future<String> future = this.httpclient.execute(httppost, consumer, null);
         try {

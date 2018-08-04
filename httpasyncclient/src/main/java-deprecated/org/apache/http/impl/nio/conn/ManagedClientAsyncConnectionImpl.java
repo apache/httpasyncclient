@@ -134,11 +134,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     @Override
     public boolean isOpen() {
         final ClientAsyncConnection conn = getConnection();
-        if (conn != null) {
-            return conn.isOpen();
-        } else {
-            return false;
-        }
+        return conn != null ? conn.isOpen() : false;
     }
 
     @Override
@@ -276,11 +272,9 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     public SSLSession getSSLSession() {
         final ClientAsyncConnection conn = ensureConnection();
         final IOSession iosession = conn.getIOSession();
-        if (iosession instanceof SSLIOSession) {
-            return ((SSLIOSession) iosession).getSSLSession();
-        } else {
-            return null;
-        }
+        return iosession instanceof SSLIOSession
+                        ? ((SSLIOSession) iosession).getSSLSession()
+                        : null;
     }
 
     @Override
@@ -413,7 +407,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
         final IOSession iosession = entry.getConnection();
         final ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
                 IOEventDispatch.CONNECTION_KEY);
-        conn.upgrade((SSLIOSession) layeringStrategy.layer(iosession));
+        conn.upgrade(layeringStrategy.layer(iosession));
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
@@ -445,11 +439,7 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
     @Override
     public synchronized String toString() {
-        if (this.poolEntry != null) {
-            return this.poolEntry.toString();
-        } else {
-            return "released";
-        }
+        return this.poolEntry != null ? this.poolEntry.toString() : "released";
     }
 
 }

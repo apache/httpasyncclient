@@ -152,21 +152,13 @@ class CPoolProxy implements ManagedNHttpClientConnection {
     @Override
     public boolean isOpen() {
         final CPoolEntry local = this.poolEntry;
-        if (local != null) {
-            return !local.isClosed();
-        } else {
-            return false;
-        }
+        return local != null ? !local.isClosed() : false;
     }
 
     @Override
     public boolean isStale() {
         final NHttpClientConnection conn = getConnection();
-        if (conn != null) {
-            return !conn.isOpen();
-        } else {
-            return false;
-        }
+        return conn != null ? !conn.isOpen() : false;
     }
 
     @Override

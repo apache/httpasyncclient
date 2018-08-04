@@ -286,7 +286,7 @@ class MainClientExec implements InternalClientExec {
             this.log.debug("[exchange: " + state.getId() + "] Response received " + response.getStatusLine());
         }
         final HttpClientContext context = state.getLocalContext();
-        context.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
+        context.setAttribute(HttpCoreContext.HTTP_RESPONSE, response);
         this.httpProcessor.process(response, context);
 
         handler.setCurrentResponse(response);
@@ -514,8 +514,8 @@ class MainClientExec implements InternalClientExec {
             }
         }
 
-        localContext.setAttribute(HttpClientContext.HTTP_REQUEST, currentRequest);
-        localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
+        localContext.setAttribute(HttpCoreContext.HTTP_REQUEST, currentRequest);
+        localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, target);
         localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
         this.httpProcessor.process(currentRequest, localContext);
     }
@@ -540,7 +540,7 @@ class MainClientExec implements InternalClientExec {
 
     private boolean handleConnectResponse(
             final InternalState state,
-            final AbstractClientExchangeHandler handler) throws HttpException {
+            final AbstractClientExchangeHandler handler) {
         final HttpClientContext localContext = state.getLocalContext();
         final RequestConfig config = localContext.getRequestConfig();
         if (config.isAuthenticationEnabled()) {
@@ -599,7 +599,7 @@ class MainClientExec implements InternalClientExec {
 
     private boolean needAuthentication(
             final InternalState state,
-            final AbstractClientExchangeHandler handler) throws HttpException {
+            final AbstractClientExchangeHandler handler) {
         final HttpClientContext localContext = state.getLocalContext();
         final CredentialsProvider credsProvider = localContext.getCredentialsProvider();
         if (credsProvider != null) {

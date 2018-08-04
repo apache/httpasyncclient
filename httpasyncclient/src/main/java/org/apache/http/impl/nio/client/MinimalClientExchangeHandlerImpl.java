@@ -143,8 +143,8 @@ class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
         setCurrentRequest(request);
         setRoute(route);
 
-        this.localContext.setAttribute(HttpClientContext.HTTP_REQUEST, request);
-        this.localContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
+        this.localContext.setAttribute(HttpCoreContext.HTTP_REQUEST, request);
+        this.localContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, target);
         this.localContext.setAttribute(HttpClientContext.HTTP_ROUTE, route);
 
         this.httpProcessor.process(request, this.localContext);
@@ -195,7 +195,7 @@ class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + getId() + "] Response received " + response.getStatusLine());
         }
-        this.localContext.setAttribute(HttpClientContext.HTTP_RESPONSE, response);
+        this.localContext.setAttribute(HttpCoreContext.HTTP_RESPONSE, response);
         this.httpProcessor.process(response, this.localContext);
 
         setCurrentResponse(response);

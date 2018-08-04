@@ -61,6 +61,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -131,11 +132,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
-                Mockito.same(route),
-                Mockito.eq("some state"),
-                Mockito.eq(1000L),
-                Mockito.eq(2000L),
-                Mockito.eq(TimeUnit.MILLISECONDS),
+                Matchers.same(route),
+                Matchers.eq("some state"),
+                Matchers.eq(1000L),
+                Matchers.eq(2000L),
+                Matchers.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
         final Log log = Mockito.mock(Log.class);
@@ -145,7 +146,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Assert.assertTrue(future.isDone());
         final NHttpClientConnection managedConn = future.get();
-        Mockito.verify(connCallback).completed(Mockito.<NHttpClientConnection>any());
+        Mockito.verify(connCallback).completed(Matchers.<NHttpClientConnection>any());
 
         Mockito.when(conn.isOpen()).thenReturn(Boolean.TRUE);
         connman.releaseConnection(managedConn, "new state", 5, TimeUnit.SECONDS);
@@ -167,11 +168,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
-                Mockito.same(route),
-                Mockito.eq("some state"),
-                Mockito.eq(1000L),
-                Mockito.eq(2000L),
-                Mockito.eq(TimeUnit.MILLISECONDS),
+                Matchers.same(route),
+                Matchers.eq("some state"),
+                Matchers.eq(1000L),
+                Matchers.eq(2000L),
+                Matchers.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
         final Log log = Mockito.mock(Log.class);
@@ -180,7 +181,7 @@ public class TestPoolingHttpClientAsyncConnectionManager {
 
         Assert.assertTrue(future.isDone());
         final NHttpClientConnection managedConn = future.get();
-        Mockito.verify(connCallback).completed(Mockito.<NHttpClientConnection>any());
+        Mockito.verify(connCallback).completed(Matchers.<NHttpClientConnection>any());
 
         Mockito.when(conn.isOpen()).thenReturn(Boolean.TRUE);
         connman.releaseConnection(managedConn, "new state", 5, TimeUnit.SECONDS);
@@ -198,11 +199,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         future.cancel(true);
 
         Mockito.verify(pool).lease(
-                Mockito.same(route),
-                Mockito.eq("some state"),
-                Mockito.eq(1000L),
-                Mockito.eq(2000L),
-                Mockito.eq(TimeUnit.MILLISECONDS),
+                Matchers.same(route),
+                Matchers.eq("some state"),
+                Matchers.eq(1000L),
+                Matchers.eq(2000L),
+                Matchers.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
         final Log log = Mockito.mock(Log.class);
@@ -222,11 +223,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
-                Mockito.same(route),
-                Mockito.eq("some state"),
-                Mockito.eq(1000L),
-                Mockito.eq(2000L),
-                Mockito.eq(TimeUnit.MILLISECONDS),
+                Matchers.same(route),
+                Matchers.eq("some state"),
+                Matchers.eq(1000L),
+                Matchers.eq(2000L),
+                Matchers.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
         callaback.failed(new Exception());
@@ -244,11 +245,11 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         Assert.assertNotNull(future);
 
         Mockito.verify(pool).lease(
-                Mockito.same(route),
-                Mockito.eq("some state"),
-                Mockito.eq(1000L),
-                Mockito.eq(2000L),
-                Mockito.eq(TimeUnit.MILLISECONDS),
+                Matchers.same(route),
+                Matchers.eq("some state"),
+                Matchers.eq(1000L),
+                Matchers.eq(2000L),
+                Matchers.eq(TimeUnit.MILLISECONDS),
                 poolEntryCallbackCaptor.capture());
         final FutureCallback<CPoolEntry> callaback = poolEntryCallbackCaptor.getValue();
         callaback.cancelled();
@@ -459,9 +460,9 @@ public class TestPoolingHttpClientAsyncConnectionManager {
         final HttpRoute route = new HttpRoute(new HttpHost("somehost", 80));
         internalConnFactory.create(route, iosession);
 
-        Mockito.verify(sslStrategy, Mockito.never()).upgrade(Mockito.eq(new HttpHost("somehost", 80)),
-                Mockito.<IOSession>any());
-        Mockito.verify(connFactory).create(Mockito.same(iosession), Mockito.<ConnectionConfig>any());
+        Mockito.verify(sslStrategy, Mockito.never()).upgrade(Matchers.eq(new HttpHost("somehost", 80)),
+                Matchers.<IOSession>any());
+        Mockito.verify(connFactory).create(Matchers.same(iosession), Matchers.<ConnectionConfig>any());
     }
 
     @Test

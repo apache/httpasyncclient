@@ -73,6 +73,7 @@ import org.apache.http.nio.protocol.HttpAsyncResponseConsumer;
 import org.apache.http.nio.reactor.IOReactorException;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.Args;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
@@ -365,10 +366,10 @@ public class CachingHttpAsyncClient implements HttpAsyncClient {
             return;
         }
         clientContext.setAttribute(HttpClientContext.HTTP_ROUTE, new HttpRoute(target));
-        clientContext.setAttribute(HttpClientContext.HTTP_TARGET_HOST, target);
-        clientContext.setAttribute(HttpClientContext.HTTP_REQUEST, request);
-        clientContext.setAttribute(HttpClientContext.HTTP_RESPONSE, out);
-        clientContext.setAttribute(HttpClientContext.HTTP_REQ_SENT, Boolean.TRUE);
+        clientContext.setAttribute(HttpCoreContext.HTTP_TARGET_HOST, target);
+        clientContext.setAttribute(HttpCoreContext.HTTP_REQUEST, request);
+        clientContext.setAttribute(HttpCoreContext.HTTP_RESPONSE, out);
+        clientContext.setAttribute(HttpCoreContext.HTTP_REQ_SENT, Boolean.TRUE);
         future.completed(out);
     }
 

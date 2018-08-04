@@ -55,7 +55,7 @@ import org.junit.Before;
 
 public abstract class AbstractAsyncTest {
 
-    public enum ProtocolScheme { http, https };
+    public enum ProtocolScheme { http, https }
 
     protected final ProtocolScheme scheme;
 

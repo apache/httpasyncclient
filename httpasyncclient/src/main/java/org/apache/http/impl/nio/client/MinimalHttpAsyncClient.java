@@ -95,7 +95,6 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         final HttpClientContext localcontext = HttpClientContext.adapt(
             context != null ? context : new BasicHttpContext());
 
-        @SuppressWarnings("resource")
         final MinimalClientExchangeHandlerImpl<T> handler = new MinimalClientExchangeHandlerImpl<T>(
             this.log,
             requestProducer,
@@ -125,7 +124,6 @@ class MinimalHttpAsyncClient extends CloseableHttpAsyncClientBase {
         final BasicFuture<List<T>> future = new BasicFuture<List<T>>(callback);
         final HttpClientContext localcontext = HttpClientContext.adapt(
                 context != null ? context : new BasicHttpContext());
-        @SuppressWarnings("resource")
         final PipeliningClientExchangeHandlerImpl<T> handler = new PipeliningClientExchangeHandlerImpl<T>(
                 this.log,
                 target,
