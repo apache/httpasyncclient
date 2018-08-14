@@ -253,13 +253,13 @@ class MainClientExec implements InternalClientExec {
     public void produceContent(
             final InternalState state,
             final ContentEncoder encoder,
-            final IOControl ioctrl) throws IOException {
+            final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] produce content");
         }
         final HttpAsyncRequestProducer requestProducer = state.getRequestProducer();
         state.setRequestContentProduced();
-        requestProducer.produceContent(encoder, ioctrl);
+        requestProducer.produceContent(encoder, ioControl);
         if (encoder.isCompleted()) {
             requestProducer.resetRequest();
         }
@@ -320,13 +320,13 @@ class MainClientExec implements InternalClientExec {
     public void consumeContent(
             final InternalState state,
             final ContentDecoder decoder,
-            final IOControl ioctrl) throws IOException {
+            final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + state.getId() + "] Consume content");
         }
         if (state.getFinalResponse() != null) {
             final HttpAsyncResponseConsumer<?> responseConsumer = state.getResponseConsumer();
-            responseConsumer.consumeContent(decoder, ioctrl);
+            responseConsumer.consumeContent(decoder, ioControl);
         } else {
             final ByteBuffer tmpbuf = state.getTmpbuf();
             tmpbuf.clear();

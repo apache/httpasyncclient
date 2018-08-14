@@ -33,6 +33,6 @@ public interface LayeringStrategy {
 
     boolean isSecure();
 
-    IOSession layer(IOSession iosession);
+    IOSession layer(IOSession ioSession);
 
 }

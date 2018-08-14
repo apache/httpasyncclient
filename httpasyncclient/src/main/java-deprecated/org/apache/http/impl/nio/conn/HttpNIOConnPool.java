@@ -48,18 +48,18 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
     private final Log log;
     private final AsyncSchemeRegistry schemeRegistry;
     private final long connTimeToLive;
-    private final TimeUnit tunit;
+    private final TimeUnit timeUnit;
 
     HttpNIOConnPool(
             final Log log,
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final AsyncSchemeRegistry schemeRegistry,
-            final long connTimeToLive, final TimeUnit tunit) {
-        super(ioreactor, new HttpNIOConnPoolFactory(), 2, 20);
+            final long connTimeToLive, final TimeUnit timeUnit) {
+        super(ioReactor, new HttpNIOConnPoolFactory(), 2, 20);
         this.log = log;
         this.schemeRegistry = schemeRegistry;
         this.connTimeToLive = connTimeToLive;
-        this.tunit = tunit;
+        this.timeUnit = timeUnit;
     }
 
     @Override
@@ -85,7 +85,7 @@ class HttpNIOConnPool extends AbstractNIOConnPool<HttpRoute, IOSession, HttpPool
     @Override
     protected HttpPoolEntry createEntry(final HttpRoute route, final IOSession session) {
         final String id = Long.toString(COUNTER.getAndIncrement());
-        return new HttpPoolEntry(this.log, id, route, session, this.connTimeToLive, this.tunit);
+        return new HttpPoolEntry(this.log, id, route, session, this.connTimeToLive, this.timeUnit);
     }
 
 }

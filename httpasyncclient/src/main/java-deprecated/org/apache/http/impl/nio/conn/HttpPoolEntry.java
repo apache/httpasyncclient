@@ -45,8 +45,8 @@ class HttpPoolEntry extends PoolEntry<HttpRoute, IOSession> {
     private final RouteTracker tracker;
 
     HttpPoolEntry(final Log log, final String id, final HttpRoute route, final IOSession session,
-            final long timeToLive, final TimeUnit tunit) {
-        super(id, route, session, timeToLive, tunit);
+            final long timeToLive, final TimeUnit timeUnit) {
+        super(id, route, session, timeToLive, timeUnit);
         this.log = log;
         this.tracker = new RouteTracker(route);
     }

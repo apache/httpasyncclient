@@ -217,7 +217,7 @@ public class TestHttpAsync extends HttpAsyncTestBase {
         final BasicAsyncResponseConsumer responseConsumer = new BasicAsyncResponseConsumer() {
 
             @Override
-            public void onContentReceived(final ContentDecoder decoder, final IOControl ioctrl)
+            public void onContentReceived(final ContentDecoder decoder, final IOControl ioControl)
                     throws IOException {
                 throw new IOException("Kaboom");
             }

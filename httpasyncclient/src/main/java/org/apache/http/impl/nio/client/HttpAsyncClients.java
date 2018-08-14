@@ -86,9 +86,9 @@ public class HttpAsyncClients {
      * aspects only. This client does not support HTTP state management, authentication
      * and automatic redirects.
      */
-    public static CloseableHttpAsyncClient createMinimal(final ConnectingIOReactor ioreactor) {
-        Args.notNull(ioreactor, "I/O reactor");
-        return createMinimal(new PoolingNHttpClientConnectionManager(ioreactor), false);
+    public static CloseableHttpAsyncClient createMinimal(final ConnectingIOReactor ioReactor) {
+        Args.notNull(ioReactor, "I/O reactor");
+        return createMinimal(new PoolingNHttpClientConnectionManager(ioReactor), false);
     }
 
     /**
@@ -138,8 +138,8 @@ public class HttpAsyncClients {
      *
      * @since 4.1
      */
-    public static CloseableHttpPipeliningClient createPipelining(final ConnectingIOReactor ioreactor) {
-        return createPipelining(new PoolingNHttpClientConnectionManager(ioreactor), false);
+    public static CloseableHttpPipeliningClient createPipelining(final ConnectingIOReactor ioReactor) {
+        return createPipelining(new PoolingNHttpClientConnectionManager(ioReactor), false);
     }
 
     /**

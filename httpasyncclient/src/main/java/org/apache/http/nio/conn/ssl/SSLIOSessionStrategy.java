@@ -160,10 +160,10 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
     }
 
     @Override
-    public SSLIOSession upgrade(final HttpHost host, final IOSession iosession) throws IOException {
-        Asserts.check(!(iosession instanceof SSLIOSession), "I/O session is already upgraded to TLS/SSL");
-        final SSLIOSession ssliosession = new SSLIOSession(
-            iosession,
+    public SSLIOSession upgrade(final HttpHost host, final IOSession ioSession) throws IOException {
+        Asserts.check(!(ioSession instanceof SSLIOSession), "I/O session is already upgraded to TLS/SSL");
+        final SSLIOSession sslioSession = new SSLIOSession(
+            ioSession,
             SSLMode.CLIENT,
             host,
             this.sslContext,
@@ -183,15 +183,15 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
                 @Override
                 public void verify(
-                        final IOSession iosession,
+                        final IOSession ioSession,
                         final SSLSession sslsession) throws SSLException {
-                    verifySession(host, iosession, sslsession);
+                    verifySession(host, ioSession, sslsession);
                 }
 
         });
-        iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
-        ssliosession.initialize();
-        return ssliosession;
+        ioSession.setAttribute(SSLIOSession.SESSION_KEY, sslioSession);
+        sslioSession.initialize();
+        return sslioSession;
     }
 
     protected void initializeEngine(final SSLEngine engine) {
@@ -199,7 +199,7 @@ public class SSLIOSessionStrategy implements SchemeIOSessionStrategy {
 
     protected void verifySession(
             final HttpHost host,
-            final IOSession iosession,
+            final IOSession ioSession,
             final SSLSession sslsession) throws SSLException {
         if (!this.hostnameVerifier.verify(host.getHostName(), sslsession)) {
             final Certificate[] certs = sslsession.getPeerCertificates();

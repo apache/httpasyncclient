@@ -51,7 +51,7 @@ public interface ManagedNHttpClientConnection extends NHttpClientConnection, Htt
     /**
      * Binds connection to the given I/O session.
      */
-    void bind(IOSession iosession);
+    void bind(IOSession ioSession);
 
     /**
      * Returns the underlying I/O session.

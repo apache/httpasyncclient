@@ -37,6 +37,6 @@ import org.apache.http.nio.reactor.IOSession;
  */
 public interface NHttpConnectionFactory<T extends NHttpConnection> {
 
-    T create(IOSession iosession, ConnectionConfig config);
+    T create(IOSession ioSession, ConnectionConfig config);
 
 }

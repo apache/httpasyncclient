@@ -174,14 +174,14 @@ public class TestZeroCopy extends HttpAsyncTestBase {
 
             boolean ok = true;
 
-            final InputStream instream = requestEntity.getContent();
+            final InputStream inStream = requestEntity.getContent();
             try {
                 final ContentType contentType = ContentType.getOrDefault(requestEntity);
                 Charset charset = contentType.getCharset();
                 if (charset == null) {
                     charset = Consts.ISO_8859_1;
                 }
-                final LineIterator it = IOUtils.lineIterator(instream, charset.name());
+                final LineIterator it = IOUtils.lineIterator(inStream, charset.name());
                 int count = 0;
                 while (it.hasNext()) {
                     final String line = it.next();
@@ -194,7 +194,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
                     count++;
                 }
             } finally {
-                instream.close();
+                inStream.close();
             }
             if (ok) {
                 final NFileEntity responseEntity = new NFileEntity(TEST_FILE,
@@ -222,9 +222,9 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         final Integer status = future.get();
         Assert.assertNotNull(status);
         Assert.assertEquals(HttpStatus.SC_OK, status.intValue());
-        final InputStream instream = new FileInputStream(this.tmpfile);
+        final InputStream inStream = new FileInputStream(this.tmpfile);
         try {
-            final LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
+            final LineIterator it = IOUtils.lineIterator(inStream, ASCII.name());
             int count = 0;
             while (it.hasNext()) {
                 final String line = it.next();
@@ -234,7 +234,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
                 count++;
             }
         } finally {
-            instream.close();
+            inStream.close();
         }
     }
 
@@ -250,9 +250,9 @@ public class TestZeroCopy extends HttpAsyncTestBase {
         final Integer status = future.get();
         Assert.assertNotNull(status);
         Assert.assertEquals(HttpStatus.SC_OK, status.intValue());
-        final InputStream instream = new FileInputStream(this.tmpfile);
+        final InputStream inStream = new FileInputStream(this.tmpfile);
         try {
-            final LineIterator it = IOUtils.lineIterator(instream, ASCII.name());
+            final LineIterator it = IOUtils.lineIterator(inStream, ASCII.name());
             int count = 0;
             while (it.hasNext()) {
                 final String line = it.next();
@@ -262,7 +262,7 @@ public class TestZeroCopy extends HttpAsyncTestBase {
                 count++;
             }
         } finally {
-            instream.close();
+            inStream.close();
         }
     }
 

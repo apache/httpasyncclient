@@ -59,6 +59,6 @@ public interface ManagedClientAsyncConnection
 
     void layerProtocol(HttpContext context, HttpParams params) throws IOException;
 
-    void setIdleDuration(long duration, TimeUnit tunit);
+    void setIdleDuration(long duration, TimeUnit timeUnit);
 
 }

@@ -271,9 +271,9 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
     @Override
     public SSLSession getSSLSession() {
         final ClientAsyncConnection conn = ensureConnection();
-        final IOSession iosession = conn.getIOSession();
-        return iosession instanceof SSLIOSession
-                        ? ((SSLIOSession) iosession).getSSLSession()
+        final IOSession ioSession = conn.getIOSession();
+        return ioSession instanceof SSLIOSession
+                        ? ((SSLIOSession) ioSession).getSSLSession()
                         : null;
     }
 
@@ -335,21 +335,21 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
 
         final HttpHost target = route.getTargetHost();
         final HttpHost proxy = route.getProxyHost();
-        IOSession iosession = entry.getConnection();
+        IOSession ioSession = entry.getConnection();
 
         if (proxy == null) {
             final AsyncScheme scheme = getSchemeRegistry(context).getScheme(target);
             final LayeringStrategy layeringStrategy = scheme.getLayeringStrategy();
             if (layeringStrategy != null) {
-                iosession = layeringStrategy.layer(iosession);
+                ioSession = layeringStrategy.layer(ioSession);
             }
         }
 
         final ClientAsyncConnection conn = this.connFactory.create(
                 "http-outgoing-" + entry.getId(),
-                iosession,
+                ioSession,
                 params);
-        iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
+        ioSession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
 
         if (proxy == null) {
             tracker.connectTarget(conn.getIOSession() instanceof SSLIOSession);
@@ -404,10 +404,10 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
             throw new IllegalStateException(scheme.getName() +
                     " scheme does not provider support for protocol layering");
         }
-        final IOSession iosession = entry.getConnection();
-        final ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
+        final IOSession ioSession = entry.getConnection();
+        final ClientAsyncConnection conn = (ClientAsyncConnection) ioSession.getAttribute(
                 IOEventDispatch.CONNECTION_KEY);
-        conn.upgrade(layeringStrategy.layer(iosession));
+        conn.upgrade(layeringStrategy.layer(ioSession));
         tracker.layerProtocol(layeringStrategy.isSecure());
     }
 
@@ -426,8 +426,8 @@ class ManagedClientAsyncConnectionImpl implements ManagedClientAsyncConnection {
             return;
         }
         this.reusable = false;
-        final IOSession iosession = this.poolEntry.getConnection();
-        final ClientAsyncConnection conn = (ClientAsyncConnection) iosession.getAttribute(
+        final IOSession ioSession = this.poolEntry.getConnection();
+        final ClientAsyncConnection conn = (ClientAsyncConnection) ioSession.getAttribute(
                 IOEventDispatch.CONNECTION_KEY);
         try {
             conn.shutdown();

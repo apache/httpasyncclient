@@ -53,34 +53,34 @@ public class PoolingClientAsyncConnectionManager
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private final ConnectingIOReactor ioreactor;
+    private final ConnectingIOReactor ioReactor;
     private final HttpNIOConnPool pool;
     private final AsyncSchemeRegistry schemeRegistry;
     private final ClientAsyncConnectionFactory connFactory;
 
     public PoolingClientAsyncConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final AsyncSchemeRegistry schemeRegistry,
-            final long timeToLive, final TimeUnit tunit) {
+            final long timeToLive, final TimeUnit timeUnit) {
         super();
-        Args.notNull(ioreactor, "I/O reactor");
+        Args.notNull(ioReactor, "I/O reactor");
         Args.notNull(schemeRegistry, "Scheme registory");
-        Args.notNull(tunit, "Time unit");
-        this.ioreactor = ioreactor;
-        this.pool = new HttpNIOConnPool(this.log, ioreactor, schemeRegistry, timeToLive, tunit);
+        Args.notNull(timeUnit, "Time unit");
+        this.ioReactor = ioReactor;
+        this.pool = new HttpNIOConnPool(this.log, ioReactor, schemeRegistry, timeToLive, timeUnit);
         this.schemeRegistry = schemeRegistry;
         this.connFactory = createClientAsyncConnectionFactory();
     }
 
     public PoolingClientAsyncConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final AsyncSchemeRegistry schemeRegistry) throws IOReactorException {
-        this(ioreactor, schemeRegistry, -1, TimeUnit.MILLISECONDS);
+        this(ioReactor, schemeRegistry, -1, TimeUnit.MILLISECONDS);
     }
 
     public PoolingClientAsyncConnectionManager(
-            final ConnectingIOReactor ioreactor) throws IOReactorException {
-        this(ioreactor, AsyncSchemeRegistryFactory.createDefault());
+            final ConnectingIOReactor ioReactor) throws IOReactorException {
+        this(ioReactor, AsyncSchemeRegistryFactory.createDefault());
     }
 
     @Override
@@ -103,12 +103,12 @@ public class PoolingClientAsyncConnectionManager
 
     @Override
     public void execute(final IOEventDispatch eventDispatch) throws IOException {
-        this.ioreactor.execute(eventDispatch);
+        this.ioReactor.execute(eventDispatch);
     }
 
     @Override
     public IOReactorStatus getStatus() {
-        return this.ioreactor.getStatus();
+        return this.ioReactor.getStatus();
     }
 
     @Override
@@ -162,16 +162,16 @@ public class PoolingClientAsyncConnectionManager
             final HttpRoute route,
             final Object state,
             final long connectTimeout,
-            final TimeUnit tunit,
+            final TimeUnit timeUnit,
             final FutureCallback<ManagedClientAsyncConnection> callback) {
         Args.notNull(route, "HTTP route");
-        Args.notNull(tunit, "Time unit");
+        Args.notNull(timeUnit, "Time unit");
         if (this.log.isDebugEnabled()) {
             this.log.debug("Connection request: " + format(route, state) + formatStats(route));
         }
         final BasicFuture<ManagedClientAsyncConnection> future = new BasicFuture<ManagedClientAsyncConnection>(
                 callback);
-        this.pool.lease(route, state, connectTimeout, tunit, new InternalPoolEntryCallback(future));
+        this.pool.lease(route, state, connectTimeout, timeUnit, new InternalPoolEntryCallback(future));
         return future;
     }
 
@@ -179,13 +179,13 @@ public class PoolingClientAsyncConnectionManager
     public void releaseConnection(
             final ManagedClientAsyncConnection conn,
             final long keepalive,
-            final TimeUnit tunit) {
+            final TimeUnit timeUnit) {
         Args.notNull(conn, "HTTP connection");
         if (!(conn instanceof ManagedClientAsyncConnectionImpl)) {
             throw new IllegalArgumentException("Connection class mismatch, " +
                  "connection not obtained from this manager");
         }
-        Args.notNull(tunit, "Time unit");
+        Args.notNull(timeUnit, "Time unit");
         final ManagedClientAsyncConnectionImpl managedConn = (ManagedClientAsyncConnectionImpl) conn;
         final ClientAsyncConnectionManager manager = managedConn.getManager();
         if (manager != null && manager != this) {
@@ -211,11 +211,11 @@ public class PoolingClientAsyncConnectionManager
                     }
                 }
                 if (managedConn.isOpen()) {
-                    entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                    entry.updateExpiry(keepalive, timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS);
                     if (this.log.isDebugEnabled()) {
                         final String s;
                         if (keepalive > 0) {
-                            s = "for " + keepalive + " " + tunit;
+                            s = "for " + keepalive + " " + timeUnit;
                         } else {
                             s = "indefinitely";
                         }
@@ -273,11 +273,11 @@ public class PoolingClientAsyncConnectionManager
         return this.pool.getMaxPerRoute(route);
     }
 
-    public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
+    public void closeIdleConnections(final long idleTimeout, final TimeUnit timeUnit) {
         if (log.isDebugEnabled()) {
-            log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
+            log.debug("Closing connections idle longer than " + idleTimeout + " " + timeUnit);
         }
-        this.pool.closeIdle(idleTimeout, tunit);
+        this.pool.closeIdle(idleTimeout, timeUnit);
     }
 
     public void closeExpiredConnections() {

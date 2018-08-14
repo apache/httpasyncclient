@@ -32,6 +32,6 @@ import org.apache.http.params.HttpParams;
 @Deprecated
 public interface ClientAsyncConnectionFactory {
 
-    ClientAsyncConnection create(String id, IOSession iosession, HttpParams params);
+    ClientAsyncConnection create(String id, IOSession ioSession, HttpParams params);
 
 }

@@ -200,8 +200,8 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
                     @Override
                     public synchronized void produceContent(
                             final ContentEncoder encoder,
-                            final IOControl ioctrl) throws IOException {
-                        ioctrl.shutdown();
+                            final IOControl ioControl) throws IOException {
+                        ioControl.shutdown();
                     }
 
                 });
@@ -277,7 +277,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
             @Override
             public void consumeContent(
-                    final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+                    final ContentDecoder decoder, final IOControl ioControl) throws IOException {
                 throw new IllegalStateException();
             }
 
@@ -359,7 +359,7 @@ public class TestHttpAsyncPrematureTermination extends HttpAsyncTestBase {
 
             @Override
             public void consumeContent(
-                    final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+                    final ContentDecoder decoder, final IOControl ioControl) throws IOException {
             }
 
             @Override

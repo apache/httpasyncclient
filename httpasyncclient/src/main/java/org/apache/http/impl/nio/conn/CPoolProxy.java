@@ -240,8 +240,8 @@ class CPoolProxy implements ManagedNHttpClientConnection {
     }
 
     @Override
-    public void bind(final IOSession iosession) {
-        getValidConnection().bind(iosession);
+    public void bind(final IOSession ioSession) {
+        getValidConnection().bind(ioSession);
     }
 
     @Override

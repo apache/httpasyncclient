@@ -214,13 +214,13 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
 
     @Override
     public void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+            final ContentEncoder encoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + getId() + "] produce content");
         }
         final HttpAsyncRequestProducer requestProducer = this.requestProducerRef.get();
         Asserts.check(requestProducer != null, "Inconsistent state: request producer is null");
-        requestProducer.produceContent(encoder, ioctrl);
+        requestProducer.produceContent(encoder, ioControl);
         if (encoder.isCompleted()) {
             requestProducer.resetRequest();
         }
@@ -268,13 +268,13 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
 
     @Override
     public void consumeContent(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + getId() + "] Consume content");
         }
         final HttpAsyncResponseConsumer<T> responseConsumer = this.responseConsumerRef.get();
         Asserts.check(responseConsumer != null, "Inconsistent state: response consumer is null");
-        responseConsumer.consumeContent(decoder, ioctrl);
+        responseConsumer.consumeContent(decoder, ioControl);
     }
 
     @Override

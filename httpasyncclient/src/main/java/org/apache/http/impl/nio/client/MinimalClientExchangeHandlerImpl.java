@@ -171,11 +171,11 @@ class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     public void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+            final ContentEncoder encoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + getId() + "] produce content");
         }
-        this.requestProducer.produceContent(encoder, ioctrl);
+        this.requestProducer.produceContent(encoder, ioControl);
         if (encoder.isCompleted()) {
             this.requestProducer.resetRequest();
         }
@@ -205,11 +205,11 @@ class MinimalClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     public void consumeContent(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + getId() + "] Consume content");
         }
-        this.responseConsumer.consumeContent(decoder, ioctrl);
+        this.responseConsumer.consumeContent(decoder, ioControl);
         if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
             markConnectionNonReusable();
             try {

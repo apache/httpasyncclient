@@ -50,8 +50,8 @@ import org.apache.http.util.Asserts;
 class ManagedNHttpClientConnectionImpl
                     extends DefaultNHttpClientConnection implements ManagedNHttpClientConnection {
 
-    private final Log headerlog;
-    private final Log wirelog;
+    private final Log headerLog;
+    private final Log wireLog;
     private final Log log;
 
     private final String id;
@@ -60,43 +60,43 @@ class ManagedNHttpClientConnectionImpl
     public ManagedNHttpClientConnectionImpl(
             final String id,
             final Log log,
-            final Log headerlog,
-            final Log wirelog,
-            final IOSession iosession,
-            final int buffersize,
+            final Log headerLog,
+            final Log wireLog,
+            final IOSession ioSession,
+            final int bufferSize,
             final int fragmentSizeHint,
             final ByteBufferAllocator allocator,
-            final CharsetDecoder chardecoder,
-            final CharsetEncoder charencoder,
+            final CharsetDecoder charDecoder,
+            final CharsetEncoder charEncoder,
             final MessageConstraints constraints,
             final ContentLengthStrategy incomingContentStrategy,
             final ContentLengthStrategy outgoingContentStrategy,
             final NHttpMessageWriterFactory<HttpRequest> requestWriterFactory,
             final NHttpMessageParserFactory<HttpResponse> responseParserFactory) {
-        super(iosession, buffersize, fragmentSizeHint, allocator, chardecoder, charencoder, constraints,
+        super(ioSession, bufferSize, fragmentSizeHint, allocator, charDecoder, charEncoder, constraints,
                 incomingContentStrategy, outgoingContentStrategy,
                 requestWriterFactory, responseParserFactory);
         this.id = id;
         this.log = log;
-        this.headerlog = headerlog;
-        this.wirelog = wirelog;
-        this.original = iosession;
-        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            super.bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
+        this.headerLog = headerLog;
+        this.wireLog = wireLog;
+        this.original = ioSession;
+        if (this.log.isDebugEnabled() || this.wireLog.isDebugEnabled()) {
+            super.bind(new LoggingIOSession(ioSession, this.id, this.log, this.wireLog));
         }
     }
 
     @Override
-    public void bind(final IOSession iosession) {
-        Args.notNull(iosession, "I/O session");
-        Asserts.check(!iosession.isClosed(), "I/O session is closed");
+    public void bind(final IOSession ioSession) {
+        Args.notNull(ioSession, "I/O session");
+        Asserts.check(!ioSession.isClosed(), "I/O session is closed");
         this.status = ACTIVE;
-        this.original = iosession;
-        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.log.debug(this.id + " Upgrade session " + iosession);
-            super.bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
+        this.original = ioSession;
+        if (this.log.isDebugEnabled() || this.wireLog.isDebugEnabled()) {
+            this.log.debug(this.id + " Upgrade session " + ioSession);
+            super.bind(new LoggingIOSession(ioSession, this.id, this.log, this.wireLog));
         } else {
-            super.bind(iosession);
+            super.bind(ioSession);
         }
     }
 
@@ -119,22 +119,22 @@ class ManagedNHttpClientConnectionImpl
 
     @Override
     protected void onResponseReceived(final HttpResponse response) {
-        if (response != null && this.headerlog.isDebugEnabled()) {
-            this.headerlog.debug(this.id + " << " + response.getStatusLine().toString());
+        if (response != null && this.headerLog.isDebugEnabled()) {
+            this.headerLog.debug(this.id + " << " + response.getStatusLine().toString());
             final Header[] headers = response.getAllHeaders();
             for (final Header header : headers) {
-                this.headerlog.debug(this.id + " << " + header.toString());
+                this.headerLog.debug(this.id + " << " + header.toString());
             }
         }
     }
 
     @Override
     protected void onRequestSubmitted(final HttpRequest request) {
-        if (request != null && this.headerlog.isDebugEnabled()) {
-            this.headerlog.debug(this.id + " >> " + request.getRequestLine().toString());
+        if (request != null && this.headerLog.isDebugEnabled()) {
+            this.headerLog.debug(this.id + " >> " + request.getRequestLine().toString());
             final Header[] headers = request.getAllHeaders();
             for (final Header header : headers) {
-                this.headerlog.debug(this.id + " >> " + header.toString());
+                this.headerLog.debug(this.id + " >> " + header.toString());
             }
         }
     }

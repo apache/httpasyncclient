@@ -53,9 +53,9 @@ public interface SchemeIOSessionStrategy {
      * Decorates the original {@link IOSession} with a transport level security
      * protocol implementation.
      * @param host the target host.
-     * @param iosession the I/O session.
+     * @param ioSession the I/O session.
      * @return upgraded I/O session.
      */
-    IOSession upgrade(HttpHost host, IOSession iosession) throws IOException;
+    IOSession upgrade(HttpHost host, IOSession ioSession) throws IOException;
 
 }

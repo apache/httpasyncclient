@@ -53,7 +53,7 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     private final ByteBuffer bbuf;
     private final CharBuffer cbuf;
 
-    private CharsetDecoder chardecoder;
+    private CharsetDecoder charDecoder;
 
     public AsyncCharConsumer(final int bufSize) {
         super();
@@ -71,11 +71,11 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
      * if the consumer is temporarily unable to consume more content.
      *
      * @param buf chunk of content.
-     * @param ioctrl I/O control of the underlying connection.
+     * @param ioControl I/O control of the underlying connection.
      * @throws IOException in case of an I/O error
      */
     protected abstract void onCharReceived(
-            CharBuffer buf, IOControl ioctrl) throws IOException;
+            CharBuffer buf, IOControl ioControl) throws IOException;
 
     /**
      * Invoked to create a @{link CharsetDecoder} for contentType.
@@ -98,12 +98,12 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
     @Override
     protected final void onEntityEnclosed(
             final HttpEntity entity, final ContentType contentType) throws IOException {
-        this.chardecoder = createDecoder(contentType != null ? contentType : ContentType.DEFAULT_TEXT);
+        this.charDecoder = createDecoder(contentType != null ? contentType : ContentType.DEFAULT_TEXT);
     }
 
     @Override
     protected final void onContentReceived(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         Asserts.notNull(this.bbuf, "Byte buffer");
 
         final int bytesRead = decoder.read(this.bbuf);
@@ -112,23 +112,23 @@ public abstract class AsyncCharConsumer<T> extends AbstractAsyncResponseConsumer
         }
         this.bbuf.flip();
         final boolean completed = decoder.isCompleted();
-        CoderResult result = this.chardecoder.decode(this.bbuf, this.cbuf, completed);
-        handleDecodingResult(result, ioctrl);
+        CoderResult result = this.charDecoder.decode(this.bbuf, this.cbuf, completed);
+        handleDecodingResult(result, ioControl);
         this.bbuf.compact();
         if (completed) {
-            result = this.chardecoder.flush(this.cbuf);
-            handleDecodingResult(result, ioctrl);
+            result = this.charDecoder.flush(this.cbuf);
+            handleDecodingResult(result, ioControl);
         }
     }
 
     private void handleDecodingResult(
-            final CoderResult result, final IOControl ioctrl) throws IOException {
+            final CoderResult result, final IOControl ioControl) throws IOException {
         if (result.isError()) {
             result.throwException();
         }
         this.cbuf.flip();
         if (this.cbuf.hasRemaining()) {
-            onCharReceived(this.cbuf, ioctrl);
+            onCharReceived(this.cbuf, ioControl);
         }
         this.cbuf.clear();
     }

@@ -664,10 +664,10 @@ public class HttpAsyncClientBuilder {
                 sslStrategy = new SSLIOSessionStrategy(
                         sslcontext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
             }
-            final ConnectingIOReactor ioreactor = IOReactorUtils.create(
+            final ConnectingIOReactor ioReactor = IOReactorUtils.create(
                 defaultIOReactorConfig != null ? defaultIOReactorConfig : IOReactorConfig.DEFAULT, threadFactory);
             final PoolingNHttpClientConnectionManager poolingmgr = new PoolingNHttpClientConnectionManager(
-                    ioreactor,
+                    ioReactor,
                     RegistryBuilder.<SchemeIOSessionStrategy>create()
                         .register("http", NoopIOSessionStrategy.INSTANCE)
                         .register("https", sslStrategy)

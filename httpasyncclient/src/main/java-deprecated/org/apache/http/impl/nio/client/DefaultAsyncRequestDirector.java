@@ -105,7 +105,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
     private final HttpContext localContext;
     private final ResultCallback<T> resultCallback;
     private final ClientAsyncConnectionManager connmgr;
-    private final HttpProcessor httppocessor;
+    private final HttpProcessor httpPocessor;
     private final HttpRoutePlanner routePlanner;
     private final HttpRouteDirector routeDirector;
     private final ConnectionReuseStrategy reuseStrategy;
@@ -145,7 +145,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
             final HttpContext localContext,
             final ResultCallback<T> callback,
             final ClientAsyncConnectionManager connmgr,
-            final HttpProcessor httppocessor,
+            final HttpProcessor httpPocessor,
             final HttpRoutePlanner routePlanner,
             final ConnectionReuseStrategy reuseStrategy,
             final ConnectionKeepAliveStrategy keepaliveStrategy,
@@ -161,7 +161,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
         this.localContext = localContext;
         this.resultCallback = callback;
         this.connmgr = connmgr;
-        this.httppocessor = httppocessor;
+        this.httpPocessor = httpPocessor;
         this.routePlanner = routePlanner;
         this.reuseStrategy = reuseStrategy;
         this.keepaliveStrategy = keepaliveStrategy;
@@ -328,12 +328,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     @Override
     public synchronized void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+            final ContentEncoder encoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] produce content");
         }
         this.requestContentProduced = true;
-        this.requestProducer.produceContent(encoder, ioctrl);
+        this.requestProducer.produceContent(encoder, ioControl);
         if (encoder.isCompleted()) {
             this.requestProducer.resetRequest();
         }
@@ -404,12 +404,12 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     @Override
     public synchronized void consumeContent(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         if (this.log.isDebugEnabled()) {
             this.log.debug("[exchange: " + this.id + "] Consume content");
         }
         if (this.finalResponse != null) {
-            this.responseConsumer.consumeContent(decoder, ioctrl);
+            this.responseConsumer.consumeContent(decoder, ioControl);
         } else {
             if (this.tmpbuf == null) {
                 this.tmpbuf = ByteBuffer.allocate(2048);
@@ -881,7 +881,7 @@ class DefaultAsyncRequestDirector<T> implements HttpAsyncRequestExecutionHandler
 
     @Override
     public HttpProcessor getHttpProcessor() {
-        return this.httppocessor;
+        return this.httpPocessor;
     }
 
     @Override

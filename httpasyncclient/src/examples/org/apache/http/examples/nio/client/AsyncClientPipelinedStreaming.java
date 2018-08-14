@@ -113,7 +113,7 @@ public class AsyncClientPipelinedStreaming {
         }
 
         @Override
-        protected void onCharReceived(final CharBuffer buf, final IOControl ioctrl) throws IOException {
+        protected void onCharReceived(final CharBuffer buf, final IOControl ioControl) throws IOException {
             while (buf.hasRemaining()) {
                 System.out.print(buf.get());
             }

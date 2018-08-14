@@ -77,7 +77,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         }
 
         @Override
-        protected void onByteReceived(final ByteBuffer buf, final IOControl ioctrl) {
+        protected void onByteReceived(final ByteBuffer buf, final IOControl ioControl) {
             this.count.addAndGet(buf.remaining());
         }
 
@@ -129,7 +129,7 @@ public class TestAsyncConsumers extends HttpAsyncTestBase {
         }
 
         @Override
-        protected void onCharReceived(final CharBuffer buf, final IOControl ioctrl) throws IOException {
+        protected void onCharReceived(final CharBuffer buf, final IOControl ioControl) throws IOException {
             while (buf.hasRemaining()) {
                 this.sb.append(buf.get());
             }

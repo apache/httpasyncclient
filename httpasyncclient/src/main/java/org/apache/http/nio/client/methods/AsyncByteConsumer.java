@@ -62,11 +62,11 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
      * if the consumer is temporarily unable to consume more content.
      *
      * @param buf chunk of content.
-     * @param ioctrl I/O control of the underlying connection.
+     * @param ioControl I/O control of the underlying connection.
      * @throws IOException in case of an I/O error
      */
     protected abstract void onByteReceived(
-            ByteBuffer buf, IOControl ioctrl) throws IOException;
+            ByteBuffer buf, IOControl ioControl) throws IOException;
 
     @Override
     protected final void onEntityEnclosed(
@@ -75,14 +75,14 @@ public abstract class AsyncByteConsumer<T> extends AbstractAsyncResponseConsumer
 
     @Override
     protected final void onContentReceived(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         Asserts.notNull(this.bbuf, "Byte buffer");
         final int bytesRead = decoder.read(this.bbuf);
         if (bytesRead <= 0) {
             return;
         }
         this.bbuf.flip();
-        onByteReceived(this.bbuf, ioctrl);
+        onByteReceived(this.bbuf, ioControl);
         this.bbuf.clear();
     }
 

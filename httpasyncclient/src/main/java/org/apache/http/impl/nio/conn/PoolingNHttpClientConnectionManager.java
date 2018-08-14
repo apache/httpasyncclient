@@ -97,12 +97,12 @@ public class PoolingNHttpClientConnectionManager
 
     private final Log log = LogFactory.getLog(getClass());
 
-    static final String IOSESSION_FACTORY_REGISTRY = "http.iosession-factory-registry";
+    static final String IOSESSION_FACTORY_REGISTRY = "http.ioSession-factory-registry";
 
-    private final ConnectingIOReactor ioreactor;
+    private final ConnectingIOReactor ioReactor;
     private final ConfigData configData;
     private final CPool pool;
-    private final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry;
+    private final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry;
 
     private static Registry<SchemeIOSessionStrategy> getDefaultRegistry() {
         return RegistryBuilder.<SchemeIOSessionStrategy>create()
@@ -111,100 +111,100 @@ public class PoolingNHttpClientConnectionManager
                 .build();
     }
 
-    public PoolingNHttpClientConnectionManager(final ConnectingIOReactor ioreactor) {
-        this(ioreactor, getDefaultRegistry());
+    public PoolingNHttpClientConnectionManager(final ConnectingIOReactor ioReactor) {
+        this(ioReactor, getDefaultRegistry());
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
-        this(ioreactor, null, iosessionFactoryRegistry, (DnsResolver) null);
+            final ConnectingIOReactor ioReactor,
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry) {
+        this(ioReactor, null, ioSessionFactoryRegistry, (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
             final DnsResolver dnsResolver) {
-        this(ioreactor, connFactory, getDefaultRegistry(), dnsResolver);
+        this(ioReactor, connFactory, getDefaultRegistry(), dnsResolver);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
             final SocketAddressResolver<HttpRoute> socketAddressResolver) {
-        this(ioreactor, connFactory, getDefaultRegistry(), socketAddressResolver);
+        this(ioReactor, connFactory, getDefaultRegistry(), socketAddressResolver);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory) {
-        this(ioreactor, connFactory, getDefaultRegistry(), (DnsResolver) null);
+        this(ioReactor, connFactory, getDefaultRegistry(), (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
-        this(ioreactor, connFactory, iosessionFactoryRegistry, (DnsResolver) null);
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry) {
+        this(ioReactor, connFactory, ioSessionFactoryRegistry, (DnsResolver) null);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry,
             final DnsResolver dnsResolver) {
-        this(ioreactor, connFactory, iosessionFactoryRegistry, null, dnsResolver,
+        this(ioReactor, connFactory, ioSessionFactoryRegistry, null, dnsResolver,
             -1, TimeUnit.MILLISECONDS);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry,
             final SocketAddressResolver<HttpRoute> socketAddressResolver) {
-        this(ioreactor, connFactory, iosessionFactoryRegistry, socketAddressResolver,
+        this(ioReactor, connFactory, ioSessionFactoryRegistry, socketAddressResolver,
                 -1, TimeUnit.MILLISECONDS);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry,
             final SchemePortResolver schemePortResolver,
             final DnsResolver dnsResolver,
-            final long timeToLive, final TimeUnit tunit) {
-        this(ioreactor, connFactory, iosessionFactoryRegistry,
-                new InternalAddressResolver(schemePortResolver, dnsResolver), timeToLive, tunit);
+            final long timeToLive, final TimeUnit timeUnit) {
+        this(ioReactor, connFactory, ioSessionFactoryRegistry,
+                new InternalAddressResolver(schemePortResolver, dnsResolver), timeToLive, timeUnit);
     }
 
     public PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NHttpConnectionFactory<ManagedNHttpClientConnection> connFactory,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry,
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry,
             final SocketAddressResolver<HttpRoute> socketAddressResolver,
-            final long timeToLive, final TimeUnit tunit) {
+            final long timeToLive, final TimeUnit timeUnit) {
         super();
-        Args.notNull(ioreactor, "I/O reactor");
-        Args.notNull(iosessionFactoryRegistry, "I/O session factory registry");
+        Args.notNull(ioReactor, "I/O reactor");
+        Args.notNull(ioSessionFactoryRegistry, "I/O session factory registry");
         Args.notNull(socketAddressResolver, "Socket address resolver");
-        this.ioreactor = ioreactor;
+        this.ioReactor = ioReactor;
         this.configData = new ConfigData();
-        this.pool = new CPool(ioreactor,
+        this.pool = new CPool(ioReactor,
                 new InternalConnectionFactory(this.configData, connFactory),
                 socketAddressResolver,
-                2, 20, timeToLive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
-        this.iosessionFactoryRegistry = iosessionFactoryRegistry;
+                2, 20, timeToLive, timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS);
+        this.ioSessionFactoryRegistry = ioSessionFactoryRegistry;
     }
 
     PoolingNHttpClientConnectionManager(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final CPool pool,
-            final Registry<SchemeIOSessionStrategy> iosessionFactoryRegistry) {
+            final Registry<SchemeIOSessionStrategy> ioSessionFactoryRegistry) {
         super();
-        this.ioreactor = ioreactor;
+        this.ioReactor = ioReactor;
         this.configData = new ConfigData();
         this.pool = pool;
-        this.iosessionFactoryRegistry = iosessionFactoryRegistry;
+        this.ioSessionFactoryRegistry = ioSessionFactoryRegistry;
     }
 
     @Override
@@ -218,7 +218,7 @@ public class PoolingNHttpClientConnectionManager
 
     @Override
     public void execute(final IOEventDispatch eventDispatch) throws IOException {
-        this.ioreactor.execute(eventDispatch);
+        this.ioReactor.execute(eventDispatch);
     }
 
     public void shutdown(final long waitMs) throws IOException {
@@ -272,7 +272,7 @@ public class PoolingNHttpClientConnectionManager
             final Object state,
             final long connectTimeout,
             final long leaseTimeout,
-            final TimeUnit tunit,
+            final TimeUnit timeUnit,
             final FutureCallback<NHttpClientConnection> callback) {
         Args.notNull(route, "HTTP route");
         if (this.log.isDebugEnabled()) {
@@ -285,7 +285,7 @@ public class PoolingNHttpClientConnectionManager
         } else {
             host = route.getTargetHost();
         }
-        final SchemeIOSessionStrategy sf = this.iosessionFactoryRegistry.lookup(
+        final SchemeIOSessionStrategy sf = this.ioSessionFactoryRegistry.lookup(
                 host.getSchemeName());
         if (sf == null) {
             resultFuture.failed(new UnsupportedSchemeException(host.getSchemeName() +
@@ -293,7 +293,7 @@ public class PoolingNHttpClientConnectionManager
             return resultFuture;
         }
         final Future<CPoolEntry> leaseFuture = this.pool.lease(route, state,
-                connectTimeout, leaseTimeout, tunit != null ? tunit : TimeUnit.MILLISECONDS,
+                connectTimeout, leaseTimeout, timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS,
                 new FutureCallback<CPoolEntry>() {
 
                     @Override
@@ -362,7 +362,7 @@ public class PoolingNHttpClientConnectionManager
             final NHttpClientConnection managedConn,
             final Object state,
             final long keepalive,
-            final TimeUnit tunit) {
+            final TimeUnit timeUnit) {
         Args.notNull(managedConn, "Managed connection");
         synchronized (managedConn) {
             final CPoolEntry entry = CPoolProxy.detach(managedConn);
@@ -376,7 +376,7 @@ public class PoolingNHttpClientConnectionManager
             try {
                 if (conn.isOpen()) {
                     entry.setState(state);
-                    entry.updateExpiry(keepalive, tunit != null ? tunit : TimeUnit.MILLISECONDS);
+                    entry.updateExpiry(keepalive, timeUnit != null ? timeUnit : TimeUnit.MILLISECONDS);
                     if (this.log.isDebugEnabled()) {
                         final String s;
                         if (keepalive > 0) {
@@ -401,7 +401,7 @@ public class PoolingNHttpClientConnectionManager
         Lookup<SchemeIOSessionStrategy> reg = (Lookup<SchemeIOSessionStrategy>) context.getAttribute(
                 IOSESSION_FACTORY_REGISTRY);
         if (reg == null) {
-            reg = this.iosessionFactoryRegistry;
+            reg = this.ioSessionFactoryRegistry;
         }
         return reg;
     }
@@ -486,11 +486,11 @@ public class PoolingNHttpClientConnectionManager
     }
 
     @Override
-    public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
+    public void closeIdleConnections(final long idleTimeout, final TimeUnit timeUnit) {
         if (this.log.isDebugEnabled()) {
-            this.log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
+            this.log.debug("Closing connections idle longer than " + idleTimeout + " " + timeUnit);
         }
-        this.pool.closeIdle(idleTimeout, tunit);
+        this.pool.closeIdle(idleTimeout, timeUnit);
     }
 
     @Override
@@ -611,7 +611,7 @@ public class PoolingNHttpClientConnectionManager
 
         @Override
         public ManagedNHttpClientConnection create(
-                final HttpRoute route, final IOSession iosession) throws IOException {
+                final HttpRoute route, final IOSession ioSession) throws IOException {
             ConnectionConfig config = null;
             if (route.getProxyHost() != null) {
                 config = this.configData.getConnectionConfig(route.getProxyHost());
@@ -625,8 +625,8 @@ public class PoolingNHttpClientConnectionManager
             if (config == null) {
                 config = ConnectionConfig.DEFAULT;
             }
-            final ManagedNHttpClientConnection conn = this.connFactory.create(iosession, config);
-            iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
+            final ManagedNHttpClientConnection conn = this.connFactory.create(ioSession, config);
+            ioSession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
             return conn;
         }
 

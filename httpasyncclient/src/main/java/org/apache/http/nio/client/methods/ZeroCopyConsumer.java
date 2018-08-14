@@ -90,7 +90,7 @@ public abstract class ZeroCopyConsumer<T> extends AbstractAsyncResponseConsumer<
 
     @Override
     protected void onContentReceived(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
         Asserts.notNull(this.fileChannel, "File channel");
         final long transferred;
         if (decoder instanceof FileContentDecoder) {

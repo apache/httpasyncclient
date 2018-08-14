@@ -46,22 +46,22 @@ class CPool extends AbstractNIOConnPool<HttpRoute, ManagedNHttpClientConnection,
     private final Log log = LogFactory.getLog(CPool.class);
 
     private final long timeToLive;
-    private final TimeUnit tunit;
+    private final TimeUnit timeUnit;
 
     public CPool(
-            final ConnectingIOReactor ioreactor,
+            final ConnectingIOReactor ioReactor,
             final NIOConnFactory<HttpRoute, ManagedNHttpClientConnection> connFactory,
             final SocketAddressResolver<HttpRoute> addressResolver,
             final int defaultMaxPerRoute, final int maxTotal,
-            final long timeToLive, final TimeUnit tunit) {
-        super(ioreactor, connFactory, addressResolver, defaultMaxPerRoute, maxTotal);
+            final long timeToLive, final TimeUnit timeUnit) {
+        super(ioReactor, connFactory, addressResolver, defaultMaxPerRoute, maxTotal);
         this.timeToLive = timeToLive;
-        this.tunit = tunit;
+        this.timeUnit = timeUnit;
     }
 
     @Override
     protected CPoolEntry createEntry(final HttpRoute route, final ManagedNHttpClientConnection conn) {
-        final CPoolEntry entry =  new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.tunit);
+        final CPoolEntry entry =  new CPoolEntry(this.log, conn.getId(), route, conn, this.timeToLive, this.timeUnit);
         entry.setSocketTimeout(conn.getSocketTimeout());
         return entry;
     }

@@ -98,7 +98,7 @@ public class QuickStart {
                 }
 
                 @Override
-                protected void onCharReceived(final CharBuffer buf, final IOControl ioctrl) throws IOException {
+                protected void onCharReceived(final CharBuffer buf, final IOControl ioControl) throws IOException {
                     // Do something useful
                 }
 

@@ -55,8 +55,8 @@ import org.apache.http.nio.util.HeapByteBufferAllocator;
  */
 public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFactory<ManagedNHttpClientConnection> {
 
-    private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
-    private final Log wirelog = LogFactory.getLog("org.apache.http.wire");
+    private final Log headerLog = LogFactory.getLog("org.apache.http.headers");
+    private final Log wireLog = LogFactory.getLog("org.apache.http.wire");
     private final Log log = LogFactory.getLog(ManagedNHttpClientConnectionImpl.class);
 
     private static final AtomicLong COUNTER = new AtomicLong();
@@ -85,40 +85,40 @@ public class ManagedNHttpClientConnectionFactory implements NHttpConnectionFacto
 
     @Override
     public ManagedNHttpClientConnection create(
-            final IOSession iosession, final ConnectionConfig config) {
+            final IOSession ioSession, final ConnectionConfig config) {
         final String id = "http-outgoing-" + Long.toString(COUNTER.getAndIncrement());
-        CharsetDecoder chardecoder = null;
-        CharsetEncoder charencoder = null;
+        CharsetDecoder charDecoder = null;
+        CharsetEncoder charEncoder = null;
         final Charset charset = config.getCharset();
         final CodingErrorAction malformedInputAction = config.getMalformedInputAction() != null ?
                 config.getMalformedInputAction() : CodingErrorAction.REPORT;
         final CodingErrorAction unmappableInputAction = config.getUnmappableInputAction() != null ?
                 config.getUnmappableInputAction() : CodingErrorAction.REPORT;
         if (charset != null) {
-            chardecoder = charset.newDecoder();
-            chardecoder.onMalformedInput(malformedInputAction);
-            chardecoder.onUnmappableCharacter(unmappableInputAction);
-            charencoder = charset.newEncoder();
-            charencoder.onMalformedInput(malformedInputAction);
-            charencoder.onUnmappableCharacter(unmappableInputAction);
+            charDecoder = charset.newDecoder();
+            charDecoder.onMalformedInput(malformedInputAction);
+            charDecoder.onUnmappableCharacter(unmappableInputAction);
+            charEncoder = charset.newEncoder();
+            charEncoder.onMalformedInput(malformedInputAction);
+            charEncoder.onUnmappableCharacter(unmappableInputAction);
         }
         final ManagedNHttpClientConnection conn = new ManagedNHttpClientConnectionImpl(
                 id,
                 this.log,
-                this.headerlog,
-                this.wirelog,
-                iosession,
+                this.headerLog,
+                this.wireLog,
+                ioSession,
                 config.getBufferSize(),
                 config.getFragmentSizeHint(),
                 this.allocator,
-                chardecoder,
-                charencoder,
+                charDecoder,
+                charEncoder,
                 config.getMessageConstraints(),
                 null,
                 null,
                 this.requestWriterFactory,
                 this.responseParserFactory);
-        iosession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
+        ioSession.setAttribute(IOEventDispatch.CONNECTION_KEY, conn);
         return conn;
     }
 

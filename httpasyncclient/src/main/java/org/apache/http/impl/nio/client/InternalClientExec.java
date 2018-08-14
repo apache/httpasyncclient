@@ -51,7 +51,7 @@ interface InternalClientExec {
     void produceContent(
             InternalState state,
             ContentEncoder encoder,
-            IOControl ioctrl) throws IOException;
+            IOControl ioControl) throws IOException;
 
     void requestCompleted(
             InternalState state,
@@ -65,7 +65,7 @@ interface InternalClientExec {
     void consumeContent(
             InternalState state,
             ContentDecoder decoder,
-            IOControl ioctrl) throws IOException;
+            IOControl ioControl) throws IOException;
 
     void responseCompleted(
             InternalState state,

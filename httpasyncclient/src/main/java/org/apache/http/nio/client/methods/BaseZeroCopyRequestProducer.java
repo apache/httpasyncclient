@@ -98,7 +98,7 @@ abstract class BaseZeroCopyRequestProducer implements HttpAsyncRequestProducer {
 
     @Override
     public synchronized void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
+            final ContentEncoder encoder, final IOControl ioControl) throws IOException {
         if (this.fileChannel == null) {
             this.fileChannel = this.accessfile.getChannel();
             this.idx = 0;

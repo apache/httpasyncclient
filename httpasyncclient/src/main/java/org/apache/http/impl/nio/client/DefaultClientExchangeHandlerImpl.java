@@ -136,8 +136,8 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     public void produceContent(
-            final ContentEncoder encoder, final IOControl ioctrl) throws IOException {
-        this.exec.produceContent(this.state, encoder, ioctrl);
+            final ContentEncoder encoder, final IOControl ioControl) throws IOException {
+        this.exec.produceContent(this.state, encoder, ioControl);
     }
 
     @Override
@@ -153,8 +153,8 @@ class DefaultClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandler 
 
     @Override
     public void consumeContent(
-            final ContentDecoder decoder, final IOControl ioctrl) throws IOException {
-        this.exec.consumeContent(this.state, decoder, ioctrl);
+            final ContentDecoder decoder, final IOControl ioControl) throws IOException {
+        this.exec.consumeContent(this.state, decoder, ioControl);
         if (!decoder.isCompleted() && this.responseConsumer.isDone()) {
             markConnectionNonReusable();
             try {

@@ -132,9 +132,9 @@ public abstract class AbstractHttpAsyncClient implements HttpAsyncClient {
 
     protected AbstractHttpAsyncClient(final IOReactorConfig config) throws IOReactorException {
         super();
-        final DefaultConnectingIOReactor defaultioreactor = new DefaultConnectingIOReactor(config);
-        defaultioreactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
-        this.connmgr = new PoolingClientAsyncConnectionManager(defaultioreactor);
+        final DefaultConnectingIOReactor defaultioReactor = new DefaultConnectingIOReactor(config);
+        defaultioReactor.setExceptionHandler(new InternalIOReactorExceptionHandler(this.log));
+        this.connmgr = new PoolingClientAsyncConnectionManager(defaultioReactor);
         this.queue = new ConcurrentLinkedQueue<HttpAsyncRequestExecutionHandler<?>>();
     }
 

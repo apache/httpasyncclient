@@ -184,9 +184,9 @@ public class SSLLayeringStrategy implements LayeringStrategy {
     }
 
     @Override
-    public SSLIOSession layer(final IOSession iosession) {
-        final SSLIOSession ssliosession = new SSLIOSession(
-            iosession,
+    public SSLIOSession layer(final IOSession ioSession) {
+        final SSLIOSession sslioSession = new SSLIOSession(
+            ioSession,
             SSLMode.CLIENT,
             this.sslContext,
             new SSLSetupHandler() {
@@ -199,23 +199,23 @@ public class SSLLayeringStrategy implements LayeringStrategy {
 
                 @Override
                 public void verify(
-                        final IOSession iosession,
+                        final IOSession ioSession,
                         final SSLSession sslsession) throws SSLException {
-                    verifySession(iosession, sslsession);
+                    verifySession(ioSession, sslsession);
                 }
 
         });
-        iosession.setAttribute(SSLIOSession.SESSION_KEY, ssliosession);
-        return ssliosession;
+        ioSession.setAttribute(SSLIOSession.SESSION_KEY, sslioSession);
+        return sslioSession;
     }
 
     protected void initializeEngine(final SSLEngine engine) {
     }
 
     protected void verifySession(
-            final IOSession iosession,
+            final IOSession ioSession,
             final SSLSession sslsession) throws SSLException {
-        final InetSocketAddress address = (InetSocketAddress) iosession.getRemoteAddress();
+        final InetSocketAddress address = (InetSocketAddress) ioSession.getRemoteAddress();
 
         final Certificate[] certs = sslsession.getPeerCertificates();
         final X509Certificate x509 = (X509Certificate) certs[0];

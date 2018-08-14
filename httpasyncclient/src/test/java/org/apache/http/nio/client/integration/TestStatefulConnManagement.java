@@ -182,7 +182,7 @@ public class TestStatefulConnManagement extends HttpAsyncTestBase {
                                 @Override
                                 protected void onContentReceived(
                                         final ContentDecoder decoder,
-                                        final IOControl ioctrl) throws IOException {
+                                        final IOControl ioControl) throws IOException {
                                     final ByteBuffer buf = ByteBuffer.allocate(2048);
                                     decoder.read(buf);
                                 }

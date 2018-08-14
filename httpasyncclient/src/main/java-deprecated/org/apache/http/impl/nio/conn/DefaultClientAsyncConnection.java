@@ -42,8 +42,8 @@ import org.apache.http.params.HttpParams;
 public class DefaultClientAsyncConnection
                     extends DefaultNHttpClientConnection implements ClientAsyncConnection {
 
-    private final Log headerlog = LogFactory.getLog("org.apache.http.headers");
-    private final Log wirelog   = LogFactory.getLog("org.apache.http.wire");
+    private final Log headerLog = LogFactory.getLog("org.apache.http.headers");
+    private final Log wireLog   = LogFactory.getLog("org.apache.http.wire");
     private final Log log;
 
     private final String id;
@@ -51,27 +51,27 @@ public class DefaultClientAsyncConnection
 
     public DefaultClientAsyncConnection(
             final String id,
-            final IOSession iosession,
+            final IOSession ioSession,
             final HttpResponseFactory responseFactory,
             final ByteBufferAllocator allocator,
             final HttpParams params) {
-        super(iosession, responseFactory, allocator, params);
+        super(ioSession, responseFactory, allocator, params);
         this.id = id;
-        this.original = iosession;
-        this.log = LogFactory.getLog(iosession.getClass());
-        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            bind(new LoggingIOSession(iosession, this.id, this.log, this.wirelog));
+        this.original = ioSession;
+        this.log = LogFactory.getLog(ioSession.getClass());
+        if (this.log.isDebugEnabled() || this.wireLog.isDebugEnabled()) {
+            bind(new LoggingIOSession(ioSession, this.id, this.log, this.wireLog));
         }
     }
 
     @Override
-    public void upgrade(final IOSession iosession) {
-        this.original = iosession;
-        if (this.log.isDebugEnabled() || this.wirelog.isDebugEnabled()) {
-            this.log.debug(this.id + " Upgrade session " + iosession);
-            bind(new LoggingIOSession(iosession, this.id, this.headerlog, this.wirelog));
+    public void upgrade(final IOSession ioSession) {
+        this.original = ioSession;
+        if (this.log.isDebugEnabled() || this.wireLog.isDebugEnabled()) {
+            this.log.debug(this.id + " Upgrade session " + ioSession);
+            bind(new LoggingIOSession(ioSession, this.id, this.headerLog, this.wireLog));
         } else {
-            bind(iosession);
+            bind(ioSession);
         }
     }
 
@@ -86,22 +86,22 @@ public class DefaultClientAsyncConnection
 
     @Override
     protected void onResponseReceived(final HttpResponse response) {
-        if (response != null && this.headerlog.isDebugEnabled()) {
-            this.headerlog.debug(this.id + " << " + response.getStatusLine().toString());
+        if (response != null && this.headerLog.isDebugEnabled()) {
+            this.headerLog.debug(this.id + " << " + response.getStatusLine().toString());
             final Header[] headers = response.getAllHeaders();
             for (final Header header : headers) {
-                this.headerlog.debug(this.id + " << " + header.toString());
+                this.headerLog.debug(this.id + " << " + header.toString());
             }
         }
     }
 
     @Override
     protected void onRequestSubmitted(final HttpRequest request) {
-        if (request != null && this.headerlog.isDebugEnabled()) {
-            this.headerlog.debug(this.id + " >> " + request.getRequestLine().toString());
+        if (request != null && this.headerLog.isDebugEnabled()) {
+            this.headerLog.debug(this.id + " >> " + request.getRequestLine().toString());
             final Header[] headers = request.getAllHeaders();
             for (final Header header : headers) {
-                this.headerlog.debug(this.id + " >> " + header.toString());
+                this.headerLog.debug(this.id + " >> " + header.toString());
             }
         }
     }
