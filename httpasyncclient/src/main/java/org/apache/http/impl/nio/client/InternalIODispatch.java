@@ -28,6 +28,7 @@
 package org.apache.http.impl.nio.client;
 
 import java.io.IOException;
+import java.nio.channels.CancelledKeyException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,7 +54,12 @@ class InternalIODispatch extends AbstractIODispatch<DefaultNHttpClientConnection
 
     @Override
     protected DefaultNHttpClientConnection createConnection(final IOSession session) {
-        throw new IllegalStateException("Connection must be created by connection manager");
+        // This method should never get called under normal circumstances
+        // Connection object should be created by the connection manager
+        // upon completion of the session request
+        log.debug("Unexpected invocation of #createConnection");
+        session.close();
+        throw new CancelledKeyException();
     }
 
     @Override
