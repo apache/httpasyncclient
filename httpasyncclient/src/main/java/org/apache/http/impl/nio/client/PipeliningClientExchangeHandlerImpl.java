@@ -145,16 +145,20 @@ class PipeliningClientExchangeHandlerImpl<T> extends AbstractClientExchangeHandl
 
     @Override
     void executionFailed(final Exception ex) {
-        final HttpAsyncRequestProducer requestProducer = this.requestProducerRef.get();
-        if (requestProducer != null) {
-            requestProducer.failed(ex);
-        }
-        final HttpAsyncResponseConsumer<T> responseConsumer = this.responseConsumerRef.get();
-        if (responseConsumer != null) {
-            responseConsumer.failed(ex);
-        }
-        for (final HttpAsyncResponseConsumer<T> cancellable: this.responseConsumerQueue) {
-            cancellable.cancel();
+        try {
+            final HttpAsyncRequestProducer requestProducer = this.requestProducerRef.get();
+            if (requestProducer != null) {
+                requestProducer.failed(ex);
+            }
+            final HttpAsyncResponseConsumer<T> responseConsumer = this.responseConsumerRef.get();
+            if (responseConsumer != null) {
+                responseConsumer.failed(ex);
+            }
+            for (final HttpAsyncResponseConsumer<T> cancellable: this.responseConsumerQueue) {
+                cancellable.cancel();
+            }
+        } finally {
+            this.resultFuture.failed(ex);
         }
     }
 
